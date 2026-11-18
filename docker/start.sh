@@ -11,7 +11,17 @@ if [ "${DB_CONNECTION:-pgsql}" != "pgsql" ]; then
   exit 1
 fi
 
+if [ -z "${DB_URL:-}" ]; then
+  echo "DB_URL is required for application traffic." >&2
+  exit 1
+fi
+
+if [ -z "${DB_MIGRATION_URL:-}" ]; then
+  echo "DB_MIGRATION_URL is required. Use the direct (non-pooled) Neon connection string for migrations." >&2
+  exit 1
+fi
+
 php artisan config:clear
-php artisan migrate --force
+DB_URL="$DB_MIGRATION_URL" php artisan migrate --force
 
 exec php artisan serve --host=0.0.0.0 --port="${PORT:-10000}"
