@@ -37,7 +37,7 @@ Route::prefix('v1')->group(function (): void {
                 : null,
             // Render's Git metadata variable is optional; this hard-coded
             // diagnostic marker identifies the source code in this route.
-            'diagnostic_revision' => '71cf5a3',
+            'diagnostic_version' => 'health-diag-v2',
             'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
             'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
         ];
@@ -127,7 +127,7 @@ Route::prefix('v1')->group(function (): void {
                 'driver' => $driver,
                 'configured_host' => $safeRuntime['configured_host'],
                 'configured_database' => $configuredDatabase,
-                'diagnostic_revision' => $safeRuntime['diagnostic_revision'],
+                'diagnostic_revision' => $safeRuntime['diagnostic_version'],
                 'render_git_commit' => $safeRuntime['render_git_commit'],
                 'instance_id' => $safeRuntime['instance_id'],
             ];
