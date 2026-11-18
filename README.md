@@ -18,8 +18,8 @@ Set these environment variables in Render (never commit secrets):
 - `APP_URL=https://YOUR-SERVICE.onrender.com`
 - `LOG_CHANNEL=stderr`
 - `DB_CONNECTION=pgsql`
-- `DB_URL` — Neon PostgreSQL connection URI, with `sslmode=require`
-- `DB_SSLMODE=require`
+- `DB_URL` — pooled Neon PostgreSQL connection URI for app requests, with `sslmode=require`
+- `DB_MIGRATION_URL` — direct (non-pooled) Neon PostgreSQL URI for startup migrations, with `sslmode=require`
 - `GOOGLE_CLIENT_ID` — the RAVEN23 Web OAuth client ID
 
 The container runs migrations on startup through `DB_MIGRATION_URL` (direct connection), then serves web requests through `DB_URL` (pooled connection), and listens on Render's `PORT` (default 10000).
