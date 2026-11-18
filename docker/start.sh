@@ -1,32 +1,38 @@
 #!/bin/sh
 set -eu
 
-if [ -z "${APP_KEY:-}" ]; then
+APP_KEY_VALUE="$(printenv APP_KEY 2>/dev/null || true)"
+if [ -z "$APP_KEY_VALUE" ]; then
   echo "APP_KEY is required. Generate it once and set it as a stable Render environment variable." >&2
   exit 1
 fi
 
-# The Laravel skeleton defaults to SQLite. RAVEN23 must always use Neon PostgreSQL.
-# Export this explicitly so both migrations and long-running HTTP requests use pgsql.
+# RAVEN23 uses Neon PostgreSQL: pooled URL for API traffic and direct URL for migrations.
 export APP_ENV=production
 export APP_DEBUG=false
 export LOG_CHANNEL=stderr
 export DB_CONNECTION=pgsql
 
-if [ -z "${DB_URL:-}" ]; then
+DB_URL_VALUE="$(printenv DB_URL 2>/dev/null || true)"
+if [ -z "$DB_URL_VALUE" ]; then
   echo "DB_URL is required for pooled application traffic." >&2
   exit 1
 fi
 
-if [ -z "${DB_MIGRATION_URL:-}" ]; then
+DB_MIGRATION_URL_VALUE="$(printenv DB_MIGRATION_URL 2>/dev/null || true)"
+if [ -z "$DB_MIGRATION_URL_VALUE" ]; then
   echo "DB_MIGRATION_URL is required. Use the direct (non-pooled) Neon URI for migrations." >&2
   exit 1
 fi
 
+# Prevent successful migrations on a different Neon branch/database than the API reads.
+php /usr/local/bin/raven23-check-database-target.php
+
 php artisan config:clear
-DB_URL="$DB_MIGRATION_URL" php artisan migrate --force
+DB_URL="$DB_MIGRATION_URL_VALUE" php artisan migrate --force
 
-# Fail startup rather than silently serving requests against a local SQLite database.
-php artisan migrate:status --database=pgsql >/dev/null
+# Verify the exact pooled DB_URL used by HTTP requests before exposing the service.
+php artisan config:clear
+php /usr/local/bin/raven23-verify-auth-schema.php
 
-exec php artisan serve --host=0.0.0.0 --port="${PORT:-10000}"
+exec php artisan serve --host=0.0.0.0 --port="$(printenv PORT 2>/dev/null || echo 10000)"

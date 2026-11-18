@@ -19,6 +19,11 @@ return [
         'scheme' => 'https',
     ],
     'google' => [
-        'client_id' => env('GOOGLE_CLIENT_ID'),
+        // Same public Web OAuth client ID used by the Flutter GoogleSignIn client.
+        // Render can override this value without requiring another APK build.
+        'client_id' => env(
+            'GOOGLE_CLIENT_ID',
+            '1021333219041-pvcdfbbia4qm8auut13usj6sf329ebb3.apps.googleusercontent.com'
+        ),
     ],
 ];

@@ -10,20 +10,26 @@ RUN composer create-project laravel/laravel app "^13.0" --no-interaction --prefe
 WORKDIR /opt/raven/app
 RUN composer require laravel/sanctum:^4.2 google/apiclient:^2.18 --no-interaction --prefer-dist
 COPY . /opt/raven-source
-RUN mkdir -p app/Http/Controllers/Api \
+RUN mkdir -p app/Http/Controllers/Api app/Support \
     && cp /opt/raven-source/config/services.php config/services.php \
     && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
+    && cp /opt/raven-source/app/Support/Raven23AuthSchema.php app/Support/Raven23AuthSchema.php \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
     && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
+    && cp /opt/raven-source/database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
     && php -l app/Models/User.php \
+    && php -l app/Support/Raven23AuthSchema.php \
     && php -l app/Http/Controllers/Api/AuthController.php \
     && php -l bootstrap/app.php \
     && php -l routes/api.php \
     && php -l database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && php -l database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
+    && php -l database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
+    && php -l /opt/raven-source/docker/check-database-target.php \
+    && php -l /opt/raven-source/docker/verify-auth-schema.php \
     && composer dump-autoload --optimize \
     && php artisan route:list --path=api/v1 >/dev/null
 
@@ -35,6 +41,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /var/www/html
 COPY --from=build /opt/raven/app /var/www/html
 COPY docker/start.sh /usr/local/bin/raven23-start
+COPY docker/check-database-target.php /usr/local/bin/raven23-check-database-target.php
+COPY docker/verify-auth-schema.php /usr/local/bin/raven23-verify-auth-schema.php
 RUN chmod +x /usr/local/bin/raven23-start \
     && chown -R www-data:www-data storage bootstrap/cache
 ENV PORT=10000 DB_CONNECTION=pgsql
