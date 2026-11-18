@@ -3,16 +3,56 @@
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', function () {
         try {
             DB::select('select 1');
+
+            $requiredColumns = [
+                'users' => [
+                    'id', 'name', 'email', 'password', 'username',
+                    'profile_id', 'provider', 'google_id', 'is_verified',
+                    'is_account_verified', 'is_guest', 'created_at', 'updated_at',
+                ],
+                'personal_access_tokens' => [
+                    'id', 'tokenable_type', 'tokenable_id', 'name', 'token',
+                    'abilities', 'last_used_at', 'expires_at', 'created_at', 'updated_at',
+                ],
+            ];
+
+            $missing = [];
+            foreach ($requiredColumns as $table => $columns) {
+                if (!Schema::hasTable($table)) {
+                    $missing[] = $table;
+                    continue;
+                }
+
+                $actual = Schema::getColumnListing($table);
+                foreach ($columns as $column) {
+                    if (!in_array($column, $actual, true)) {
+                        $missing[] = "{$table}.{$column}";
+                    }
+                }
+            }
+
+            if ($missing !== []) {
+                return response()->json([
+                    'success' => false,
+                    'service' => 'raven23-api',
+                    'database' => 'connected',
+                    'schema' => 'incomplete',
+                    'missing' => $missing,
+                ], 503);
+            }
+
             return response()->json([
                 'success' => true,
                 'service' => 'raven23-api',
                 'version' => '1',
                 'database' => 'connected',
+                'schema' => 'ready',
             ]);
         } catch (Throwable $exception) {
             report($exception);
