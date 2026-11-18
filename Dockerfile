@@ -18,6 +18,11 @@ RUN mkdir -p app/Http/Controllers/Api \
     && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
+    && php -l app/Models/User.php \
+    && php -l app/Http/Controllers/Api/AuthController.php \
+    && php -l bootstrap/app.php \
+    && php -l routes/api.php \
+    && php -l database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && php -l database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
     && composer dump-autoload --optimize \
     && php artisan route:list --path=api/v1 >/dev/null
