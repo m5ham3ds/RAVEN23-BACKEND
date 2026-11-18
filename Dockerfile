@@ -11,10 +11,10 @@ RUN mkdir -p app/Http/Controllers/Api \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
     && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
-    && php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --tag=migrations --force \
+    && php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --force \
     && composer dump-autoload --optimize
 
-FROM php:8.3-cli-bookworm
+FROM php:8.4-cli-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev ca-certificates \
     && docker-php-ext-install pdo_pgsql mbstring xml curl opcache \
