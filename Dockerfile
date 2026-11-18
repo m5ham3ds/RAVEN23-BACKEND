@@ -5,7 +5,8 @@ WORKDIR /opt/raven/app
 RUN composer require laravel/sanctum:^4.2 google/apiclient:^2.18 --no-interaction --prefer-dist
 COPY . /opt/raven-source
 RUN mkdir -p app/Http/Controllers/Api \
-RUN cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
+    && cp /opt/raven-source/config/services.php config/services.php \
+    && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
     && cp /opt/raven-source/routes/api.php routes/api.php \
