@@ -12,6 +12,7 @@ RUN composer require laravel/sanctum:^4.2 google/apiclient:^2.18 --no-interactio
 COPY . /opt/raven-source
 RUN mkdir -p app/Http/Controllers/Api app/Support \
     && cp /opt/raven-source/config/services.php config/services.php \
+    && cp /opt/raven-source/config/database.php config/database.php \
     && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Support/Raven23AuthSchema.php app/Support/Raven23AuthSchema.php \
@@ -22,6 +23,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support \
     && cp /opt/raven-source/database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
     && php -l app/Models/User.php \
     && php -l app/Support/Raven23AuthSchema.php \
+    && php -l config/database.php \
     && php -l app/Http/Controllers/Api/AuthController.php \
     && php -l bootstrap/app.php \
     && php -l routes/api.php \
