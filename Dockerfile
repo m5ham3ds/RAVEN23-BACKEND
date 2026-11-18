@@ -18,7 +18,8 @@ RUN mkdir -p app/Http/Controllers/Api \
     && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider" --force \
-    && composer dump-autoload --optimize
+    && composer dump-autoload --optimize \
+    && php artisan route:list --path=api/v1 >/dev/null
 
 FROM php:8.4-cli-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
