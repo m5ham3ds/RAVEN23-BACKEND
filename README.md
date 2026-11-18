@@ -27,11 +27,11 @@ The container runs the repository's stable migrations on startup through `DB_MIG
 ## API base URL
 The Flutter app expects a base URL ending in `/api/v1/`.
 
-Health: `GET /up` and `GET /api/v1/health`.
+Health: `GET /up` and `GET /api/v1/health`. The API health route verifies the PostgreSQL connection and required `users` / `personal_access_tokens` columns, returning `database=connected` and `schema=ready` only when both are usable.
 
 ## Implemented account endpoints
 - `POST /api/v1/auth/register`
-- `POST /api/v1/auth/login`
+  Registration and Sanctum token issuance run in one database transaction so a failed token insert cannot leave a partial account.\n- `POST /api/v1/auth/login`
 - `POST /api/v1/auth/google`
 - `POST /api/v1/auth/guest`
 - `POST /api/v1/auth/logout`
@@ -42,4 +42,4 @@ Health: `GET /up` and `GET /api/v1/health`.
 - `DELETE /api/v1/user/account`
 - `GET /api/v1/users/check-username`
 
-Password-reset email delivery is deliberately reported as unavailable until an outbound email provider is configured. Do not treat this initial backend as production-ready until runtime/API tests, mail delivery, abuse controls, backups, and monitoring are completed.
+Password-reset email delivery is deliberately reported as unavailable until an outbound email provider is configured. Unexpected API server errors return a safe reference ID. Render logs record that ID with exception type, source file/line and SQLSTATE only; SQL statements, bindings, passwords, emails and request bodies are intentionally excluded. Do not treat this initial backend as production-ready until runtime/API tests, mail delivery, abuse controls, backups, and monitoring are completed.
