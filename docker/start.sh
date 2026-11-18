@@ -8,6 +8,9 @@ fi
 
 # The Laravel skeleton defaults to SQLite. RAVEN23 must always use Neon PostgreSQL.
 # Export this explicitly so both migrations and long-running HTTP requests use pgsql.
+export APP_ENV=production
+export APP_DEBUG=false
+export LOG_CHANNEL=stderr
 export DB_CONNECTION=pgsql
 
 if [ -z "${DB_URL:-}" ]; then
