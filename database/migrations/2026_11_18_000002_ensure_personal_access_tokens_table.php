@@ -3,7 +3,6 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use RuntimeException;
 
 return new class extends Migration
 {
@@ -36,7 +35,7 @@ return new class extends Migration
             ));
 
             if ($missingColumns !== []) {
-                throw new RuntimeException(
+                throw new \RuntimeException(
                     'The existing personal_access_tokens table is missing required Sanctum columns: '
                     . implode(', ', $missingColumns)
                 );
