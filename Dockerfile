@@ -30,6 +30,6 @@ COPY --from=build /opt/raven/app /var/www/html
 COPY docker/start.sh /usr/local/bin/raven23-start
 RUN chmod +x /usr/local/bin/raven23-start \
     && chown -R www-data:www-data storage bootstrap/cache
-ENV PORT=10000
+ENV PORT=10000 DB_CONNECTION=pgsql
 EXPOSE 10000
 CMD ["/usr/local/bin/raven23-start"]
