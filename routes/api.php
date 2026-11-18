@@ -4,33 +4,59 @@ use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Database\QueryException;
+use PDOException;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', function () {
-        try {
-            DB::select('select 1');
+        $stage = 'database_ping';
+        $requestId = (string) Str::uuid();
+        $connectionName = (string) config('database.default', 'unknown');
+        $connectionConfig = config('database.connections.' . $connectionName, []);
+        $driver = is_array($connectionConfig) ? ($connectionConfig['driver'] ?? null) : null;
 
-            // Identify the exact PostgreSQL database/schema used by this live
-            // HTTP process. Never expose connection credentials.
-            $identity = DB::selectOne("
+        $configuredUrl = is_array($connectionConfig)
+            ? (string) ($connectionConfig['url'] ?? '')
+            : '';
+        $urlParts = $configuredUrl !== '' ? parse_url($configuredUrl) : [];
+        $configuredHost = strtolower((string) ($urlParts['host'] ?? ''));
+        $configuredHost = (string) preg_replace('/-pooler(?=\.|$)/', '', $configuredHost);
+        $configuredDatabase = isset($urlParts['path'])
+            ? rawurldecode(trim((string) $urlParts['path'], '/'))
+            : null;
+
+        $safeRuntime = [
+            'connection' => $connectionName,
+            'driver' => $driver,
+            'configured_host' => $configuredHost !== '' ? $configuredHost : null,
+            'configured_database' => $configuredDatabase,
+            'configured_schema' => is_array($connectionConfig)
+                ? ($connectionConfig['search_path'] ?? null)
+                : null,
+            // Render's Git metadata variable is optional; this hard-coded
+            // diagnostic marker identifies the source code in this route.
+            'diagnostic_revision' => '71cf5a3',
+            'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
+            'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
+        ];
+
+        try {
+            DB::connection($connectionName)->select('select 1');
+
+            $stage = 'connection_identity';
+            $identity = DB::connection($connectionName)->selectOne("
                 SELECT
                     current_database() AS database_name,
                     current_schema() AS schema_name,
                     current_setting('search_path') AS search_path
             ");
 
-            $databaseUrl = (string) config('database.connections.pgsql.url');
-            $urlParts = $databaseUrl !== '' ? parse_url($databaseUrl) : [];
-            $endpointHost = strtolower((string) ($urlParts['host'] ?? ''));
-            $endpointHost = (string) preg_replace('/-pooler(?=\.|$)/', '', $endpointHost);
-
-            $runtime = [
+            $runtime = $safeRuntime + [
                 'database_name' => $identity->database_name ?? null,
                 'schema_name' => $identity->schema_name ?? null,
                 'search_path' => $identity->search_path ?? null,
-                'endpoint_host' => $endpointHost !== '' ? $endpointHost : null,
-                'release_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
-                'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
             ];
 
             $requiredColumns = [
@@ -47,12 +73,13 @@ Route::prefix('v1')->group(function (): void {
 
             $missing = [];
             foreach ($requiredColumns as $table => $columns) {
-                if (!Schema::hasTable($table)) {
+                $stage = 'schema_inspection:' . $table;
+                if (!Schema::connection($connectionName)->hasTable($table)) {
                     $missing[] = $table;
                     continue;
                 }
 
-                $actual = Schema::getColumnListing($table);
+                $actual = Schema::connection($connectionName)->getColumnListing($table);
                 foreach ($columns as $column) {
                     if (!in_array($column, $actual, true)) {
                         $missing[] = "{$table}.{$column}";
@@ -83,12 +110,36 @@ Route::prefix('v1')->group(function (): void {
                     : 'not_configured',
             ]);
         } catch (Throwable $exception) {
-            report($exception);
+            $errorInfo = null;
+            if ($exception instanceof QueryException || $exception instanceof PDOException) {
+                $errorInfo = $exception->errorInfo ?? null;
+            }
+
+            $diagnostic = [
+                'request_id' => $requestId,
+                'stage' => $stage,
+                'exception_type' => get_class($exception),
+                'source_file' => basename($exception->getFile()),
+                'source_line' => $exception->getLine(),
+                'sql_state' => is_array($errorInfo) ? ($errorInfo[0] ?? null) : null,
+                'database_error_code' => is_array($errorInfo) ? ($errorInfo[1] ?? null) : null,
+                'connection' => $connectionName,
+                'driver' => $driver,
+                'configured_host' => $safeRuntime['configured_host'],
+                'configured_database' => $configuredDatabase,
+                'diagnostic_revision' => $safeRuntime['diagnostic_revision'],
+                'render_git_commit' => $safeRuntime['render_git_commit'],
+                'instance_id' => $safeRuntime['instance_id'],
+            ];
+
+            // Deliberately omit exception message, SQL, bindings and credentials.
+            Log::error('RAVEN23 health check failed', $diagnostic);
+
             return response()->json([
                 'success' => false,
                 'service' => 'raven23-api',
                 'database' => 'unavailable',
-                'release_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
+                'diagnostic' => $diagnostic,
             ], 503);
         }
     });
