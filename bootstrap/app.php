@@ -82,7 +82,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return response()->json([
                 'success' => false,
-                'message' => 'The server could not complete the request. Please try again.',
+                'message' => 'The server could not complete the request. Please try again. Reference: ' . $requestId,
                 'request_id' => $requestId,
             ], $status >= 500 ? $status : 500);
         });
