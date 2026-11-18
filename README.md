@@ -31,7 +31,8 @@ Health: `GET /up` and `GET /api/v1/health`. The API health route verifies the Po
 
 ## Implemented account endpoints
 - `POST /api/v1/auth/register`
-  Registration and Sanctum token issuance run in one database transaction so a failed token insert cannot leave a partial account.\n- `POST /api/v1/auth/login`
+  Registration and Sanctum token issuance run in one database transaction so a failed token insert cannot leave a partial account.
+- `POST /api/v1/auth/login`
 - `POST /api/v1/auth/google`
 - `POST /api/v1/auth/guest`
 - `POST /api/v1/auth/logout`
