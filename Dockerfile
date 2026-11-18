@@ -4,6 +4,7 @@ RUN composer create-project laravel/laravel app "^13.0" --no-interaction --prefe
 WORKDIR /opt/raven/app
 RUN composer require laravel/sanctum:^4.2 google/apiclient:^2.18 --no-interaction --prefer-dist
 COPY . /opt/raven-source
+RUN mkdir -p app/Http/Controllers/Api \
 RUN cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
