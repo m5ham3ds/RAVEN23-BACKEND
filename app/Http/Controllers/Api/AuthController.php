@@ -7,6 +7,7 @@ use App\Models\User;
 use Google\Client as GoogleClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -37,19 +38,24 @@ class AuthController extends Controller
             'profile_id' => ['sometimes', 'integer', 'min:0', 'max:143'],
         ]);
 
-        $user = User::create([
-            'name' => trim($data['name']),
-            'email' => Str::lower(trim($data['email'])),
-            'username' => Str::lower(trim($data['username'])),
-            'password' => $data['password'],
-            'profile_id' => $data['profile_id'] ?? 0,
-            'provider' => 'email',
-            'is_verified' => false,
-            'is_account_verified' => false,
-            'is_guest' => false,
-        ]);
+        // User creation and Sanctum token issuance must commit or roll back
+        // together. A token-table failure must never leave an orphaned user
+        // that then blocks the next registration attempt by unique email.
+        return DB::transaction(function () use ($data): JsonResponse {
+            $user = User::create([
+                'name' => trim($data['name']),
+                'email' => Str::lower(trim($data['email'])),
+                'username' => Str::lower(trim($data['username'])),
+                'password' => $data['password'],
+                'profile_id' => $data['profile_id'] ?? 0,
+                'provider' => 'email',
+                'is_verified' => false,
+                'is_account_verified' => false,
+                'is_guest' => false,
+            ]);
 
-        return $this->session($user);
+            return $this->session($user);
+        });
     }
 
     public function login(Request $request): JsonResponse
