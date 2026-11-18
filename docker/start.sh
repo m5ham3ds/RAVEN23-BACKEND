@@ -24,6 +24,6 @@ php artisan config:clear
 DB_URL="$DB_MIGRATION_URL" php artisan migrate --force
 
 # Fail startup rather than silently serving requests against a local SQLite database.
-php artisan db:show --database=pgsql >/dev/null
+php artisan migrate:status --database=pgsql >/dev/null
 
 exec php artisan serve --host=0.0.0.0 --port="${PORT:-10000}"
