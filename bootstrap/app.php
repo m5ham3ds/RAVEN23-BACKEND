@@ -7,6 +7,9 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -52,7 +55,27 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            report($exception);
+            $requestId = (string) Str::uuid();
+            $connection = (string) config('database.default');
+            $context = [
+                'request_id' => $requestId,
+                'method' => $request->method(),
+                'path' => $request->path(),
+                'exception_type' => get_class($exception),
+                'source_file' => basename($exception->getFile()),
+                'source_line' => $exception->getLine(),
+                'db_connection' => $connection,
+                'db_driver' => config("database.connections.{$connection}.driver"),
+            ];
+
+            // Log only diagnostic metadata. Do not log the exception message,
+            // SQL statement, bindings, password, email, or request body.
+            if ($exception instanceof QueryException) {
+                $context['sql_state'] = $exception->errorInfo[0] ?? null;
+                $context['database_error_code'] = $exception->errorInfo[1] ?? null;
+            }
+
+            Log::error('RAVEN23 API request failed', $context);
             $status = $exception instanceof HttpExceptionInterface
                 ? $exception->getStatusCode()
                 : 500;
@@ -60,6 +83,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return response()->json([
                 'success' => false,
                 'message' => 'The server could not complete the request. Please try again.',
+                'request_id' => $requestId,
             ], $status >= 500 ? $status : 500);
         });
     })->create();
