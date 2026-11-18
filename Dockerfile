@@ -1,4 +1,10 @@
-FROM composer:2 AS build
+FROM php:8.4-cli-bookworm AS build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev libzip-dev unzip git ca-certificates \
+    && docker-php-ext-install pdo_pgsql mbstring xml curl zip opcache \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 WORKDIR /opt/raven
 RUN composer create-project laravel/laravel app "^13.0" --no-interaction --prefer-dist
 WORKDIR /opt/raven/app
