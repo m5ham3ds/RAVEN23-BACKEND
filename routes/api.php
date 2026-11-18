@@ -4,11 +4,24 @@ use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
-    Route::get('/health', fn () => response()->json([
-        'success' => true,
-        'service' => 'raven23-api',
-        'version' => '1',
-    ]));
+    Route::get('/health', function () {
+        try {
+            DB::select('select 1');
+            return response()->json([
+                'success' => true,
+                'service' => 'raven23-api',
+                'version' => '1',
+                'database' => 'connected',
+            ]);
+        } catch (Throwable $exception) {
+            report($exception);
+            return response()->json([
+                'success' => false,
+                'service' => 'raven23-api',
+                'database' => 'unavailable',
+            ], 503);
+        }
+    });
 
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
