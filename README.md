@@ -22,7 +22,7 @@ Set these environment variables in Render (never commit secrets):
 - `DB_SSLMODE=require`
 - `GOOGLE_CLIENT_ID` — the RAVEN23 Web OAuth client ID
 
-The container runs migrations on startup and listens on Render's `PORT` (default 10000).
+The container runs migrations on startup through `DB_MIGRATION_URL` (direct connection), then serves web requests through `DB_URL` (pooled connection), and listens on Render's `PORT` (default 10000).
 
 ## API base URL
 The Flutter app expects a base URL ending in `/api/v1/`.
