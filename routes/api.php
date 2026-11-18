@@ -10,6 +10,29 @@ Route::prefix('v1')->group(function (): void {
         try {
             DB::select('select 1');
 
+            // Identify the exact PostgreSQL database/schema used by this live
+            // HTTP process. Never expose connection credentials.
+            $identity = DB::selectOne("
+                SELECT
+                    current_database() AS database_name,
+                    current_schema() AS schema_name,
+                    current_setting('search_path') AS search_path
+            ");
+
+            $databaseUrl = (string) config('database.connections.pgsql.url');
+            $urlParts = $databaseUrl !== '' ? parse_url($databaseUrl) : [];
+            $endpointHost = strtolower((string) ($urlParts['host'] ?? ''));
+            $endpointHost = (string) preg_replace('/-pooler(?=\.|$)/', '', $endpointHost);
+
+            $runtime = [
+                'database_name' => $identity->database_name ?? null,
+                'schema_name' => $identity->schema_name ?? null,
+                'search_path' => $identity->search_path ?? null,
+                'endpoint_host' => $endpointHost !== '' ? $endpointHost : null,
+                'release_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
+                'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
+            ];
+
             $requiredColumns = [
                 'users' => [
                     'id', 'name', 'email', 'password', 'username',
@@ -43,6 +66,7 @@ Route::prefix('v1')->group(function (): void {
                     'service' => 'raven23-api',
                     'database' => 'connected',
                     'schema' => 'incomplete',
+                    'runtime_target' => $runtime,
                     'missing' => $missing,
                 ], 503);
             }
@@ -53,6 +77,7 @@ Route::prefix('v1')->group(function (): void {
                 'version' => '1',
                 'database' => 'connected',
                 'schema' => 'ready',
+                'runtime_target' => $runtime,
                 'google_auth' => filled(config('services.google.client_id'))
                     ? 'configured'
                     : 'not_configured',
@@ -63,6 +88,7 @@ Route::prefix('v1')->group(function (): void {
                 'success' => false,
                 'service' => 'raven23-api',
                 'database' => 'unavailable',
+                'release_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
             ], 503);
         }
     });
