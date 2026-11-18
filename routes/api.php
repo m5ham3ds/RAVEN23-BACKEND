@@ -53,6 +53,9 @@ Route::prefix('v1')->group(function (): void {
                 'version' => '1',
                 'database' => 'connected',
                 'schema' => 'ready',
+                'google_auth' => filled(config('services.google.client_id'))
+                    ? 'configured'
+                    : 'not_configured',
             ]);
         } catch (Throwable $exception) {
             report($exception);
