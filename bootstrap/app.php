@@ -36,4 +36,29 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
+
+        // Never expose SQL, database paths, parameter values or stack details to API clients.
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if (!$request->is('api/*')) {
+                return null;
+            }
+
+            if ($exception instanceof ValidationException || $exception instanceof AuthenticationException) {
+                return null;
+            }
+
+            if ($exception instanceof HttpExceptionInterface && $exception->getStatusCode() < 500) {
+                return null;
+            }
+
+            report($exception);
+            $status = $exception instanceof HttpExceptionInterface
+                ? $exception->getStatusCode()
+                : 500;
+
+            return response()->json([
+                'success' => false,
+                'message' => 'The server could not complete the request. Please try again.',
+            ], $status >= 500 ? $status : 500);
+        });
     })->create();
