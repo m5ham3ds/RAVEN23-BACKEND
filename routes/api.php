@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
-use PDOException;
 
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', function () {
@@ -111,7 +110,7 @@ Route::prefix('v1')->group(function (): void {
             ]);
         } catch (Throwable $exception) {
             $errorInfo = null;
-            if ($exception instanceof QueryException || $exception instanceof PDOException) {
+            if ($exception instanceof QueryException || $exception instanceof \PDOException) {
                 $errorInfo = $exception->errorInfo ?? null;
             }
 
