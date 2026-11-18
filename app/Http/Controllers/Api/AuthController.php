@@ -25,6 +25,10 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        $request->merge([
+            'email' => Str::lower(trim((string) $request->input('email'))),
+            'username' => Str::lower(trim((string) $request->input('username'))),
+        ]);
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:40'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email'],
@@ -166,6 +170,9 @@ class AuthController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $user = $request->user();
+        if ($request->has('username')) {
+            $request->merge(['username' => Str::lower(trim((string) $request->input('username')))]);
+        }
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'min:2', 'max:40'],
             'username' => ['sometimes', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/', 'unique:users,username,' . $user->id],
@@ -180,6 +187,7 @@ class AuthController extends Controller
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $data = $request->validate([
             'current_password' => ['required', 'string'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email,' . $user->id],
@@ -228,6 +236,7 @@ class AuthController extends Controller
 
     public function usernameAvailable(Request $request): JsonResponse
     {
+        $request->merge(['username' => Str::lower(trim((string) $request->input('username')))]);
         $data = $request->validate([
             'username' => ['required', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/'],
         ]);
