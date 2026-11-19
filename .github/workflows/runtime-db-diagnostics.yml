@@ -1,0 +1,85 @@
+name: RAVEN23 Runtime Database Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: Which Neon endpoint to test
+        required: true
+        type: choice
+        options:
+          - both
+          - pooled
+          - direct
+        default: both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-runtime-db-diagnostics
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Build production image and test Neon connectivity
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout backend
+        uses: actions/checkout@v4
+
+      - name: Validate required repository secrets
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+          NEON_DB_MIGRATION_URL: ${{ secrets.NEON_DB_MIGRATION_URL }}
+        run: |
+          set -eu
+          test -n "$NEON_DB_URL" || { echo "::error::Missing repository secret NEON_DB_URL"; exit 1; }
+          test -n "$NEON_DB_MIGRATION_URL" || { echo "::error::Missing repository secret NEON_DB_MIGRATION_URL"; exit 1; }
+          echo "Both Neon connection secrets are present. Values are not displayed."
+
+      - name: Build the exact Render Dockerfile
+        run: docker build --pull -t raven23-backend:diagnostics .
+
+      - name: Diagnose pooled application connection
+        if: inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          set -eu
+          docker run --rm \
+            --network bridge \
+            -e DB_CONNECTION=pgsql \
+            -e APP_ENV=production \
+            -e APP_DEBUG=false \
+            -e DB_URL="$NEON_DB_URL" \
+            -e RAVEN_DIAG_MODE=pooled \
+            -v "$GITHUB_WORKSPACE/docker:/diagnostics:ro" \
+            --entrypoint php \
+            raven23-backend:diagnostics \
+            /diagnostics/runtime-db-diagnostics.php
+
+      - name: Diagnose direct migration connection
+        if: inputs.run_mode == 'both' || inputs.run_mode == 'direct'
+        env:
+          NEON_DB_MIGRATION_URL: ${{ secrets.NEON_DB_MIGRATION_URL }}
+        run: |
+          set -eu
+          docker run --rm \
+            --network bridge \
+            -e DB_CONNECTION=pgsql \
+            -e APP_ENV=production \
+            -e APP_DEBUG=false \
+            -e DB_URL="$NEON_DB_MIGRATION_URL" \
+            -e RAVEN_DIAG_MODE=direct \
+            -v "$GITHUB_WORKSPACE/docker:/diagnostics:ro" \
+            --entrypoint php \
+            raven23-backend:diagnostics \
+            /diagnostics/runtime-db-diagnostics.php
+
+      - name: Diagnostic summary
+        if: always()
+        run: |
+          echo "The diagnostic output above reports URL host/database only, DNS, TCP, Laravel configuration, and SELECT 1."
+          echo "No connection URI, username, or password is intentionally printed."
