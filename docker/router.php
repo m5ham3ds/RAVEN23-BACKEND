@@ -10,7 +10,8 @@ declare(strict_types=1);
  * restricted environment-variable passthrough list.
  */
 
-$publicRoot = realpath(__DIR__ . '/../public');
+$documentRoot = (string) ($_SERVER['DOCUMENT_ROOT'] ?? (getcwd() . '/public'));
+$publicRoot = realpath($documentRoot);
 if ($publicRoot === false) {
     http_response_code(500);
     echo 'RAVEN23 public directory is unavailable.';
