@@ -32,6 +32,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support \
     && php -l database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
     && php -l /opt/raven-source/docker/check-database-target.php \
     && php -l /opt/raven-source/docker/verify-auth-schema.php \
+    && php -l /opt/raven-source/docker/router.php \
     && composer dump-autoload --optimize \
     && php artisan route:list --path=api/v1 >/dev/null
 
@@ -45,6 +46,7 @@ COPY --from=build /opt/raven/app /var/www/html
 COPY docker/start.sh /usr/local/bin/raven23-start
 COPY docker/check-database-target.php /usr/local/bin/raven23-check-database-target.php
 COPY docker/verify-auth-schema.php /usr/local/bin/raven23-verify-auth-schema.php
+COPY docker/router.php /usr/local/bin/raven23-router.php
 RUN chmod +x /usr/local/bin/raven23-start \
     && chown -R www-data:www-data storage bootstrap/cache
 ENV PORT=10000 DB_CONNECTION=pgsql
