@@ -35,4 +35,16 @@ DB_URL="$DB_MIGRATION_URL_VALUE" php artisan migrate --force
 php artisan config:clear
 php /usr/local/bin/raven23-verify-auth-schema.php
 
-exec php artisan serve --host=0.0.0.0 --port="$(printenv PORT 2>/dev/null || echo 10000)"
+PORT_VALUE="$(printenv PORT 2>/dev/null || echo 10000)"
+case "$PORT_VALUE" in
+  ''|*[!0-9]*)
+    echo "PORT must be a numeric TCP port." >&2
+    exit 1
+    ;;
+esac
+
+# Run PHP's HTTP server directly. Do not use "php artisan serve" in production:
+# Laravel's dev server may filter custom environment variables before spawning
+# the child HTTP process when a .env file exists, which drops DB_URL and OAuth
+# secrets even though the startup/migration process can read them.
+exec php -S "0.0.0.0:${PORT_VALUE}" -t public /usr/local/bin/raven23-router.php
