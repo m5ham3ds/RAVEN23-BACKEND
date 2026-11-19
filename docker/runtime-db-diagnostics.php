@@ -116,7 +116,7 @@ try {
     while ($previous) {
         if ($previous instanceof PDOException) {
             $info = $previous->errorInfo ?? [];
-            $state = (string) ($info[0] ?? $previous->getCode() ?: 'unknown');
+            $state = (string) ($info[0] ?? ($previous->getCode() ?: 'unknown'));
             $code = (string) ($info[1] ?? 'unknown');
             break;
         }
