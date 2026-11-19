@@ -78,6 +78,69 @@ jobs:
             raven23-backend:diagnostics \
             /diagnostics/runtime-db-diagnostics.php
 
+      - name: Verify production HTTP process retains Neon environment
+        if: inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          set -eu
+          container_name="raven23-http-env-smoke"
+          response_file="$RUNNER_TEMP/raven23-health.json"
+          cleanup() {
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          # Start the exact production PHP HTTP server/router used by docker/start.sh.
+          # This bypasses migrations so the diagnostic remains read-only.
+          docker run -d \
+            --name "$container_name" \
+            -p 127.0.0.1:18080:18080 \
+            -e DB_CONNECTION=pgsql \
+            -e DB_URL="$NEON_DB_URL" \
+            -e APP_ENV=production \
+            -e APP_DEBUG=false \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e LOG_CHANNEL=stderr \
+            --entrypoint php \
+            raven23-backend:diagnostics \
+            -S 0.0.0.0:18080 -t public /usr/local/bin/raven23-router.php
+
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --max-time 5 \
+              http://127.0.0.1:18080/api/v1/health \
+              --output "$response_file"; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != true ]; then
+            echo "::error::The production HTTP server did not return a health response."
+            docker logs "$container_name" || true
+            exit 1
+          fi
+
+          echo "HTTP server returned a response. Validating health and environment markers."
+          jq -e '
+            .success == true and
+            .database == "connected" and
+            .schema == "ready" and
+            .runtime_target.connection == "pgsql" and
+            .runtime_target.driver == "pgsql" and
+            .runtime_target.db_url_env_present == true and
+            .runtime_target.db_url_config_present == true and
+            .runtime_target.configured_database == "neondb"
+          ' "$response_file" >/dev/null || {
+            echo "::error::The HTTP process did not retain the expected PostgreSQL environment or schema."
+            jq 'del(.runtime_target.endpoint_host)' "$response_file" || true
+            docker logs "$container_name" || true
+            exit 1
+          }
+
+          echo "PASS: production HTTP process retained DB_URL and successfully queried Neon."
       - name: Diagnostic summary
         if: always()
         run: |
