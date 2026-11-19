@@ -26,7 +26,7 @@ The pooled and direct Neon URLs must point to the same project, branch, database
 
 The account-schema reconciliation is idempotent. It adds missing RAVEN23 account fields, backfills missing/invalid usernames for existing users without deleting accounts, and ensures the Sanctum `personal_access_tokens` table exists. Existing valid usernames and token records are preserved.
 
-The server listens on Render's `PORT` (default 10000).
+The server listens on Render's `PORT` (default 10000). Production starts PHP's built-in HTTP server directly with `docker/router.php`; do not replace this with `php artisan serve`. Laravel's development ServeCommand filters child-process environment variables when a `.env` file exists, which can remove Render secrets such as `DB_URL` and `GOOGLE_CLIENT_ID` from HTTP requests even though startup commands can read them.
 
 ## API base URL
 The Flutter app expects a base URL ending in `/api/v1/`.
