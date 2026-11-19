@@ -16,6 +16,16 @@ Route::prefix('v1')->group(function (): void {
         $connectionConfig = config('database.connections.' . $connectionName, []);
         $driver = is_array($connectionConfig) ? ($connectionConfig['driver'] ?? null) : null;
 
+        // Some long-running web workers may expose Render variables through
+        // getenv() while Laravel's Env helper returns an empty value.
+        $runtimeDbUrl = getenv('DB_URL');
+        if ((!is_string($connectionConfig['url'] ?? null) || trim((string) $connectionConfig['url']) === '')
+            && is_string($runtimeDbUrl) && trim($runtimeDbUrl) !== '') {
+            config(['database.connections.' . $connectionName . '.url' => trim($runtimeDbUrl)]);
+            DB::purge($connectionName);
+            $connectionConfig = config('database.connections.' . $connectionName, []);
+        }
+
         $configuredUrl = is_array($connectionConfig)
             ? (string) ($connectionConfig['url'] ?? '')
             : '';
@@ -36,7 +46,9 @@ Route::prefix('v1')->group(function (): void {
                 : null,
             // Render's Git metadata variable is optional; this hard-coded
             // diagnostic marker identifies the source code in this route.
-            'diagnostic_version' => 'health-diag-v2',
+            'diagnostic_version' => 'health-diag-v3',
+            'db_url_env_present' => is_string($runtimeDbUrl) && trim($runtimeDbUrl) !== '',
+            'db_url_config_present' => $configuredUrl !== '',
             'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
             'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
         ];
@@ -127,6 +139,8 @@ Route::prefix('v1')->group(function (): void {
                 'configured_host' => $safeRuntime['configured_host'],
                 'configured_database' => $configuredDatabase,
                 'diagnostic_revision' => $safeRuntime['diagnostic_version'],
+                'db_url_env_present' => $safeRuntime['db_url_env_present'],
+                'db_url_config_present' => $safeRuntime['db_url_config_present'],
                 'render_git_commit' => $safeRuntime['render_git_commit'],
                 'instance_id' => $safeRuntime['instance_id'],
             ];
