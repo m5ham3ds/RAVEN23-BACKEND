@@ -3,6 +3,10 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+// Keep DB_URL available in long-running web workers even if Laravel's Env
+// repository does not expose it through env() in that process.
+$dbUrl = env('DB_URL') ?: (getenv('DB_URL') ?: ($_SERVER['DB_URL'] ?? null));
+
 return [
 
     /*
@@ -34,7 +38,7 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => env('DB_URL'),
+            'url' => $dbUrl,
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
