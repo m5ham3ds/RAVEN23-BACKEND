@@ -17,11 +17,11 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && cp /opt/raven-source/config/database.php config/database.php \
     && cp /opt/raven-source/config/cache.php config/cache.php \
     && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
+    && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Support/Raven23AuthSchema.php app/Support/Raven23AuthSchema.php \
     && cp /opt/raven-source/app/Support/GoogleIdTokenVerifier.php app/Support/GoogleIdTokenVerifier.php \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
-    && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/tests/Feature/AuthLifecycleTest.php tests/Feature/AuthLifecycleTest.php \
     && cp /opt/raven-source/tests/Integration/PostgresAuthLifecycleTest.php tests/Feature/PostgresAuthLifecycleTest.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
@@ -51,7 +51,11 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l /opt/raven-source/docker/router.php \
     && composer dump-autoload --optimize \
     && APP_ENV=testing php artisan test tests/Feature/AuthLifecycleTest.php \
-    && php artisan route:list --path=api/v1 >/dev/null
+    && php artisan route:list --path=api/v1 --except-vendor > /tmp/raven23-routes.txt \
+    && grep -Fq 'api/v1/auth/register' /tmp/raven23-routes.txt \
+    && grep -Fq 'api/v1/auth/login' /tmp/raven23-routes.txt \
+    && grep -Fq 'api/v1/auth/guest' /tmp/raven23-routes.txt \
+    && grep -Fq 'api/v1/user/profile' /tmp/raven23-routes.txt
 
 FROM php:8.4-cli-bookworm AS postgres-test
 RUN apt-get update && apt-get install -y --no-install-recommends \
