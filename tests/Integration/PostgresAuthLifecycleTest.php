@@ -21,9 +21,29 @@ class PostgresAuthLifecycleTest extends TestCase
     {
         parent::setUp();
 
-        if (DB::connection()->getDriverName() !== 'pgsql') {
-            $this->markTestSkipped('PostgresAuthLifecycleTest requires PostgreSQL.');
+        $databaseUrl = trim((string) (getenv('NEON_DB_URL') ?: getenv('DB_URL')));
+        if ($databaseUrl === '') {
+            $this->markTestSkipped('NEON_DB_URL is not configured for the PostgreSQL integration suite.');
         }
+
+        // Laravel's base TestCase configures SQLite in some repository test
+        // harnesses; do not rely on environment variables alone to override
+        // that in-memory connection after the application has bootstrapped.
+        config([
+            'database.default' => 'pgsql',
+            'database.connections.pgsql.driver' => 'pgsql',
+            'database.connections.pgsql.url' => $databaseUrl,
+            'database.connections.pgsql.host' => null,
+            'database.connections.pgsql.port' => null,
+            'database.connections.pgsql.database' => null,
+            'database.connections.pgsql.username' => null,
+            'database.connections.pgsql.password' => null,
+            'database.connections.pgsql.sslmode' => 'require',
+        ]);
+        DB::purge('pgsql');
+
+        $this->assertSame('pgsql', DB::connection()->getDriverName());
+        DB::connection()->selectOne('select 1');
     }
 
     protected function tearDown(): void
