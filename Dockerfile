@@ -51,9 +51,9 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && composer dump-autoload --optimize \
     && APP_ENV=testing php artisan test --filter=AuthLifecycleTest \
     && (if [ -n "${NEON_DB_URL:-}" ]; then APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test --filter=PostgresAuthLifecycleTest; else echo "SKIP: live PostgreSQL auth suite (NEON_DB_URL not supplied to Docker build)."; fi) \
-    && (if [ -n "${NEON_DB_URL:-}" ]; then APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test --filter=PostgresAuthLifecycleTest; else echo "SKIP: live PostgreSQL auth suite (NEON_DB_URL not supplied to Docker build)."; fi) \
     && php artisan route:list --path=api/v1 >/dev/null
 
+ARG NEON_DB_URL
 FROM php:8.4-cli-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev ca-certificates \
