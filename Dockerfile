@@ -13,8 +13,6 @@ COPY . /opt/raven-source
 RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && cp /opt/raven-source/config/services.php config/services.php \
     && cp /opt/raven-source/config/database.php config/database.php \
-    && cp /opt/raven-source/config/cache.php config/cache.php \
-    && cp /opt/raven-source/config/app.php config/app.php \
     && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Support/Raven23AuthSchema.php app/Support/Raven23AuthSchema.php \
@@ -30,8 +28,6 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l app/Support/Raven23AuthSchema.php \
     && php -l app/Support/GoogleIdTokenVerifier.php \
     && php -l config/database.php \
-    && php -l config/cache.php \
-    && php -l config/app.php \
     && DB_URL='postgresql://raven23-test:placeholder@db.invalid:5432/neondb?sslmode=require' php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $config = require "config/database.php"; if (($config["connections"]["pgsql"]["url"] ?? null) !== getenv("DB_URL")) { fwrite(STDERR, "PostgreSQL must use the resolved DB_URL.\\n"); exit(1); } echo "PostgreSQL DB_URL configuration check passed.\\n";' \
     && php -l app/Http/Controllers/Api/AuthController.php \
     && php -l bootstrap/app.php \
