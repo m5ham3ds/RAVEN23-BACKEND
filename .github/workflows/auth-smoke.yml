@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 15
     env:
       API_ROOT: https://raven23-backend.onrender.com/api/v1
-      EXPECTED_COMMIT: \${{ github.event.workflow_run.head_sha }}
+      EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
     steps:
       - name: Wait for the exact source commit to be live on Render
         run: |
