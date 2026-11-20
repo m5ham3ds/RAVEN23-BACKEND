@@ -59,24 +59,6 @@ class PostgresAuthLifecycleTest extends TestCase
         ));
         $this->assertSame('/api/v1/auth/register', $preparedPath, 'Laravel postJson() must preserve the API route path.');
 
-        $probeRequest = \\Symfony\\Component\\HttpFoundation\\Request::create(
-            $preparedUrl,
-            'POST',
-            [],
-            [],
-            [],
-            ['SCRIPT_NAME' => '/index.php', 'SCRIPT_FILENAME' => '/var/www/html/public/index.php']
-        );
-        fwrite(STDOUT, sprintf(
-            "[RAVEN23 HTTP server vars] path_info=%s request_uri=%s method=%s host=%s script_name=%s base_url=%s\\n",
-            $probeRequest->getPathInfo(),
-            $probeRequest->getRequestUri(),
-            $probeRequest->getMethod(),
-            $probeRequest->getHost(),
-            (string) $probeRequest->server->get('SCRIPT_NAME', ''),
-            (string) $probeRequest->getBaseUrl(),
-        ));
-
         $routes = $this->app->make('router')->getRoutes();
         $registered = collect($routes)->first(static function ($route): bool {
             return $route->uri() === 'api/v1/auth/register'
