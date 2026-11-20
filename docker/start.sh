@@ -7,6 +7,13 @@ if [ -z "$APP_KEY_VALUE" ]; then
   exit 1
 fi
 
+# RAVEN23 uses a local file cache; Neon is reserved for application data.
+export CACHE_STORE=file
+if [ "$(php -r '$c = require "config/cache.php"; echo $c["default"] ?? "";')" != "file" ]; then
+  echo "RAVEN23 cache store must be file-backed; refusing to start with a database cache." >&2
+  exit 1
+fi
+
 # RAVEN23 uses Neon PostgreSQL: pooled URL for API traffic and direct URL for migrations.
 export APP_ENV=production
 export APP_DEBUG=false
