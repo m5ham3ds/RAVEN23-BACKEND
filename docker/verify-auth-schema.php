@@ -48,30 +48,66 @@ try {
         );
     }
 
-    // Exercise the exact production persistence path, then roll it back.
+    // Exercise the exact production persistence path. Keep each write in a
+    // savepoint so PostgreSQL can report the first failing statement without
+    // poisoning the outer transaction. All rows are rolled back afterward.
+    DB::beginTransaction();
     try {
-        DB::transaction(function (): void {
-            $probe = User::create([
-                'name' => 'RAVEN23 Schema Probe',
-                'email' => 'raven23-probe-' . Str::lower(Str::random(20)) . '@invalid.raven23',
-                'username' => 'raven_probe_' . Str::lower(Str::random(12)),
-                'password' => Str::random(48),
-                'provider' => 'email',
-                'is_guest' => false,
-            ]);
+        $probe = User::create([
+            'name' => 'RAVEN23 Schema Probe',
+            'email' => 'raven23-probe-' . Str::lower(Str::random(20)) . '@invalid.raven23',
+            'username' => 'raven_probe_' . Str::lower(Str::random(12)),
+            'password' => Str::random(48),
+            'provider' => 'email',
+            'is_guest' => false,
+        ]);
 
+        DB::beginTransaction();
+        try {
             $issued = $probe->createToken('raven23-schema-probe');
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw new RuntimeException(
+                'Sanctum token insert failed: ' . get_class($exception)
+                . '; SQLSTATE=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                    ? ($exception->errorInfo[0] ?? 'unknown')
+                    : 'non-sql')
+                . '; driver_code=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                    ? ($exception->errorInfo[1] ?? 'unknown')
+                    : 'n/a')
+                . '; detail=' . preg_replace('/[\\r\\n]+/', ' ', $exception->getMessage()),
+                0,
+                $exception
+            );
+        }
+
+        DB::beginTransaction();
+        try {
             $issued->accessToken->forceFill([
                 'device_id' => null,
                 'device_name' => 'Schema verification',
                 'platform' => 'android',
             ])->save();
-
-            throw new RuntimeException('RAVEN23_SCHEMA_PROBE_ROLLBACK');
-        });
-    } catch (RuntimeException $exception) {
-        if ($exception->getMessage() !== 'RAVEN23_SCHEMA_PROBE_ROLLBACK') {
-            throw $exception;
+            DB::commit();
+        } catch (Throwable $exception) {
+            DB::rollBack();
+            throw new RuntimeException(
+                'Sanctum device metadata write failed: ' . get_class($exception)
+                . '; SQLSTATE=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                    ? ($exception->errorInfo[0] ?? 'unknown')
+                    : 'non-sql')
+                . '; driver_code=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                    ? ($exception->errorInfo[1] ?? 'unknown')
+                    : 'n/a')
+                . '; detail=' . preg_replace('/[\\r\\n]+/', ' ', $exception->getMessage()),
+                0,
+                $exception
+            );
+        }
+    } finally {
+        while (DB::transactionLevel() > 0) {
+            DB::rollBack();
         }
     }
 
