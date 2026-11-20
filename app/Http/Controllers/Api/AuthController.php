@@ -275,7 +275,7 @@ class AuthController extends Controller
         $email = Str::lower(trim($claims['email']));
         $name = trim((string) ($claims['name'] ?? ''));
 
-        return DB::transaction(function () use ($data, $request, $googleId, $email, $name): JsonResponse {
+        $result = DB::transaction(function () use ($data, $request, $googleId, $email, $name): array|JsonResponse {
             $user = User::query()
                 ->where('google_id', $googleId)
                 ->lockForUpdate()
@@ -360,8 +360,19 @@ class AuthController extends Controller
 
             $this->discardGuest($guest, $user);
 
-            return $this->session($user, $request);
+            return ['user_id' => (int) $user->id];
         });
+
+        if ($result instanceof JsonResponse) {
+            return $result;
+        }
+
+        $this->markStage($request, 'google.reload_user');
+        $user = User::findOrFail($result['user_id']);
+
+        // Keep token issuance outside the account/linking transaction so an
+        // isolated session failure cannot poison the account transaction.
+        return $this->session($user, $request);
     }
 
     public function guest(Request $request): JsonResponse
