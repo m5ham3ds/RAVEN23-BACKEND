@@ -17,7 +17,7 @@ class PostgresAuthLifecycleTest extends TestCase
     public function createApplication()
     {
         $app = require dirname(__DIR__, 2) . '/bootstrap/app.php';
-        $app->make(\\Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap();
+        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
         return $app;
     }
