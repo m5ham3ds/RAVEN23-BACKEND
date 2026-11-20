@@ -3,7 +3,7 @@
 namespace Tests\Integration;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\TestCase;
+use Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -14,21 +14,6 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 class PostgresAuthLifecycleTest extends TestCase
 {
-    public function createApplication()
-    {
-        $app = require dirname(__DIR__, 2) . '/bootstrap/app.php';
-        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
-
-        // Laravel's normal api route loader adds the /api prefix around routes/api.php.
-        // The generated test harness does not run that routing callback, so invoke
-        // the same callback explicitly for this standalone integration test app.
-        \Illuminate\Support\Facades\Route::middleware('api')->prefix('api')->group(
-            dirname(__DIR__, 2) . '/routes/api.php'
-        );
-
-        return $app;
-    }
-
     private array $createdUsers = [];
     private array $createdTokens = [];
     private array $createdEmails = [];
@@ -55,6 +40,13 @@ class PostgresAuthLifecycleTest extends TestCase
             'cache.default' => 'array',
         ]);
         DB::purge('pgsql');
+
+        $routes = $this->app->make('router')->getRoutes();
+        $registered = collect($routes)->contains(static function ($route): bool {
+            return $route->uri() === 'api/v1/auth/register'
+                && in_array('POST', $route->methods(), true);
+        });
+        $this->assertTrue($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
 
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
