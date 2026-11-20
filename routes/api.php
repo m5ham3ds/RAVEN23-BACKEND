@@ -44,9 +44,7 @@ Route::prefix('v1')->group(function (): void {
             'configured_schema' => is_array($connectionConfig)
                 ? ($connectionConfig['search_path'] ?? null)
                 : null,
-            // Render's Git metadata variable is optional; this hard-coded
-            // diagnostic marker identifies the source code in this route.
-            'diagnostic_version' => 'health-diag-v3',
+            'diagnostic_version' => 'health-diag-v4-auth-device-tokens',
             'db_url_env_present' => is_string($runtimeDbUrl) && trim($runtimeDbUrl) !== '',
             'db_url_config_present' => $configuredUrl !== '',
             'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
@@ -78,7 +76,9 @@ Route::prefix('v1')->group(function (): void {
                 ],
                 'personal_access_tokens' => [
                     'id', 'tokenable_type', 'tokenable_id', 'name', 'token',
-                    'abilities', 'last_used_at', 'expires_at', 'created_at', 'updated_at',
+                    'abilities', 'last_used_at', 'expires_at',
+                    'device_id', 'device_name', 'platform',
+                    'created_at', 'updated_at',
                 ],
             ];
 

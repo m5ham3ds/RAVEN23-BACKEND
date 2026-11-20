@@ -4,24 +4,121 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Google\Client as GoogleClient;
+use App\Support\GoogleIdTokenVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
-    private function session(User $user): JsonResponse
+    public function __construct(private readonly GoogleIdTokenVerifier $googleVerifier)
     {
-        $token = $user->createToken('raven23-android')->plainTextToken;
+    }
+
+    private function deviceMetadata(Request $request): array
+    {
+        return $request->validate([
+            'device_id' => ['sometimes', 'nullable', 'uuid'],
+            'device_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'platform' => ['sometimes', 'nullable', 'in:android,ios,tv'],
+            'replace_device_id' => ['sometimes', 'integer', 'min:1'],
+        ]);
+    }
+
+    /**
+     * Issue a Sanctum token and bind it to this installation when metadata is
+     * supplied. Re-authentication on the same installation replaces its old
+     * token instead of accumulating stale credentials.
+     */
+    private function session(User $user, Request $request, int $status = 200): JsonResponse
+    {
+        $device = $this->deviceMetadata($request);
+        $deviceId = $device['device_id'] ?? null;
+
+        if (is_string($deviceId) && $deviceId !== '') {
+            $user->tokens()->where('device_id', $deviceId)->delete();
+        }
+
+        if (isset($device['replace_device_id'])) {
+            // The relationship is scoped to this account; a caller cannot
+            // revoke another user's token by guessing its database ID.
+            $user->tokens()->whereKey((int) $device['replace_device_id'])->delete();
+        }
+
+        $platform = $device['platform'] ?? 'client';
+        $issued = $user->createToken('raven23-' . $platform);
+        $issued->accessToken->forceFill([
+            'device_id' => $deviceId,
+            'device_name' => $device['device_name'] ?? null,
+            'platform' => $device['platform'] ?? null,
+        ])->save();
 
         return response()->json([
             'success' => true,
-            'token' => $token,
+            'token' => $issued->plainTextToken,
             'user' => $user->fresh()->toRavenArray(),
-        ]);
+        ], $status);
+    }
+
+    /**
+     * A guest token is a short-lived proof that the caller owns the guest
+     * account being upgraded. Invalid/stale guest tokens are ignored so they
+     * cannot prevent a normal email or Google sign-in.
+     */
+    private function guestAccount(?string $plainTextToken): ?User
+    {
+        if (!is_string($plainTextToken) || trim($plainTextToken) === '') {
+            return null;
+        }
+
+        $accessToken = PersonalAccessToken::findToken($plainTextToken);
+        $user = $accessToken?->tokenable;
+
+        return $user instanceof User && $user->is_guest ? $user : null;
+    }
+
+    private function discardGuest(?User $guest, ?User $destination = null): void
+    {
+        if (!$guest || ($destination && $guest->is($destination))) {
+            return;
+        }
+
+        $guest->tokens()->delete();
+        $guest->delete();
+    }
+
+    private function googleConflict(string $code, string $message): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ], 409);
+    }
+
+    private function googleUsername(string $email): string
+    {
+        $base = Str::of($email)
+            ->before('@')
+            ->lower()
+            ->replaceMatches('/[^a-z0-9_]/', '_')
+            ->trim('_')
+            ->substr(0, 22)
+            ->toString();
+
+        if (strlen($base) < 5) {
+            $base = 'raven_' . Str::lower(Str::random(8));
+        }
+
+        $candidate = $base;
+        while (User::where('username', $candidate)->exists()) {
+            $candidate = substr($base, 0, 21) . '_' . Str::lower(Str::random(4));
+        }
+
+        return $candidate;
     }
 
     public function register(Request $request): JsonResponse
@@ -30,31 +127,51 @@ class AuthController extends Controller
             'email' => Str::lower(trim((string) $request->input('email'))),
             'username' => Str::lower(trim((string) $request->input('username'))),
         ]);
+
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:40'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email'],
             'username' => ['required', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'max:128'],
             'profile_id' => ['sometimes', 'integer', 'min:0', 'max:143'],
+            'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        // User creation and Sanctum token issuance must commit or roll back
-        // together. A token-table failure must never leave an orphaned user
-        // that then blocks the next registration attempt by unique email.
-        return DB::transaction(function () use ($data): JsonResponse {
-            $user = User::create([
-                'name' => trim($data['name']),
-                'email' => Str::lower(trim($data['email'])),
-                'username' => Str::lower(trim($data['username'])),
-                'password' => $data['password'],
-                'profile_id' => $data['profile_id'] ?? 0,
-                'provider' => 'email',
-                'is_verified' => false,
-                'is_account_verified' => false,
-                'is_guest' => false,
-            ]);
+        return DB::transaction(function () use ($data, $request): JsonResponse {
+            $guest = $this->guestAccount($data['guest_token'] ?? null);
 
-            return $this->session($user);
+            if ($guest) {
+                // Upgrade the existing guest row so its identity and linked
+                // data remain stable. Every old anonymous token is revoked.
+                $guest->tokens()->delete();
+                $guest->forceFill([
+                    'name' => trim($data['name']),
+                    'email' => Str::lower(trim($data['email'])),
+                    'username' => Str::lower(trim($data['username'])),
+                    'password' => $data['password'],
+                    'profile_id' => $data['profile_id'] ?? 0,
+                    'provider' => 'email',
+                    'google_id' => null,
+                    'is_verified' => false,
+                    'is_account_verified' => false,
+                    'is_guest' => false,
+                ])->save();
+                $user = $guest->fresh();
+            } else {
+                $user = User::create([
+                    'name' => trim($data['name']),
+                    'email' => Str::lower(trim($data['email'])),
+                    'username' => Str::lower(trim($data['username'])),
+                    'password' => $data['password'],
+                    'profile_id' => $data['profile_id'] ?? 0,
+                    'provider' => 'email',
+                    'is_verified' => false,
+                    'is_account_verified' => false,
+                    'is_guest' => false,
+                ]);
+            }
+
+            return $this->session($user, $request, 201);
         });
     }
 
@@ -63,99 +180,169 @@ class AuthController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email:rfc'],
             'password' => ['required', 'string'],
+            'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        $user = User::query()
-            ->where('email', Str::lower(trim($data['email'])))
-            ->where('is_guest', false)
-            ->first();
+        return DB::transaction(function () use ($data, $request): JsonResponse {
+            $user = User::query()
+                ->where('email', Str::lower(trim($data['email'])))
+                ->where('is_guest', false)
+                ->lockForUpdate()
+                ->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The supplied credentials are invalid.',
-            ], 401);
-        }
+            if (!$user || !Hash::check($data['password'], $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The supplied credentials are invalid.',
+                ], 401);
+            }
 
-        return $this->session($user);
+            $this->discardGuest(
+                $this->guestAccount($data['guest_token'] ?? null),
+                $user,
+            );
+
+            return $this->session($user, $request);
+        });
     }
 
     public function google(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'id_token' => ['required', 'string', 'min:20'],
+            'id_token' => ['required', 'string', 'min:20', 'max:8192'],
+            'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        $clientId = (string) config('services.google.client_id');
-        if ($clientId === '') {
+        if (!filled(config('services.google.client_id'))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication is not configured on the backend.',
             ], 503);
         }
 
-        $client = new GoogleClient(['client_id' => $clientId]);
-        $claims = $client->verifyIdToken($data['id_token']);
-        if (!$claims || empty($claims['sub']) || empty($claims['email']) || ($claims['email_verified'] ?? false) !== true) {
+        $claims = $this->googleVerifier->verify($data['id_token']);
+        if (
+            !$claims
+            || !is_string($claims['sub'] ?? null)
+            || trim($claims['sub']) === ''
+            || !is_string($claims['email'] ?? null)
+            || trim($claims['email']) === ''
+            || ($claims['email_verified'] ?? false) !== true
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'Google identity token is invalid or its email is not verified.',
             ], 401);
         }
 
+        $googleId = trim($claims['sub']);
         $email = Str::lower(trim($claims['email']));
-        $user = User::where('email', $email)->first();
+        $name = trim((string) ($claims['name'] ?? ''));
 
-        if (!$user) {
-            $base = Str::of($email)->before('@')->lower()->replaceMatches('/[^a-z0-9_]/', '_')->substr(0, 22)->toString();
-            if (strlen($base) < 5) {
-                $base = 'raven_' . Str::lower(Str::random(8));
-            }
-            $username = $base;
-            while (User::where('username', $username)->exists()) {
-                $username = substr($base, 0, 21) . '_' . Str::lower(Str::random(4));
+        return DB::transaction(function () use ($data, $request, $googleId, $email, $name): JsonResponse {
+            $user = User::query()
+                ->where('google_id', $googleId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$user) {
+                $user = User::query()
+                    ->where('email', $email)
+                    ->lockForUpdate()
+                    ->first();
             }
 
-            $user = User::create([
-                'name' => (string) ($claims['name'] ?? $base),
-                'email' => $email,
-                'username' => $username,
-                'password' => Str::random(64),
-                'provider' => 'google',
-                'google_id' => (string) $claims['sub'],
-                'is_verified' => true,
-                'is_account_verified' => false,
-                'is_guest' => false,
-            ]);
-        } else {
-            if ($user->google_id && !hash_equals((string) $user->google_id, (string) $claims['sub'])) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'This email is linked to a different Google identity.',
-                ], 409);
-            }
-            $user->forceFill([
-                'google_id' => (string) $claims['sub'],
-                'email_verified_at' => $user->email_verified_at ?? now(),
-            ])->save();
-        }
+            $guest = $this->guestAccount($data['guest_token'] ?? null);
 
-        return $this->session($user);
+            if ($user && $user->google_id && !hash_equals((string) $user->google_id, $googleId)) {
+                return $this->googleConflict(
+                    'google_identity_conflict',
+                    'This email is linked to a different Google identity.',
+                );
+            }
+
+            if ($user && !$user->is_guest && !$user->google_id) {
+                // Match the app's account-linking contract: Google cannot
+                // silently take over an existing password account.
+                return $this->googleConflict(
+                    'email_password_account_exists',
+                    'This email already has a password account. Sign in with your password first.',
+                );
+            }
+
+            if ($user) {
+                $emailOwner = User::query()
+                    ->where('email', $email)
+                    ->where('id', '<>', $user->id)
+                    ->exists();
+
+                if ($emailOwner) {
+                    return $this->googleConflict(
+                        'google_email_in_use',
+                        'This Google email is already used by another account.',
+                    );
+                }
+
+                $user->forceFill([
+                    'name' => $name !== '' ? $name : $user->name,
+                    'email' => $email,
+                    'provider' => 'google',
+                    'google_id' => $googleId,
+                    'email_verified_at' => $user->email_verified_at ?? now(),
+                    'is_verified' => true,
+                    'is_guest' => false,
+                ])->save();
+            } elseif ($guest) {
+                $guest->tokens()->delete();
+                $guest->forceFill([
+                    'name' => $name !== '' ? $name : 'RAVEN23 User',
+                    'email' => $email,
+                    'username' => $this->googleUsername($email),
+                    'password' => Str::random(64),
+                    'provider' => 'google',
+                    'google_id' => $googleId,
+                    'email_verified_at' => now(),
+                    'is_verified' => true,
+                    'is_account_verified' => false,
+                    'is_guest' => false,
+                ])->save();
+                $user = $guest->fresh();
+            } else {
+                $user = User::create([
+                    'name' => $name !== '' ? $name : 'RAVEN23 User',
+                    'email' => $email,
+                    'username' => $this->googleUsername($email),
+                    'password' => Str::random(64),
+                    'provider' => 'google',
+                    'google_id' => $googleId,
+                    'email_verified_at' => now(),
+                    'is_verified' => true,
+                    'is_account_verified' => false,
+                    'is_guest' => false,
+                ]);
+            }
+
+            $this->discardGuest($guest, $user);
+
+            return $this->session($user, $request);
+        });
     }
 
-    public function guest(): JsonResponse
+    public function guest(Request $request): JsonResponse
     {
-        $suffix = Str::lower(Str::random(16));
-        $user = User::create([
-            'name' => 'Guest',
-            'email' => "guest-{$suffix}@guest.raven23.invalid",
-            'username' => "guest_{$suffix}",
-            'password' => Str::random(64),
-            'provider' => 'guest',
-            'is_guest' => true,
-        ]);
+        return DB::transaction(function () use ($request): JsonResponse {
+            $suffix = Str::lower(Str::random(16));
+            $user = User::create([
+                'name' => 'Guest',
+                'email' => "guest-{$suffix}@guest.raven23.invalid",
+                'username' => "guest_{$suffix}",
+                'password' => Str::random(64),
+                'provider' => 'guest',
+                'is_guest' => true,
+            ]);
 
-        return $this->session($user);
+            return $this->session($user, $request);
+        });
     }
 
     public function logout(Request $request): JsonResponse
@@ -204,6 +391,7 @@ class AuthController extends Controller
         $user->forceFill([
             'email' => Str::lower(trim($data['email'])),
             'email_verified_at' => null,
+            'is_verified' => false,
         ])->save();
 
         return response()->json(['success' => true, 'user' => $user->fresh()->toRavenArray()]);
@@ -219,8 +407,11 @@ class AuthController extends Controller
         if (!Hash::check($data['current_password'], $user->password)) {
             return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
-        $user->update(['password' => $data['password']]);
-        $user->tokens()->delete();
+
+        DB::transaction(function () use ($user, $data): void {
+            $user->update(['password' => $data['password']]);
+            $user->tokens()->delete();
+        });
 
         return response()->json(['success' => true, 'message' => 'Password updated. Please sign in again.']);
     }
@@ -228,14 +419,16 @@ class AuthController extends Controller
     public function deleteAccount(Request $request): JsonResponse
     {
         $user = $request->user();
-        if ($user->is_guest) {
-            $user->delete();
-            return response()->json(['success' => true]);
-        }
-        $data = $request->validate([
+        $request->validate([
             'acknowledge_wallet_credit' => ['sometimes', 'boolean'],
         ]);
-        $user->delete();
+
+        DB::transaction(function () use ($user): void {
+            // Sanctum tokens are polymorphic and have no user foreign key;
+            // explicitly revoke them before removing the account row.
+            $user->tokens()->delete();
+            $user->delete();
+        });
 
         return response()->json(['success' => true, 'message' => 'Account deleted.']);
     }

@@ -1,0 +1,183 @@
+name: RAVEN23 Live Authentication Smoke
+
+on:
+  workflow_run:
+    workflows: ["RAVEN23 Backend Docker Validation"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-live-auth-smoke
+  cancel-in-progress: false
+
+jobs:
+  live-auth-smoke:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_ROOT: https://raven23-backend.onrender.com/api/v1
+      EXPECTED_COMMIT: \${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Wait for the exact source commit to be live on Render
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request, urllib.error
+
+          base = os.environ["API_ROOT"]
+          expected = os.environ["EXPECTED_COMMIT"][:12]
+          last = None
+
+          for attempt in range(1, 61):
+              try:
+                  request = urllib.request.Request(
+                      base + "/health",
+                      headers={"Accept": "application/json", "Cache-Control": "no-cache"},
+                  )
+                  with urllib.request.urlopen(request, timeout=15) as response:
+                      health = json.loads(response.read().decode("utf-8"))
+                  target = health.get("runtime_target") or {}
+                  live_sha = target.get("render_git_commit", "unknown")
+                  if (
+                      health.get("success") is True
+                      and health.get("database") == "connected"
+                      and health.get("schema") == "ready"
+                      and live_sha == expected
+                  ):
+                      if health.get("google_auth") != "configured":
+                          raise SystemExit("Google OAuth is not configured in the live backend.")
+                      print("PASS: Render serves the expected commit; Neon, auth schema and Google configuration are healthy.")
+                      raise SystemExit(0)
+                  last = (health.get("success"), health.get("database"), health.get("schema"), live_sha)
+              except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+                  last = type(error).__name__
+              time.sleep(5)
+
+          raise SystemExit(f"Render did not become healthy on commit {expected}; last={last!r}")
+          PY
+
+      - name: Exercise live email, guest, device-session and token-revocation flows
+        run: |
+          python3 - <<'PY'
+          import json, os, uuid, urllib.request, urllib.error
+
+          base = os.environ["API_ROOT"]
+          suffix = uuid.uuid4().hex
+          email = f"raven23-ci-{suffix}@example.test"
+          username = f"raven_ci_{suffix[:16]}"
+          password = f"Raven23-CI-{suffix[:16]}-Safe!"
+          device_id = str(uuid.uuid4())
+          tokens = []
+          guest_tokens = []
+
+          def call(method, path, body=None, token=None, expected=(200,)):
+              payload = None if body is None else json.dumps(body).encode("utf-8")
+              headers = {"Accept": "application/json"}
+              if payload is not None:
+                  headers["Content-Type"] = "application/json"
+              if token:
+                  headers["Authorization"] = "Bearer " + token
+              request = urllib.request.Request(base + path, data=payload, headers=headers, method=method)
+              try:
+                  response = urllib.request.urlopen(request, timeout=35)
+                  status = response.status
+                  raw = response.read()
+              except urllib.error.HTTPError as error:
+                  status = error.code
+                  raw = error.read()
+              try:
+                  data = json.loads(raw.decode("utf-8")) if raw else {}
+              except json.JSONDecodeError:
+                  data = {}
+              if status not in expected:
+                  raise RuntimeError(f"{method} {path}: expected {expected}, received {status}; response_keys={list(data)[:12]}")
+              return status, data
+
+          def profile(token, expected=(200,)):
+              return call("GET", "/user/profile", token=token, expected=expected)
+
+          def delete_account(token):
+              try:
+                  call("DELETE", "/user/account", token=token, expected=(200,))
+              except Exception:
+                  pass
+
+          try:
+              _, registered = call("POST", "/auth/register", {
+                  "name": "RAVEN23 CI User",
+                  "email": email,
+                  "username": username,
+                  "password": password,
+                  "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test",
+                  "platform": "android",
+              }, expected=(201,))
+              first_token = registered.get("token")
+              user_id = (registered.get("user") or {}).get("id")
+              if not first_token or not user_id:
+                  raise RuntimeError("Registration response omitted its account or session.")
+              tokens.append(first_token)
+              _, first_profile = profile(first_token)
+              if (first_profile.get("user") or {}).get("id") != user_id:
+                  raise RuntimeError("Profile did not resolve the registered PostgreSQL user.")
+
+              _, login = call("POST", "/auth/login", {
+                  "email": email,
+                  "password": password,
+                  "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test",
+                  "platform": "android",
+              })
+              second_token = login.get("token")
+              if not second_token or (login.get("user") or {}).get("id") != user_id:
+                  raise RuntimeError("Email login did not return the same database account.")
+              tokens.append(second_token)
+              profile(first_token, expected=(401,))
+              profile(second_token)
+
+              call("POST", "/auth/login", {
+                  "email": email,
+                  "password": "incorrect-password-for-smoke-test",
+              }, expected=(401,))
+
+              call("POST", "/auth/logout", token=second_token)
+              profile(second_token, expected=(401,))
+
+              _, relogin = call("POST", "/auth/login", {
+                  "email": email,
+                  "password": password,
+                  "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test",
+                  "platform": "android",
+              })
+              final_token = relogin.get("token")
+              if not final_token:
+                  raise RuntimeError("Re-login after logout did not issue a new session.")
+              tokens.append(final_token)
+              call("DELETE", "/user/account", token=final_token)
+              profile(final_token, expected=(401,))
+              profile(first_token, expected=(401,))
+
+              _, guest = call("POST", "/auth/guest")
+              guest_token = guest.get("token")
+              guest_id = (guest.get("user") or {}).get("id")
+              if not guest_token or not guest_id:
+                  raise RuntimeError("Guest endpoint did not persist a guest identity.")
+              guest_tokens.append(guest_token)
+              _, guest_profile = profile(guest_token)
+              if (guest_profile.get("user") or {}).get("id") != guest_id:
+                  raise RuntimeError("Guest profile does not match its persisted account.")
+              call("DELETE", "/user/account", token=guest_token)
+              profile(guest_token, expected=(401,))
+
+              print("PASS: live email registration/login, wrong-password rejection, profile persistence, same-device token replacement, logout revocation, deletion cleanup and guest lifecycle.")
+          finally:
+              for token in tokens + guest_tokens:
+                  delete_account(token)
+          PY

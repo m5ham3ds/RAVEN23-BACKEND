@@ -16,7 +16,9 @@ $requiredColumns = [
     ],
     'personal_access_tokens' => [
         'id', 'tokenable_type', 'tokenable_id', 'name', 'token',
-        'abilities', 'last_used_at', 'expires_at', 'created_at', 'updated_at',
+        'abilities', 'last_used_at', 'expires_at',
+        'device_id', 'device_name', 'platform',
+        'created_at', 'updated_at',
     ],
 ];
 
@@ -43,9 +45,9 @@ try {
         );
     }
 
-    fwrite(STDOUT, "Verified: runtime database schema is ready for registration and Sanctum sessions.\n");
+    fwrite(STDOUT, "Verified: runtime database schema is ready for registration, Sanctum sessions and device identity.\n");
 } catch (Throwable $exception) {
-    fwrite(STDERR, "Runtime database schema validation failed: "
+    fwrite(STDERR, "Runtime DB_URL schema validation failed: "
         . get_class($exception) . ': ' . $exception->getMessage() . "\n");
     exit(1);
 }
