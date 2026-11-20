@@ -54,8 +54,9 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php artisan route:list --path=api/v1 >/dev/null
 
 FROM php:8.4-cli-bookworm AS postgres-test
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev \
-    && docker-php-ext-install pdo_pgsql \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev \
+    && docker-php-ext-install pdo_pgsql mbstring xml curl opcache \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/raven/app /var/www/html
 WORKDIR /var/www/html
