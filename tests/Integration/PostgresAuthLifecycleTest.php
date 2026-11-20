@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
@@ -23,6 +24,11 @@ class PostgresAuthLifecycleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Laravel's TestCase may use a base application that does not load
+        // the repository's routes/api.php. Explicitly register the exact same
+        // production route file before exercising HTTP requests.
+        require_once base_path('routes/api.php');
 
         $databaseUrl = trim((string) (getenv('NEON_DB_URL') ?: getenv('DB_URL')));
         if ($databaseUrl === '') {
@@ -51,8 +57,8 @@ class PostgresAuthLifecycleTest extends TestCase
         // The real PostgreSQL suite boots through the runtime routing config.
         // Fail early with registered-route metadata rather than sending auth
         // requests to a missing API group and misdiagnosing it as a DB error.
-        $this->assertTrue(
-            Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/register', 'POST')) !== null,
+        $this->assertNotNull(
+            Route::getRoutes()->match(Request::create('/api/v1/auth/register', 'POST')),
             'Production API register route was not loaded into Laravel.',
         );
 
