@@ -52,7 +52,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $preparedUrl = $this->prepareUrlForRequest('/api/v1/auth/register');
         $preparedPath = parse_url($preparedUrl, PHP_URL_PATH) ?: '/';
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 HTTP request URL] path=%s host=%s app_url_path=%s\\n",
+            "[RAVEN23 HTTP request URL] path=%s host=%s app_url_path=%s\n",
             $preparedPath,
             parse_url($preparedUrl, PHP_URL_HOST) ?: 'missing',
             parse_url((string) config('app.url'), PHP_URL_PATH) ?: '/',
@@ -62,7 +62,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $probeRequest = \\Illuminate\\Http\\Request::create($preparedUrl, 'POST');
         $probeServer = $probeRequest->server->all();
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 HTTP server vars] path_info=%s request_uri=%s method=%s host=%s script_name=%s base_url=%s\\n",
+            "[RAVEN23 HTTP server vars] path_info=%s request_uri=%s method=%s host=%s script_name=%s base_url=%s\n",
             $probeRequest->getPathInfo(),
             $probeRequest->getRequestUri(),
             $probeRequest->getMethod(),
