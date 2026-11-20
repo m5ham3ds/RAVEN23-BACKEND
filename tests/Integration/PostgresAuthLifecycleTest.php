@@ -77,7 +77,7 @@ class PostgresAuthLifecycleTest extends TestCase
         foreach (array_reverse($this->createdTokens) as $tokenId) {
             try {
                 DB::table('personal_access_tokens')->where('id', $tokenId)->delete();
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Preserve the original test failure; cleanup is best-effort.
             }
         }
@@ -85,7 +85,7 @@ class PostgresAuthLifecycleTest extends TestCase
         foreach (array_reverse($this->createdUsers) as $userId) {
             try {
                 DB::table('users')->where('id', $userId)->delete();
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Preserve the original test failure; cleanup is best-effort.
             }
         }
@@ -100,7 +100,7 @@ class PostgresAuthLifecycleTest extends TestCase
                         ->delete();
                     DB::table('users')->whereIn('id', $orphanedIds)->delete();
                 }
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Best-effort cleanup only for unique synthetic test emails.
             }
         }
