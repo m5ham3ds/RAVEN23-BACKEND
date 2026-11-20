@@ -96,7 +96,12 @@ jobs:
               except json.JSONDecodeError:
                   data = {}
               if status not in expected:
-                  raise RuntimeError(f"{method} {path}: expected {expected}, received {status}; response_keys={list(data)[:12]}")
+                  diagnostic = data.get("diagnostic") if isinstance(data, dict) else None
+                  request_id = data.get("request_id") if isinstance(data, dict) else None
+                  raise RuntimeError(
+                      f"{method} {path}: expected {expected}, received {status}; "
+                      f"request_id={request_id}; safe_diagnostic={diagnostic}"
+                  )
               return status, data
 
           def profile(token, expected=(200,)):

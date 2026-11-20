@@ -41,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Never expose SQL, database paths, parameter values or stack details to API clients.
+        // Never expose SQL, database paths, parameter values or stack details.
         $exceptions->render(function (Throwable $exception, Request $request) {
             if (!$request->is('api/*')) {
                 return null;
@@ -57,22 +57,29 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $requestId = (string) Str::uuid();
             $connection = (string) config('database.default');
+            $diagnostic = [
+                'exception_type' => get_class($exception),
+                'source_file' => basename($exception->getFile()),
+                'source_line' => $exception->getLine(),
+                'sql_state' => null,
+                'database_error_code' => null,
+            ];
             $context = [
                 'request_id' => $requestId,
                 'method' => $request->method(),
                 'path' => $request->path(),
-                'exception_type' => get_class($exception),
-                'source_file' => basename($exception->getFile()),
-                'source_line' => $exception->getLine(),
+                ...$diagnostic,
                 'db_connection' => $connection,
                 'db_driver' => config("database.connections.{$connection}.driver"),
             ];
 
-            // Log only diagnostic metadata. Do not log the exception message,
-            // SQL statement, bindings, password, email, or request body.
+            // Log only diagnostic metadata. Do not log exception messages,
+            // SQL statements, bindings, passwords, emails, or request bodies.
             if ($exception instanceof QueryException) {
-                $context['sql_state'] = $exception->errorInfo[0] ?? null;
-                $context['database_error_code'] = $exception->errorInfo[1] ?? null;
+                $diagnostic['sql_state'] = $exception->errorInfo[0] ?? null;
+                $diagnostic['database_error_code'] = $exception->errorInfo[1] ?? null;
+                $context['sql_state'] = $diagnostic['sql_state'];
+                $context['database_error_code'] = $diagnostic['database_error_code'];
             }
 
             Log::error('RAVEN23 API request failed', $context);
@@ -84,6 +91,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 'success' => false,
                 'message' => 'The server could not complete the request. Please try again.',
                 'request_id' => $requestId,
+                // Safe correlation fields help diagnose a failed integration
+                // without revealing SQL, credentials, stack traces or input.
+                'diagnostic' => $diagnostic,
             ], $status >= 500 ? $status : 500);
         });
     })->create();
