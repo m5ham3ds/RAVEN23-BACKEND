@@ -52,8 +52,10 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && APP_ENV=testing php artisan test --filter=AuthLifecycleTest \
     && php artisan route:list --path=api/v1 >/dev/null
 
-FROM build AS postgres-test
+FROM php:8.4-cli-bookworm AS postgres-test
 ARG NEON_DB_URL
+COPY --from=build /opt/raven/app /var/www/html
+WORKDIR /var/www/html
 RUN if [ -n "${NEON_DB_URL}" ]; then \
       APP_ENV=testing DB_CONNECTION=pgsql DB_URL="${NEON_DB_URL}" DB_MIGRATION_URL="${NEON_DB_URL}" php artisan test --filter=PostgresAuthLifecycleTest; \
     else echo "SKIP: live PostgreSQL auth suite (NEON_DB_URL not supplied to Docker build)."; fi
