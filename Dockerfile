@@ -53,7 +53,6 @@ RUN set -eu; \
       app/Models/User.php app/Support/Raven23AuthSchema.php app/Support/GoogleIdTokenVerifier.php \
       config/database.php config/cache.php app/Http/Controllers/Api/AuthController.php \
       bootstrap/app.php routes/api.php tests/Feature/AuthLifecycleTest.php \
-      tests/Integration/PostgresAuthLifecycleTest.php \
       tests/Integration/PostgresAuthLifecycleTest.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
       database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
       database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
