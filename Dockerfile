@@ -13,6 +13,7 @@ COPY . /opt/raven-source
 RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && cp /opt/raven-source/config/services.php config/services.php \
     && cp /opt/raven-source/config/database.php config/database.php \
+    && sed -i "s/'default' => env('CACHE_STORE', 'database')/'default' => env('CACHE_STORE', 'file')/" config/cache.php \
     && cp /opt/raven-source/bootstrap/app.php bootstrap/app.php \
     && cp /opt/raven-source/app/Models/User.php app/Models/User.php \
     && cp /opt/raven-source/app/Support/Raven23AuthSchema.php app/Support/Raven23AuthSchema.php \
