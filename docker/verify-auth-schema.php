@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\\Contracts\\Console\\Kernel;
-use Illuminate\\Support\\Facades\\Schema;
-use Illuminate\\Support\\Facades\\DB;
-use Illuminate\\Support\\Str;
-use App\\Models\\User;
-use Illuminate\\Database\\QueryException;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Models\User;
+use Illuminate\Database\QueryException;
 
 $root = getcwd();
 require $root . '/vendor/autoload.php';
@@ -138,9 +138,9 @@ try {
         });
     }
 
-    fwrite(STDOUT, "Verified: account, Sanctum token and device metadata writes succeeded; probe rows cleaned up.\\n");
+    fwrite(STDOUT, "Verified: account, Sanctum token and device metadata writes succeeded; probe rows cleaned up.\n");
 } catch (Throwable $exception) {
     fwrite(STDERR, "Runtime DB_URL schema validation failed: "
-        . get_class($exception) . ': ' . $exception->getMessage() . "\\n");
+        . get_class($exception) . ': ' . $exception->getMessage() . "\n");
     exit(1);
 }
