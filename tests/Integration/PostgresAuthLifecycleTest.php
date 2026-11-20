@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use App\Models\User;
 use Tests\TestCase;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -52,13 +53,26 @@ class PostgresAuthLifecycleTest extends TestCase
         $matchedRoute = $routes->match($routeRequest);
         $this->assertSame('api/v1/auth/register', $matchedRoute->uri());
         $this->assertContains('POST', $matchedRoute->methods());
+
+        $kernel = $this->app->make(HttpKernel::class);
+        $routerProperty = new \\ReflectionProperty($kernel, 'router');
+        $kernelRouter = $routerProperty->getValue($kernel);
+        $kernelRoutes = $kernelRouter->getRoutes();
+        $kernelRegistered = collect($kernelRoutes)->first(static function ($route): bool {
+            return $route->uri() === 'api/v1/auth/register'
+                && in_array('POST', $route->methods(), true);
+        });
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 route dispatch] registered=%s matched=%s methods=%s base_path=%s\n",
+            "[RAVEN23 route dispatch] app_router=%s kernel_router=%s app_route=%s kernel_route=%s methods=%s path=%s compiled=%s\\n",
+            spl_object_id($this->app->make('router')),
+            spl_object_id($kernelRouter),
             $registered->uri(),
-            $matchedRoute->uri(),
+            $kernelRegistered?->uri() ?? 'missing',
             implode(',', $matchedRoute->methods()),
             $routeRequest->getPathInfo(),
+            method_exists($kernelRoutes, 'isCompiled') && $kernelRoutes->isCompiled() ? 'yes' : 'no',
         ));
+        $this->assertNotNull($kernelRegistered, 'HTTP Kernel router must contain POST /api/v1/auth/register.');
 
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
