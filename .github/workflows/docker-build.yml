@@ -32,12 +32,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and test backend image (no registry push)
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: false
-          tags: raven23-backend:ci
-          build-args: |
-            NEON_DB_URL=${{ secrets.NEON_DB_URL }}
+      - name: Validate backend image and run authentication suites
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          set -eu
+          docker build --build-arg "NEON_DB_URL=${NEON_DB_URL}" -t raven23-backend:ci .
