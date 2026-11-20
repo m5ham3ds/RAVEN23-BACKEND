@@ -64,6 +64,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 'sql_state' => null,
                 'database_error_code' => null,
             ];
+            // Find the first frame outside Laravel/vendor code. This identifies
+            // the application call site without including SQL or request data.
+            $applicationCallSite = null;
+            foreach ($exception->getTrace() as $frame) {
+                $file = (string) ($frame['file'] ?? '');
+                if ($file === '' || str_contains($file, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                    continue;
+                }
+                $applicationCallSite = [
+                    'file' => basename($file),
+                    'line' => isset($frame['line']) ? (int) $frame['line'] : null,
+                    'class' => isset($frame['class']) ? (string) $frame['class'] : null,
+                    'function' => isset($frame['function']) ? (string) $frame['function'] : null,
+                ];
+                break;
+            }
+            $diagnostic['application_call_site'] = $applicationCallSite;
+
             $context = [
                 'request_id' => $requestId,
                 'method' => $request->method(),
