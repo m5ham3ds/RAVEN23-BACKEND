@@ -37,4 +37,5 @@ jobs:
           NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
         run: |
           set -eu
-          docker build --build-arg "NEON_DB_URL=${NEON_DB_URL}" -t raven23-backend:ci .
+          docker build -t raven23-backend:ci .
+          docker build --target postgres-test --build-arg "NEON_DB_URL=${NEON_DB_URL}" -t raven23-backend:postgres-test .
