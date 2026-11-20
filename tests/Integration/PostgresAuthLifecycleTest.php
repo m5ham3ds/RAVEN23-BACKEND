@@ -16,6 +16,7 @@ class PostgresAuthLifecycleTest extends TestCase
 {
     private array $createdUsers = [];
     private array $createdTokens = [];
+    private array $createdEmails = [];
 
     protected function setUp(): void
     {
@@ -44,6 +45,27 @@ class PostgresAuthLifecycleTest extends TestCase
 
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
+
+        $identity = DB::selectOne(
+            'select current_database() as database_name, current_schema() as schema_name, current_setting(\'search_path\') as search_path'
+        );
+        $userColumns = Schema::getColumnListing('users');
+        $tokenColumns = Schema::getColumnListing('personal_access_tokens');
+        fwrite(STDOUT, sprintf(
+            "[RAVEN23 PostgreSQL integration] database=%s schema=%s search_path=%s users_username=%s tokens_device_metadata=%s\\n",
+            (string) $identity->database_name,
+            (string) $identity->schema_name,
+            (string) $identity->search_path,
+            in_array('username', $userColumns, true) ? 'yes' : 'no',
+            (in_array('device_id', $tokenColumns, true)
+                && in_array('device_name', $tokenColumns, true)
+                && in_array('platform', $tokenColumns, true)) ? 'yes' : 'no',
+        ));
+
+        $this->assertContains('username', $userColumns, 'Neon users.username column is missing.');
+        $this->assertContains('device_id', $tokenColumns, 'Neon personal_access_tokens.device_id column is missing.');
+        $this->assertContains('device_name', $tokenColumns, 'Neon personal_access_tokens.device_name column is missing.');
+        $this->assertContains('platform', $tokenColumns, 'Neon personal_access_tokens.platform column is missing.');
     }
 
     protected function tearDown(): void
@@ -64,16 +86,33 @@ class PostgresAuthLifecycleTest extends TestCase
             }
         }
 
+        if ($this->createdEmails !== []) {
+            try {
+                $orphanedIds = DB::table('users')->whereIn('email', $this->createdEmails)->pluck('id')->all();
+                if ($orphanedIds !== []) {
+                    DB::table('personal_access_tokens')
+                        ->where('tokenable_type', User::class)
+                        ->whereIn('tokenable_id', $orphanedIds)
+                        ->delete();
+                    DB::table('users')->whereIn('id', $orphanedIds)->delete();
+                }
+            } catch (\\Throwable) {
+                // Best-effort cleanup only for unique synthetic test emails.
+            }
+        }
+
         parent::tearDown();
     }
 
     private function accountPayload(): array
     {
         $suffix = bin2hex(random_bytes(8));
+        $email = "raven-pg-{$suffix}@example.test";
+        $this->createdEmails[] = $email;
 
         return [
             'name' => 'RAVEN23 PostgreSQL Test',
-            'email' => "raven-pg-{$suffix}@example.test",
+            'email' => $email,
             'username' => "raven_pg_{$suffix}",
             'password' => 'Raven-PG-Test-Password-42!',
         ];
@@ -100,9 +139,13 @@ class PostgresAuthLifecycleTest extends TestCase
     {
         $data = $this->accountPayload();
 
-        $registration = $this->postJson('/api/v1/auth/register', $data)
-            ->assertCreated()
-            ->assertJsonPath('success', true);
+        $registration = $this->postJson('/api/v1/auth/register', $data);
+        $this->assertSame(
+            201,
+            $registration->status(),
+            'Email registration response: ' . $registration->getContent(),
+        );
+        $registration->assertJsonPath('success', true);
 
         [$userId, $firstToken] = $this->rememberSession($registration->json());
 
@@ -130,7 +173,12 @@ class PostgresAuthLifecycleTest extends TestCase
 
     public function test_postgresql_guest_creation_and_session_are_successful(): void
     {
-        $response = $this->postJson('/api/v1/auth/guest')->assertOk();
+        $response = $this->postJson('/api/v1/auth/guest');
+        $this->assertSame(
+            200,
+            $response->status(),
+            'Guest registration response: ' . $response->getContent(),
+        );
 
         [$userId, $token] = $this->rememberSession($response->json());
         $this->assertDatabaseHas('users', [
@@ -154,7 +202,12 @@ class PostgresAuthLifecycleTest extends TestCase
             'device_id' => $deviceId,
             'device_name' => 'PostgreSQL Integration Device',
             'platform' => 'android',
-        ])->assertCreated();
+        ]);
+        $this->assertSame(
+            201,
+            $first->status(),
+            'Device registration response: ' . $first->getContent(),
+        );
 
         [$userId, $firstToken] = $this->rememberSession($first->json());
 
