@@ -21,6 +21,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
     && cp /opt/raven-source/routes/api.php routes/api.php \
     && cp /opt/raven-source/tests/Feature/AuthLifecycleTest.php tests/Feature/AuthLifecycleTest.php \
+    && cp /opt/raven-source/tests/Integration/PostgresAuthLifecycleTest.php tests/Feature/PostgresAuthLifecycleTest.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
@@ -47,6 +48,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l /opt/raven-source/docker/router.php \
     && composer dump-autoload --optimize \
     && APP_ENV=testing php artisan test --filter=AuthLifecycleTest \
+    && (if [ -n "${NEON_DB_URL:-}" ]; then APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test --filter=PostgresAuthLifecycleTest; else echo "SKIP: live PostgreSQL auth suite (NEON_DB_URL not supplied to Docker build)."; fi) \
     && php artisan route:list --path=api/v1 >/dev/null
 
 FROM php:8.4-cli-bookworm
