@@ -67,6 +67,8 @@ RUN --mount=type=secret,id=neon_db_url \
     APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test tests/Feature/PostgresAuthLifecycleTest.php
 
 FROM php:8.4-cli-bookworm AS runtime
+ARG RAVEN23_SOURCE_COMMIT=unknown
+ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev ca-certificates \
     && docker-php-ext-install pdo_pgsql mbstring xml curl opcache \
