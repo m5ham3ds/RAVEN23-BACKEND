@@ -99,6 +99,22 @@ class AuthLifecycleTest extends TestCase
         $this->app->instance(GoogleIdTokenVerifier::class, $fake);
     }
 
+    public function test_registration_rate_limit_rejects_requests_after_five_attempts(): void
+    {
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $response = $this->postJson('/api/v1/auth/register', $this->registrationData([
+                'email' => "raven-rate-{$attempt}@example.test",
+                'username' => "raven_rate_{$attempt}",
+            ]));
+            $response->assertCreated();
+        }
+
+        $this->postJson('/api/v1/auth/register', $this->registrationData([
+            'email' => 'raven-rate-limit@example.test',
+            'username' => 'raven_rate_limit',
+        ]))->assertStatus(429);
+    }
+
     public function test_email_registration_persists_user_and_password_login_returns_same_account(): void
     {
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())
