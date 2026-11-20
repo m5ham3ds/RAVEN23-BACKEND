@@ -295,8 +295,12 @@ class AuthLifecycleTest extends TestCase
             ->assertOk()
             ->assertJsonPath('success', true);
 
-        $this->withToken($token)->getJson('/api/v1/user/profile')->assertUnauthorized();
+        // Laravel's test application reuses the same AuthManager instance
+        // across HTTP requests. Drop its cached guard before proving that a
+        // revoked bearer token cannot authenticate another request.
         $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->app['auth']->forgetGuards();
+        $this->withToken($token)->getJson('/api/v1/user/profile')->assertUnauthorized();
     }
 
     public function test_account_deletion_revokes_every_token_before_removing_the_user(): void
@@ -312,9 +316,10 @@ class AuthLifecycleTest extends TestCase
         $userId = $first->json('user.id');
 
         $this->withToken($firstToken)->deleteJson('/api/v1/user/account')->assertOk();
-        $this->withToken($firstToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
-        $this->withToken($secondToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
         $this->assertDatabaseMissing('users', ['id' => $userId]);
         $this->assertDatabaseCount('personal_access_tokens', 0);
+        $this->app['auth']->forgetGuards();
+        $this->withToken($firstToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
+        $this->withToken($secondToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
     }
 }
