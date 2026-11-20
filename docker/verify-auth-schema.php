@@ -2,6 +2,9 @@
 
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Models\User;
 
 $root = getcwd();
 require $root . '/vendor/autoload.php';
@@ -45,7 +48,34 @@ try {
         );
     }
 
-    fwrite(STDOUT, "Verified: runtime database schema is ready for registration, Sanctum sessions and device identity.\n");
+    // Exercise the exact production persistence path, then roll it back.
+    try {
+        DB::transaction(function (): void {
+            $probe = User::create([
+                'name' => 'RAVEN23 Schema Probe',
+                'email' => 'raven23-probe-' . Str::lower(Str::random(20)) . '@invalid.raven23',
+                'username' => 'raven_probe_' . Str::lower(Str::random(12)),
+                'password' => Str::random(48),
+                'provider' => 'email',
+                'is_guest' => false,
+            ]);
+
+            $issued = $probe->createToken('raven23-schema-probe');
+            $issued->accessToken->forceFill([
+                'device_id' => null,
+                'device_name' => 'Schema verification',
+                'platform' => 'android',
+            ])->save();
+
+            throw new RuntimeException('RAVEN23_SCHEMA_PROBE_ROLLBACK');
+        });
+    } catch (RuntimeException $exception) {
+        if ($exception->getMessage() !== 'RAVEN23_SCHEMA_PROBE_ROLLBACK') {
+            throw $exception;
+        }
+    }
+
+    fwrite(STDOUT, "Verified: account, Sanctum token and device metadata writes succeeded; probe rows rolled back.\n");
 } catch (Throwable $exception) {
     fwrite(STDERR, "Runtime DB_URL schema validation failed: "
         . get_class($exception) . ': ' . $exception->getMessage() . "\n");
