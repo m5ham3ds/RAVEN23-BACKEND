@@ -44,27 +44,32 @@ class AuthController extends Controller
         $device = $this->deviceMetadata($request);
         $deviceId = $device['device_id'] ?? null;
 
-        if (is_string($deviceId) && $deviceId !== '') {
-            $this->markStage($request, 'session.revoke_previous_token_for_device');
-            $user->tokens()->where('device_id', $deviceId)->delete();
-        }
-
-        if (isset($device['replace_device_id'])) {
-            $this->markStage($request, 'session.replace_selected_device_token');
-            // The relationship is scoped to this account; a caller cannot
-            // revoke another user's token by guessing its database ID.
-            $user->tokens()->whereKey((int) $device['replace_device_id'])->delete();
-        }
-
         $platform = $device['platform'] ?? 'client';
-        $this->markStage($request, 'session.create_sanctum_token');
-        $issued = $user->createToken('raven23-' . $platform);
-        $this->markStage($request, 'session.persist_device_metadata');
-        $issued->accessToken->forceFill([
-            'device_id' => $deviceId,
-            'device_name' => $device['device_name'] ?? null,
-            'platform' => $device['platform'] ?? null,
-        ])->save();
+        $issued = DB::transaction(function () use ($user, $request, $device, $deviceId, $platform) {
+            if (is_string($deviceId) && $deviceId !== '') {
+                $this->markStage($request, 'session.revoke_previous_token_for_device');
+                $user->tokens()->where('device_id', $deviceId)->delete();
+            }
+
+            if (isset($device['replace_device_id'])) {
+                $this->markStage($request, 'session.replace_selected_device_token');
+                // The relationship is scoped to this account; a caller cannot
+                // revoke another user's token by guessing its database ID.
+                $user->tokens()->whereKey((int) $device['replace_device_id'])->delete();
+            }
+
+            $this->markStage($request, 'session.create_sanctum_token');
+            $created = $user->createToken('raven23-' . $platform);
+
+            $this->markStage($request, 'session.persist_device_metadata');
+            $created->accessToken->forceFill([
+                'device_id' => $deviceId,
+                'device_name' => $device['device_name'] ?? null,
+                'platform' => $device['platform'] ?? null,
+            ])->save();
+
+            return $created;
+        });
 
         $this->markStage($request, 'session.serialize_user_response');
         return response()->json([
