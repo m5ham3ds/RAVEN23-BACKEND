@@ -39,6 +39,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l bootstrap/app.php \
     && php -l routes/api.php \
     && php -l tests/Feature/AuthLifecycleTest.php \
+    && php -l tests/Feature/PostgresAuthLifecycleTest.php \
     && php -l database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && php -l database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
     && php -l database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
