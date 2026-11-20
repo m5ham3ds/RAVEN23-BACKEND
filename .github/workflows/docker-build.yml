@@ -20,23 +20,21 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Validate required PostgreSQL integration secret
+      - name: Validate PostgreSQL integration database secret
         run: |
           set -eu
           test -n "${NEON_DB_URL}" || { echo "::error::Missing repository secret NEON_DB_URL; PostgreSQL integration tests cannot run."; exit 1; }
-          echo "Neon PostgreSQL integration secret is present. Its value is not displayed."
+          echo "PostgreSQL integration secret is present. Its value is not displayed."
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image
-        run: |
-          set -eu
-          docker build -t raven23-backend:ci .
+      - name: Build production image and run SQLite tests
+        run: docker build --pull -t raven23-backend:ci .
 
-      - name: Run PostgreSQL integration suite with isolated secret mount
+      - name: Run PostgreSQL integration suite using isolated secret mount
         env:
           NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
         run: |
           set -eu
-          docker build --secret id=neon_db_url,env=NEON_DB_URL --target postgres-test -t raven23-backend:postgres-test .
+          docker build --pull --secret id=neon_db_url,env=NEON_DB_URL --target postgres-test -t raven23-backend:postgres-test .
