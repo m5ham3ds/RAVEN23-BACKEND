@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Integration;
 
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +47,14 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
 
+        // The real PostgreSQL suite boots through the runtime routing config.
+        // Fail early with registered-route metadata rather than sending auth
+        // requests to a missing API group and misdiagnosing it as a DB error.
+        $this->assertTrue(
+            Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/register', 'POST')) !== null,
+            'Production API register route was not loaded into Laravel.',
+        );
+
         $identity = DB::selectOne(
             'select current_database() as database_name, current_schema() as schema_name, current_setting(\'search_path\') as search_path'
         );
@@ -67,6 +75,8 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertContains('device_id', $tokenColumns, 'Neon personal_access_tokens.device_id column is missing.');
         $this->assertContains('device_name', $tokenColumns, 'Neon personal_access_tokens.device_name column is missing.');
         $this->assertContains('platform', $tokenColumns, 'Neon personal_access_tokens.platform column is missing.');
+        $this->assertTrue(Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/login', 'POST')) !== null, 'Production API login route was not loaded.');
+        $this->assertTrue(Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/guest', 'POST')) !== null, 'Production API guest route was not loaded.');
     }
 
     protected function tearDown(): void
