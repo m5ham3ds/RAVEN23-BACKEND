@@ -11,19 +11,33 @@ permissions:
 
 jobs:
   docker-build:
-    name: Build Laravel API image
+    name: Build and test Laravel API image
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Validate production PostgreSQL test configuration
+        run: |
+          set -eu
+          if [ -n "${NEON_DB_URL}" ]; then
+            echo "PostgreSQL integration tests are enabled."
+          else
+            echo "::warning::NEON_DB_URL is not configured; only isolated SQLite tests will run."
+          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build backend image (no registry push)
+      - name: Build and test backend image (no registry push)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
           tags: raven23-backend:ci
+          build-args: |
+            NEON_DB_URL=${{ secrets.NEON_DB_URL }}
