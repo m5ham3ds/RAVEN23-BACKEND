@@ -54,6 +54,7 @@ RUN set -eu; \
       config/database.php config/cache.php app/Http/Controllers/Api/AuthController.php \
       bootstrap/app.php routes/api.php tests/Feature/AuthLifecycleTest.php \
       tests/Integration/PostgresAuthLifecycleTest.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
+      php -l tests/Integration/PostgresAuthLifecycleTest.php; \
       database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
       database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
       database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php \
