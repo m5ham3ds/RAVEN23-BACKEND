@@ -42,11 +42,23 @@ class PostgresAuthLifecycleTest extends TestCase
         DB::purge('pgsql');
 
         $routes = $this->app->make('router')->getRoutes();
-        $registered = collect($routes)->contains(static function ($route): bool {
+        $registered = collect($routes)->first(static function ($route): bool {
             return $route->uri() === 'api/v1/auth/register'
                 && in_array('POST', $route->methods(), true);
         });
-        $this->assertTrue($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
+        $this->assertNotNull($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
+
+        $routeRequest = \\Illuminate\\Http\\Request::create('/api/v1/auth/register', 'POST');
+        $matchedRoute = $routes->match($routeRequest);
+        $this->assertSame('api/v1/auth/register', $matchedRoute->uri());
+        $this->assertContains('POST', $matchedRoute->methods());
+        fwrite(STDOUT, sprintf(
+            "[RAVEN23 route dispatch] registered=%s matched=%s methods=%s base_path=%s\\n",
+            $registered->uri(),
+            $matchedRoute->uri(),
+            implode(',', $matchedRoute->methods()),
+            $routeRequest->getPathInfo(),
+        ));
 
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
