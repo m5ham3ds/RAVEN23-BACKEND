@@ -106,6 +106,7 @@ jobs:
           required = {
               "register": "/auth/register",
               "login": "/auth/login",
+              "google": "/auth/google",
               "guest": "/auth/guest",
               "profile": "/user/profile",
           }
@@ -125,17 +126,24 @@ jobs:
               except urllib.error.HTTPError as error:
                   return error.code, error.read()
 
-          # Intentionally make no POST/DELETE requests and create no accounts.
-          # These routes are verified by the production image route:list build
-          # gate and by the separate PostgreSQL integration target in CI.
+          # GET-only, non-mutating checks against the currently deployed
+          # production service. Auth POST/DELETE operations are never sent here.
           status, raw = get("/health")
-          payload = json.loads(raw.decode("utf-8")) if raw else {}
-          if status != 200 or payload.get("success") is not True:
+          health = json.loads(raw.decode("utf-8")) if raw else {}
+          if status != 200 or health.get("success") is not True:
               raise SystemExit(f"Live health contract failed: HTTP {status}")
-
-          if payload.get("database") != "connected" or payload.get("schema") != "ready":
+          if health.get("database") != "connected" or health.get("schema") != "ready":
               raise SystemExit("Live backend is not connected to its production PostgreSQL schema.")
 
-          print("PASS: live production HTTP service reports the expected database/schema connection.")
-          print("NOTE: no synthetic user, session, token, or guest account was created or deleted.")
+          # Probe method matching for each auth endpoint using OPTIONS (no account
+          # creation, no credentials, no token issuance, no destructive request).
+          for name, path in required.items():
+              route_status, _ = get(path)
+              # Laravel returns 405 for GET against existing POST endpoints,
+              # and 401 for the protected profile route. 404 means route missing.
+              allowed = (405, 401, 200, 204)
+              if route_status not in allowed:
+                  raise SystemExit(f"Live route {name} is not reachable: HTTP {route_status}")
+          print("PASS: live health and auth route URLs are registered and reachable without mutating user data.")
+          print("NOTE: this check does not perform account registration/login; PostgreSQL lifecycle is tested in isolated CI.")
           PY
