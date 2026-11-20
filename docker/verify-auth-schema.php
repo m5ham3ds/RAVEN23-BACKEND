@@ -102,41 +102,39 @@ try {
     // No enclosing transaction: PostgreSQL's transaction-aborted state must
     // never hide the first failing write. Probe records are removed explicitly.
     $probe = raven23RunIsolated('account_insert', static function () use ($email, $username): User {
-        return DB::transaction(static fn (): User => User::create([
+        return User::create([
             'name' => 'RAVEN23 Schema Probe',
             'email' => $email,
             'username' => $username,
             'password' => Str::random(48),
             'provider' => 'email',
             'is_guest' => false,
-        ]));
+        ]);
     });
 
     $issued = null;
     try {
         $issued = raven23RunIsolated('sanctum_token_insert', static function () use ($probe) {
-            return DB::transaction(static fn () => $probe->createToken('raven23-schema-probe'));
+            return $probe->createToken('raven23-schema-probe');
         });
 
         raven23RunIsolated('sanctum_device_metadata_update', static function () use ($issued): void {
-            DB::transaction(static function () use ($issued): void {
-                $issued->accessToken->forceFill([
-                    'device_id' => null,
-                    'device_name' => 'Schema verification',
-                    'platform' => 'android',
-                ])->save();
-            });
+            $issued->accessToken->forceFill([
+                'device_id' => null,
+                'device_name' => 'Schema verification',
+                'platform' => 'android',
+            ])->save();
         });
     } finally {
         // Clean only the uniquely-generated probe rows; never touch real users
         // or existing tokens. Each cleanup is isolated from the write probes.
         if ($issued !== null) {
             raven23RunIsolated('sanctum_probe_cleanup', static function () use ($issued): void {
-                DB::transaction(static fn () => $issued->accessToken->delete());
+                $issued->accessToken->delete();
             });
         }
         raven23RunIsolated('account_probe_cleanup', static function () use ($probe): void {
-            DB::transaction(static fn () => $probe->delete());
+            $probe->delete();
         });
     }
 
