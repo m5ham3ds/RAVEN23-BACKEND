@@ -29,8 +29,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image and run PostgreSQL integration suite
+      - name: Build production image
         run: |
           set -eu
           docker build -t raven23-backend:ci .
-          docker build --secret id=neon_db_url,env=NEON_DB_URL --target postgres-test -t raven23-backend:postgres-test .
+
+      - name: Run PostgreSQL integration suite with isolated secret mount
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          set -eu
+          docker build --build-arg "NEON_DB_URL=${NEON_DB_URL}" --target postgres-test -t raven23-backend:postgres-test .
