@@ -18,6 +18,7 @@ class AuthLifecycleTest extends TestCase
         parent::setUp();
 
         config([
+            'cache.default' => 'array',
             'database.default' => 'sqlite',
             'database.connections.sqlite' => [
                 'driver' => 'sqlite',
