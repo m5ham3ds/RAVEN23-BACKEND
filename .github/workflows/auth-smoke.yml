@@ -80,14 +80,14 @@ jobs:
                       and health.get("success") is True
                       and health.get("database") == "connected"
                       and health.get("schema") == "ready"
-                      and (live_sha == expected or live_sha == "unknown")
+                      and live_sha == expected
                   ):
+                      if health.get("google_auth") != "configured":
+                          raise SystemExit("Google OAuth is not configured in the live backend.")
                       consecutive_healthy += 1
                       if consecutive_healthy >= 2:
-                          if health.get("google_auth") != "configured":
-                          raise SystemExit("Google OAuth is not configured in the live backend.")
-                              print(f"PASS: Render woke and serves expected deployment for {expected}; Neon, schema and Google auth are healthy.")
-                              raise SystemExit(0)
+                          print(f"PASS: Render woke and serves expected commit {expected}; Neon, schema and Google auth are healthy.")
+                          raise SystemExit(0)
                   else:
                       consecutive_healthy = 0
               except (urllib.error.URLError, TimeoutError, OSError) as error:
