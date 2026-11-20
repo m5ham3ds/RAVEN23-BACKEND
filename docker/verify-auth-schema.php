@@ -70,10 +70,10 @@ try {
             DB::rollBack();
             throw new RuntimeException(
                 'Sanctum token insert failed: ' . get_class($exception)
-                . '; SQLSTATE=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                . '; SQLSTATE=' . (string) ($exception instanceof \Illuminate\Database\QueryException
                     ? ($exception->errorInfo[0] ?? 'unknown')
                     : 'non-sql')
-                . '; driver_code=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                . '; driver_code=' . (string) ($exception instanceof \Illuminate\Database\QueryException
                     ? ($exception->errorInfo[1] ?? 'unknown')
                     : 'n/a')
                 . '; detail=' . preg_replace('/[\\r\\n]+/', ' ', $exception->getMessage()),
@@ -94,10 +94,10 @@ try {
             DB::rollBack();
             throw new RuntimeException(
                 'Sanctum device metadata write failed: ' . get_class($exception)
-                . '; SQLSTATE=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                . '; SQLSTATE=' . (string) ($exception instanceof \Illuminate\Database\QueryException
                     ? ($exception->errorInfo[0] ?? 'unknown')
                     : 'non-sql')
-                . '; driver_code=' . (string) ($exception instanceof \\Illuminate\\Database\\QueryException
+                . '; driver_code=' . (string) ($exception instanceof \Illuminate\Database\QueryException
                     ? ($exception->errorInfo[1] ?? 'unknown')
                     : 'n/a')
                 . '; detail=' . preg_replace('/[\\r\\n]+/', ' ', $exception->getMessage()),
