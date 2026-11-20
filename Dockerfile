@@ -5,6 +5,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+ARG NEON_DB_URL
+ENV NEON_DB_URL=${NEON_DB_URL}
+
 WORKDIR /opt/raven
 RUN composer create-project laravel/laravel app "^13.0" --no-interaction --prefer-dist
 WORKDIR /opt/raven/app
