@@ -23,6 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Prevent Laravel's default QueryException reporter from emitting raw
+        // SQL and bindings. API failures are logged below with safe metadata.
+        $exceptions->dontReport([QueryException::class]);
+
         $exceptions->render(function (ValidationException $exception, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
