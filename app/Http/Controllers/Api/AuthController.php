@@ -18,6 +18,11 @@ class AuthController extends Controller
     {
     }
 
+    private function markStage(Request $request, string $stage): void
+    {
+        $request->attributes->set('raven23_auth_stage', $stage);
+    }
+
     private function deviceMetadata(Request $request): array
     {
         return $request->validate([
@@ -35,27 +40,33 @@ class AuthController extends Controller
      */
     private function session(User $user, Request $request, int $status = 200): JsonResponse
     {
+        $this->markStage($request, 'session.validate_device_metadata');
         $device = $this->deviceMetadata($request);
         $deviceId = $device['device_id'] ?? null;
 
         if (is_string($deviceId) && $deviceId !== '') {
+            $this->markStage($request, 'session.revoke_previous_token_for_device');
             $user->tokens()->where('device_id', $deviceId)->delete();
         }
 
         if (isset($device['replace_device_id'])) {
+            $this->markStage($request, 'session.replace_selected_device_token');
             // The relationship is scoped to this account; a caller cannot
             // revoke another user's token by guessing its database ID.
             $user->tokens()->whereKey((int) $device['replace_device_id'])->delete();
         }
 
         $platform = $device['platform'] ?? 'client';
+        $this->markStage($request, 'session.create_sanctum_token');
         $issued = $user->createToken('raven23-' . $platform);
+        $this->markStage($request, 'session.persist_device_metadata');
         $issued->accessToken->forceFill([
             'device_id' => $deviceId,
             'device_name' => $device['device_name'] ?? null,
             'platform' => $device['platform'] ?? null,
         ])->save();
 
+        $this->markStage($request, 'session.serialize_user_response');
         return response()->json([
             'success' => true,
             'token' => $issued->plainTextToken,
@@ -123,11 +134,13 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        $this->markStage($request, 'register.normalize_input');
         $request->merge([
             'email' => Str::lower(trim((string) $request->input('email'))),
             'username' => Str::lower(trim((string) $request->input('username'))),
         ]);
 
+        $this->markStage($request, 'register.validate_input');
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:40'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email'],
@@ -137,10 +150,13 @@ class AuthController extends Controller
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
+        $this->markStage($request, 'register.begin_transaction');
         return DB::transaction(function () use ($data, $request): JsonResponse {
+            $this->markStage($request, 'register.resolve_guest_token');
             $guest = $this->guestAccount($data['guest_token'] ?? null);
 
             if ($guest) {
+                $this->markStage($request, 'register.upgrade_guest_user');
                 // Upgrade the existing guest row so its identity and linked
                 // data remain stable. Every old anonymous token is revoked.
                 $guest->tokens()->delete();
@@ -158,6 +174,7 @@ class AuthController extends Controller
                 ])->save();
                 $user = $guest->fresh();
             } else {
+                $this->markStage($request, 'register.insert_user');
                 $user = User::create([
                     'name' => trim($data['name']),
                     'email' => Str::lower(trim($data['email'])),
@@ -171,19 +188,23 @@ class AuthController extends Controller
                 ]);
             }
 
+            $this->markStage($request, 'register.issue_session');
             return $this->session($user, $request, 201);
         });
     }
 
     public function login(Request $request): JsonResponse
     {
+        $this->markStage($request, 'login.validate_input');
         $data = $request->validate([
             'email' => ['required', 'email:rfc'],
             'password' => ['required', 'string'],
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
+        $this->markStage($request, 'login.begin_transaction');
         return DB::transaction(function () use ($data, $request): JsonResponse {
+            $this->markStage($request, 'login.find_account');
             $user = User::query()
                 ->where('email', Str::lower(trim($data['email'])))
                 ->where('is_guest', false)
@@ -197,11 +218,13 @@ class AuthController extends Controller
                 ], 401);
             }
 
+            $this->markStage($request, 'login.consume_guest_account');
             $this->discardGuest(
                 $this->guestAccount($data['guest_token'] ?? null),
                 $user,
             );
 
+            $this->markStage($request, 'login.issue_session');
             return $this->session($user, $request);
         });
     }
@@ -330,7 +353,9 @@ class AuthController extends Controller
 
     public function guest(Request $request): JsonResponse
     {
+        $this->markStage($request, 'guest.begin_transaction');
         return DB::transaction(function () use ($request): JsonResponse {
+            $this->markStage($request, 'guest.insert_user');
             $suffix = Str::lower(Str::random(16));
             $user = User::create([
                 'name' => 'Guest',
@@ -341,6 +366,7 @@ class AuthController extends Controller
                 'is_guest' => true,
             ]);
 
+            $this->markStage($request, 'guest.issue_session');
             return $this->session($user, $request);
         });
     }

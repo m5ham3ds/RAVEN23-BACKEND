@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -81,6 +82,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 break;
             }
             $diagnostic['application_call_site'] = $applicationCallSite;
+            $diagnostic['auth_stage'] = $request->attributes->get('raven23_auth_stage');
+            try {
+                $diagnostic['database_transaction_level'] =
+                    DB::connection($connection)->transactionLevel();
+            } catch (Throwable) {
+                $diagnostic['database_transaction_level'] = null;
+            }
 
             $context = [
                 'request_id' => $requestId,
