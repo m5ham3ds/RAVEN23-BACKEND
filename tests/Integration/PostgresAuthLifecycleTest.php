@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
@@ -52,7 +53,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $userColumns = Schema::getColumnListing('users');
         $tokenColumns = Schema::getColumnListing('personal_access_tokens');
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 PostgreSQL integration] database=%s schema=%s search_path=%s users_username=%s tokens_device_metadata=%s\\n",
+            "[RAVEN23 PostgreSQL integration] database=%s schema=%s search_path=%s users_username=%s tokens_device_metadata=%s\n",
             (string) $identity->database_name,
             (string) $identity->schema_name,
             (string) $identity->search_path,
