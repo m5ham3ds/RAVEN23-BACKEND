@@ -38,7 +38,8 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => $dbUrl,
+            // SQLite is reserved for isolated tests only; never inherit the Neon DB_URL.
+            'url' => null,
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
