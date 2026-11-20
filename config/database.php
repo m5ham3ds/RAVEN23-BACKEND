@@ -90,7 +90,9 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('DB_URL'),
+            // Match the resolved fallback used by the production PHP process;
+            // relying on env() alone can drop DB_URL in long-running requests.
+            'url' => $dbUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
