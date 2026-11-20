@@ -96,7 +96,7 @@ class PostgresAuthLifecycleTest extends TestCase
                         ->delete();
                     DB::table('users')->whereIn('id', $orphanedIds)->delete();
                 }
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Best-effort cleanup only for unique synthetic test emails.
             }
         }
