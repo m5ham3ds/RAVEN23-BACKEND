@@ -28,7 +28,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l app/Support/Raven23AuthSchema.php \
     && php -l app/Support/GoogleIdTokenVerifier.php \
     && php -l config/database.php \
-    && DB_URL='postgresql://raven23-test:placeholder@db.invalid:5432/neondb?sslmode=require' php -r '$config = require "config/database.php"; if (($config["connections"]["pgsql"]["url"] ?? null) !== getenv("DB_URL")) { fwrite(STDERR, "PostgreSQL must use the resolved DB_URL.\\n"); exit(1); } echo "PostgreSQL DB_URL configuration check passed.\\n";' \
+    && DB_URL='postgresql://raven23-test:placeholder@db.invalid:5432/neondb?sslmode=require' php -r 'require "vendor/autoload.php"; $config = require "config/database.php"; if (($config["connections"]["pgsql"]["url"] ?? null) !== getenv("DB_URL")) { fwrite(STDERR, "PostgreSQL must use the resolved DB_URL.\\n"); exit(1); } echo "PostgreSQL DB_URL configuration check passed.\\n";' \
     && php -l app/Http/Controllers/Api/AuthController.php \
     && php -l bootstrap/app.php \
     && php -l routes/api.php \
