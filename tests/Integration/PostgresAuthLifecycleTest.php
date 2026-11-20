@@ -5,6 +5,7 @@ namespace Tests\Integration;
 use App\Models\User;
 use Tests\TestCase;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -41,6 +42,22 @@ class PostgresAuthLifecycleTest extends TestCase
             'cache.default' => 'array',
         ]);
         DB::purge('pgsql');
+
+        // This test must use an origin-only base URL. Laravel's postJson()
+        // converts relative paths through url(), so a path-bearing APP_URL can
+        // silently turn /api/v1/... into a different request path and return 404.
+        config(['app.url' => 'http://localhost']);
+        URL::forceRootUrl('http://localhost');
+
+        $preparedUrl = $this->prepareUrlForRequest('/api/v1/auth/register');
+        $preparedPath = parse_url($preparedUrl, PHP_URL_PATH) ?: '/';
+        fwrite(STDOUT, sprintf(
+            "[RAVEN23 HTTP request URL] path=%s host=%s app_url_path=%s\\n",
+            $preparedPath,
+            parse_url($preparedUrl, PHP_URL_HOST) ?: 'missing',
+            parse_url((string) config('app.url'), PHP_URL_PATH) ?: '/',
+        ));
+        $this->assertSame('/api/v1/auth/register', $preparedPath, 'Laravel postJson() must preserve the API route path.');
 
         $routes = $this->app->make('router')->getRoutes();
         $registered = collect($routes)->first(static function ($route): bool {
