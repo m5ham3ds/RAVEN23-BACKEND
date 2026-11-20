@@ -30,8 +30,9 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l app/Support/GoogleIdTokenVerifier.php \
     && php -l config/database.php \
     && php -l config/cache.php \
-    && grep -Fq "'default' => 'file'" config/cache.php \
+    && grep -Fq "'default' => env('APP_ENV') === 'testing' ? 'array' : 'file'" config/cache.php \
     && grep -Fq "'driver' => 'file'" config/cache.php \
+    && grep -Fq "'driver' => 'array'" config/cache.php \
     && DB_URL='postgresql://raven23-test:placeholder@db.invalid:5432/neondb?sslmode=require' php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $config = require "config/database.php"; if (($config["connections"]["pgsql"]["url"] ?? null) !== getenv("DB_URL")) { fwrite(STDERR, "PostgreSQL must use the resolved DB_URL.\\n"); exit(1); } echo "PostgreSQL DB_URL configuration check passed.\\n";' \
     && php -l app/Http/Controllers/Api/AuthController.php \
     && php -l bootstrap/app.php \
