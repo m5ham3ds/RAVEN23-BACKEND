@@ -47,7 +47,7 @@ Route::prefix('v1')->group(function (): void {
             'diagnostic_version' => 'health-diag-v4-auth-device-tokens',
             'db_url_env_present' => is_string($runtimeDbUrl) && trim($runtimeDbUrl) !== '',
             'db_url_config_present' => $configuredUrl !== '',
-            'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: 'unknown'), 0, 12),
+            'render_git_commit' => substr((string) (getenv('RENDER_GIT_COMMIT') ?: getenv('RAVEN23_SOURCE_COMMIT') ?: 'unknown'), 0, 12),
             'instance_id' => substr((string) (getenv('RENDER_INSTANCE_ID') ?: 'unknown'), 0, 12),
         ];
 
