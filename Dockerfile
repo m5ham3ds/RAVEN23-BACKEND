@@ -12,7 +12,7 @@ RUN composer create-project laravel/laravel app "^13.0" --no-interaction --prefe
 WORKDIR /opt/raven/app
 RUN composer require laravel/sanctum:^4.2 google/apiclient:^2.18 --no-interaction --prefer-dist
 COPY . /opt/raven-source
-RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
+RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature tests/Integration \
     && cp /opt/raven-source/config/services.php config/services.php \
     && cp /opt/raven-source/config/database.php config/database.php \
     && cp /opt/raven-source/config/cache.php config/cache.php \
@@ -23,7 +23,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && cp /opt/raven-source/app/Support/GoogleIdTokenVerifier.php app/Support/GoogleIdTokenVerifier.php \
     && cp /opt/raven-source/app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/AuthController.php \
     && cp /opt/raven-source/tests/Feature/AuthLifecycleTest.php tests/Feature/AuthLifecycleTest.php \
-    && cp /opt/raven-source/tests/Integration/PostgresAuthLifecycleTest.php tests/Feature/PostgresAuthLifecycleTest.php \
+    && cp /opt/raven-source/tests/Integration/PostgresAuthLifecycleTest.php tests/Integration/PostgresAuthLifecycleTest.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
     && cp /opt/raven-source/database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
@@ -41,7 +41,7 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php -l bootstrap/app.php \
     && php -l routes/api.php \
     && php -l tests/Feature/AuthLifecycleTest.php \
-    && php -l tests/Feature/PostgresAuthLifecycleTest.php \
+    && php -l tests/Integration/PostgresAuthLifecycleTest.php \
     && php -l database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
     && php -l database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
     && php -l database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
@@ -68,7 +68,7 @@ RUN --mount=type=secret,id=neon_db_url \
     set -eu; \
     test -s /run/secrets/neon_db_url || { echo "NEON_DB_URL is required for PostgreSQL integration tests." >&2; exit 1; }; \
     export NEON_DB_URL="$(cat /run/secrets/neon_db_url)"; \
-    APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test tests/Feature/PostgresAuthLifecycleTest.php
+    APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test tests/Integration/PostgresAuthLifecycleTest.php
 
 FROM php:8.4-cli-bookworm AS runtime
 ARG RAVEN23_SOURCE_COMMIT=unknown
