@@ -3,20 +3,22 @@
 namespace Tests\Integration;
 
 use App\Models\User;
+use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 use Laravel\Sanctum\PersonalAccessToken;
-use Tests\TestCase;
 
 /**
- * Runs only when the Docker validation build receives NEON_DB_URL.
- * Unlike AuthLifecycleTest, this suite exercises real PostgreSQL semantics.
+ * Boots the same Laravel application and production API routes used on Render.
  */
 class PostgresAuthLifecycleTest extends TestCase
 {
+    public function createApplication()
+    {
+        return require dirname(__DIR__, 2) . '/bootstrap/app.php';
+    }
+
     private array $createdUsers = [];
     private array $createdTokens = [];
     private array $createdEmails = [];
@@ -25,19 +27,11 @@ class PostgresAuthLifecycleTest extends TestCase
     {
         parent::setUp();
 
-        // Laravel's TestCase may use a base application that does not load
-        // the repository's routes/api.php. Explicitly register the exact same
-        // production route file before exercising HTTP requests.
-        require_once base_path('routes/api.php');
-
         $databaseUrl = trim((string) (getenv('NEON_DB_URL') ?: getenv('DB_URL')));
         if ($databaseUrl === '') {
             $this->markTestSkipped('NEON_DB_URL is not configured for the PostgreSQL integration suite.');
         }
 
-        // Laravel's base TestCase configures SQLite in some repository test
-        // harnesses; do not rely on environment variables alone to override
-        // that in-memory connection after the application has bootstrapped.
         config([
             'database.default' => 'pgsql',
             'database.connections.pgsql.driver' => 'pgsql',
@@ -48,25 +42,19 @@ class PostgresAuthLifecycleTest extends TestCase
             'database.connections.pgsql.username' => null,
             'database.connections.pgsql.password' => null,
             'database.connections.pgsql.sslmode' => 'require',
+            'cache.default' => 'array',
         ]);
         DB::purge('pgsql');
 
         $this->assertSame('pgsql', DB::connection()->getDriverName());
         DB::connection()->selectOne('select 1');
 
-        // The real PostgreSQL suite boots through the runtime routing config.
-        // Fail early with registered-route metadata rather than sending auth
-        // requests to a missing API group and misdiagnosing it as a DB error.
-        $this->assertNotNull(
-            Route::getRoutes()->match(Request::create('/api/v1/auth/register', 'POST')),
-            'Production API register route was not loaded into Laravel.',
-        );
-
         $identity = DB::selectOne(
-            'select current_database() as database_name, current_schema() as schema_name, current_setting(\'search_path\') as search_path'
+            "select current_database() as database_name, current_schema() as schema_name, current_setting('search_path') as search_path"
         );
         $userColumns = Schema::getColumnListing('users');
         $tokenColumns = Schema::getColumnListing('personal_access_tokens');
+
         fwrite(STDOUT, sprintf(
             "[RAVEN23 PostgreSQL integration] database=%s schema=%s search_path=%s users_username=%s tokens_device_metadata=%s\n",
             (string) $identity->database_name,
@@ -78,12 +66,10 @@ class PostgresAuthLifecycleTest extends TestCase
                 && in_array('platform', $tokenColumns, true)) ? 'yes' : 'no',
         ));
 
-        $this->assertContains('username', $userColumns, 'Neon users.username column is missing.');
-        $this->assertContains('device_id', $tokenColumns, 'Neon personal_access_tokens.device_id column is missing.');
-        $this->assertContains('device_name', $tokenColumns, 'Neon personal_access_tokens.device_name column is missing.');
-        $this->assertContains('platform', $tokenColumns, 'Neon personal_access_tokens.platform column is missing.');
-        $this->assertTrue(Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/login', 'POST')) !== null, 'Production API login route was not loaded.');
-        $this->assertTrue(Route::getRoutes()->match(\Illuminate\Http\Request::create('/api/v1/auth/guest', 'POST')) !== null, 'Production API guest route was not loaded.');
+        $this->assertContains('username', $userColumns, 'PostgreSQL users.username column is missing.');
+        $this->assertContains('device_id', $tokenColumns, 'PostgreSQL personal_access_tokens.device_id column is missing.');
+        $this->assertContains('device_name', $tokenColumns, 'PostgreSQL personal_access_tokens.device_name column is missing.');
+        $this->assertContains('platform', $tokenColumns, 'PostgreSQL personal_access_tokens.platform column is missing.');
     }
 
     protected function tearDown(): void
@@ -91,7 +77,7 @@ class PostgresAuthLifecycleTest extends TestCase
         foreach (array_reverse($this->createdTokens) as $tokenId) {
             try {
                 DB::table('personal_access_tokens')->where('id', $tokenId)->delete();
-            } catch (\Throwable) {
+            } catch (\\Throwable) {
                 // Preserve the original test failure; cleanup is best-effort.
             }
         }
@@ -99,7 +85,7 @@ class PostgresAuthLifecycleTest extends TestCase
         foreach (array_reverse($this->createdUsers) as $userId) {
             try {
                 DB::table('users')->where('id', $userId)->delete();
-            } catch (\Throwable) {
+            } catch (\\Throwable) {
                 // Preserve the original test failure; cleanup is best-effort.
             }
         }
@@ -114,7 +100,7 @@ class PostgresAuthLifecycleTest extends TestCase
                         ->delete();
                     DB::table('users')->whereIn('id', $orphanedIds)->delete();
                 }
-            } catch (\Throwable) {
+            } catch (\\Throwable) {
                 // Best-effort cleanup only for unique synthetic test emails.
             }
         }
@@ -156,15 +142,10 @@ class PostgresAuthLifecycleTest extends TestCase
     public function test_postgresql_email_registration_and_login_create_real_sanctum_sessions(): void
     {
         $data = $this->accountPayload();
-
         $registration = $this->postJson('/api/v1/auth/register', $data);
-        $this->assertSame(
-            201,
-            $registration->status(),
-            'Email registration response: ' . $registration->getContent(),
-        );
-        $registration->assertJsonPath('success', true);
 
+        $this->assertSame(201, $registration->status(), 'Email registration response: ' . $registration->getContent());
+        $registration->assertJsonPath('success', true);
         [$userId, $firstToken] = $this->rememberSession($registration->json());
 
         $user = User::findOrFail($userId);
@@ -182,21 +163,13 @@ class PostgresAuthLifecycleTest extends TestCase
         [$loginUserId, $secondToken] = $this->rememberSession($login->json());
         $this->assertSame($userId, $loginUserId);
         $this->assertNotSame($firstToken, $secondToken);
-
-        $this->withToken($secondToken)
-            ->getJson('/api/v1/user/profile')
-            ->assertOk()
-            ->assertJsonPath('user.id', $userId);
+        $this->withToken($secondToken)->getJson('/api/v1/user/profile')->assertOk()->assertJsonPath('user.id', $userId);
     }
 
     public function test_postgresql_guest_creation_and_session_are_successful(): void
     {
         $response = $this->postJson('/api/v1/auth/guest');
-        $this->assertSame(
-            200,
-            $response->status(),
-            'Guest registration response: ' . $response->getContent(),
-        );
+        $this->assertSame(200, $response->status(), 'Guest registration response: ' . $response->getContent());
 
         [$userId, $token] = $this->rememberSession($response->json());
         $this->assertDatabaseHas('users', [
@@ -205,10 +178,7 @@ class PostgresAuthLifecycleTest extends TestCase
             'provider' => 'guest',
         ]);
 
-        $this->withToken($token)
-            ->getJson('/api/v1/user/profile')
-            ->assertOk()
-            ->assertJsonPath('user.id', $userId);
+        $this->withToken($token)->getJson('/api/v1/user/profile')->assertOk()->assertJsonPath('user.id', $userId);
     }
 
     public function test_postgresql_device_token_replacement_and_logout_are_persistent(): void
@@ -221,12 +191,7 @@ class PostgresAuthLifecycleTest extends TestCase
             'device_name' => 'PostgreSQL Integration Device',
             'platform' => 'android',
         ]);
-        $this->assertSame(
-            201,
-            $first->status(),
-            'Device registration response: ' . $first->getContent(),
-        );
-
+        $this->assertSame(201, $first->status(), 'Device registration response: ' . $first->getContent());
         [$userId, $firstToken] = $this->rememberSession($first->json());
 
         $second = $this->postJson('/api/v1/auth/login', [
@@ -242,10 +207,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertNull(PersonalAccessToken::findToken($firstToken));
         $this->assertNotNull(PersonalAccessToken::findToken($secondToken));
 
-        $this->withToken($secondToken)
-            ->postJson('/api/v1/auth/logout')
-            ->assertOk();
-
+        $this->withToken($secondToken)->postJson('/api/v1/auth/logout')->assertOk();
         $this->assertNull(PersonalAccessToken::findToken($secondToken));
     }
 }
