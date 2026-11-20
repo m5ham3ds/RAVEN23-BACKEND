@@ -19,6 +19,13 @@ class PostgresAuthLifecycleTest extends TestCase
         $app = require dirname(__DIR__, 2) . '/bootstrap/app.php';
         $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+        // Laravel's normal api route loader adds the /api prefix around routes/api.php.
+        // The generated test harness does not run that routing callback, so invoke
+        // the same callback explicitly for this standalone integration test app.
+        \Illuminate\Support\Facades\Route::middleware('api')->prefix('api')->group(
+            dirname(__DIR__, 2) . '/routes/api.php'
+        );
+
         return $app;
     }
 
