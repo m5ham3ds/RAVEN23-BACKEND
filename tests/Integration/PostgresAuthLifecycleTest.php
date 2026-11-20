@@ -48,12 +48,12 @@ class PostgresAuthLifecycleTest extends TestCase
         });
         $this->assertNotNull($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
 
-        $routeRequest = \\Illuminate\\Http\\Request::create('/api/v1/auth/register', 'POST');
+        $routeRequest = \Illuminate\Http\Request::create('/api/v1/auth/register', 'POST');
         $matchedRoute = $routes->match($routeRequest);
         $this->assertSame('api/v1/auth/register', $matchedRoute->uri());
         $this->assertContains('POST', $matchedRoute->methods());
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 route dispatch] registered=%s matched=%s methods=%s base_path=%s\\n",
+            "[RAVEN23 route dispatch] registered=%s matched=%s methods=%s base_path=%s\n",
             $registered->uri(),
             $matchedRoute->uri(),
             implode(',', $matchedRoute->methods()),
