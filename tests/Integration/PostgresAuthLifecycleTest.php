@@ -55,7 +55,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertContains('POST', $matchedRoute->methods());
 
         $kernel = $this->app->make(HttpKernel::class);
-        $routerProperty = new \\ReflectionProperty($kernel, 'router');
+        $routerProperty = new \ReflectionProperty($kernel, 'router');
         $kernelRouter = $routerProperty->getValue($kernel);
         $kernelRoutes = $kernelRouter->getRoutes();
         $kernelRegistered = collect($kernelRoutes)->first(static function ($route): bool {
@@ -63,7 +63,7 @@ class PostgresAuthLifecycleTest extends TestCase
                 && in_array('POST', $route->methods(), true);
         });
         fwrite(STDOUT, sprintf(
-            "[RAVEN23 route dispatch] app_router=%s kernel_router=%s app_route=%s kernel_route=%s methods=%s path=%s compiled=%s\\n",
+            "[RAVEN23 route dispatch] app_router=%s kernel_router=%s app_route=%s kernel_route=%s methods=%s path=%s compiled=%s\n",
             spl_object_id($this->app->make('router')),
             spl_object_id($kernelRouter),
             $registered->uri(),
