@@ -54,16 +54,15 @@ RUN mkdir -p app/Http/Controllers/Api app/Support tests/Feature \
     && php artisan route:list --path=api/v1 >/dev/null
 
 FROM php:8.4-cli-bookworm AS postgres-test
+ARG NEON_DB_URL
 RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev \
     && docker-php-ext-install pdo_pgsql \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /opt/raven/app /var/www/html
 WORKDIR /var/www/html
-RUN --mount=type=secret,id=neon_db_url \
-    set -eu; \
-    test -s /run/secrets/neon_db_url || { echo "NEON_DB_URL secret is required for PostgreSQL integration tests." >&2; exit 1; }; \
-    export NEON_DB_URL="$(cat /run/secrets/neon_db_url)"; \
-    APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" DB_MIGRATION_URL="$NEON_DB_URL" php artisan test --filter=PostgresAuthLifecycleTest
+RUN set -eu; \
+    test -n "${NEON_DB_URL}" || { echo "NEON_DB_URL is required for PostgreSQL integration tests." >&2; exit 1; }; \
+    APP_ENV=testing DB_CONNECTION=pgsql NEON_DB_URL="${NEON_DB_URL}" DB_URL="${NEON_DB_URL}" DB_MIGRATION_URL="${NEON_DB_URL}" php artisan test --filter=PostgresAuthLifecycleTest
 
 FROM php:8.4-cli-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
