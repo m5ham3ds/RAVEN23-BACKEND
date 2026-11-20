@@ -20,46 +20,76 @@ jobs:
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       API_ROOT: https://raven23-backend.onrender.com/api/v1
       EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Wait for the exact source commit to be live on Render
+      - name: Wake Render, then wait for the exact source commit
         run: |
           python3 - <<'PY'
-          import json, os, time, urllib.request, urllib.error
+          import json, os, time, urllib.request, urllib.error, urllib.parse
 
-          base = os.environ["API_ROOT"]
+          base = os.environ["API_ROOT"].rstrip("/")
           expected = os.environ["EXPECTED_COMMIT"][:12]
+          deadline = time.monotonic() + 15 * 60
           last = None
+          attempt = 0
 
-          for attempt in range(1, 61):
+          def request_health():
+              url = base + "/health?wake_probe=" + urllib.parse.quote(str(int(time.time())))
+              request = urllib.request.Request(
+                  url,
+                  headers={
+                      "Accept": "application/json",
+                      "Cache-Control": "no-cache, no-store",
+                      "Pragma": "no-cache",
+                      "User-Agent": "RAVEN23-GitHub-Actions-Cold-Start-Probe",
+                  },
+              )
               try:
-                  request = urllib.request.Request(
-                      base + "/health",
-                      headers={"Accept": "application/json", "Cache-Control": "no-cache"},
-                  )
-                  with urllib.request.urlopen(request, timeout=15) as response:
-                      health = json.loads(response.read().decode("utf-8"))
+                  with urllib.request.urlopen(request, timeout=45) as response:
+                      raw = response.read()
+                      status = response.status
+              except urllib.error.HTTPError as error:
+                  status, raw = error.code, error.read()
+              try:
+                  payload = json.loads(raw.decode("utf-8")) if raw else {}
+              except (UnicodeDecodeError, json.JSONDecodeError):
+                  payload = {}
+              return status, payload
+
+          # This is an external HTTP request. Render's proxy can use it to wake
+          # a sleeping free service; continue after transient cold-start errors.
+          while time.monotonic() < deadline:
+              attempt += 1
+              try:
+                  status, health = request_health()
                   target = health.get("runtime_target") or {}
                   live_sha = target.get("render_git_commit", "unknown")
+                  last = {
+                      "http_status": status,
+                      "success": health.get("success"),
+                      "database": health.get("database"),
+                      "schema": health.get("schema"),
+                      "live_commit": live_sha,
+                  }
                   if (
-                      health.get("success") is True
+                      status == 200
+                      and health.get("success") is True
                       and health.get("database") == "connected"
                       and health.get("schema") == "ready"
                       and live_sha == expected
                   ):
                       if health.get("google_auth") != "configured":
                           raise SystemExit("Google OAuth is not configured in the live backend.")
-                      print("PASS: Render serves the expected commit; Neon, auth schema and Google configuration are healthy.")
+                      print(f"PASS: Render woke and serves expected commit {expected}; Neon, schema and Google auth are healthy.")
                       raise SystemExit(0)
-                  last = (health.get("success"), health.get("database"), health.get("schema"), live_sha)
-              except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
-                  last = type(error).__name__
-              time.sleep(5)
+              except (urllib.error.URLError, TimeoutError, OSError) as error:
+                  last = {"transport_error": type(error).__name__}
+              time.sleep(5 if attempt < 6 else 10)
 
-          raise SystemExit(f"Render did not become healthy on commit {expected}; last={last!r}")
+          raise SystemExit(f"Render did not become healthy on commit {expected} after wake retries; attempts={attempt}; last={last!r}")
           PY
 
       - name: Exercise live email, guest, device-session and token-revocation flows
@@ -67,7 +97,7 @@ jobs:
           python3 - <<'PY'
           import json, os, uuid, urllib.request, urllib.error
 
-          base = os.environ["API_ROOT"]
+          base = os.environ["API_ROOT"].rstrip("/")
           suffix = uuid.uuid4().hex
           email = f"raven23-ci-{suffix}@example.test"
           username = f"raven_ci_{suffix[:16]}"
@@ -78,19 +108,17 @@ jobs:
 
           def call(method, path, body=None, token=None, expected=(200,)):
               payload = None if body is None else json.dumps(body).encode("utf-8")
-              headers = {"Accept": "application/json"}
+              headers = {"Accept": "application/json", "Cache-Control": "no-cache", "User-Agent": "RAVEN23-GitHub-Actions-Auth-Smoke"}
               if payload is not None:
                   headers["Content-Type"] = "application/json"
               if token:
                   headers["Authorization"] = "Bearer " + token
               request = urllib.request.Request(base + path, data=payload, headers=headers, method=method)
               try:
-                  response = urllib.request.urlopen(request, timeout=35)
-                  status = response.status
-                  raw = response.read()
+                  response = urllib.request.urlopen(request, timeout=60)
+                  status, raw = response.status, response.read()
               except urllib.error.HTTPError as error:
-                  status = error.code
-                  raw = error.read()
+                  status, raw = error.code, error.read()
               try:
                   data = json.loads(raw.decode("utf-8")) if raw else {}
               except json.JSONDecodeError:
@@ -98,10 +126,7 @@ jobs:
               if status not in expected:
                   diagnostic = data.get("diagnostic") if isinstance(data, dict) else None
                   request_id = data.get("request_id") if isinstance(data, dict) else None
-                  raise RuntimeError(
-                      f"{method} {path}: expected {expected}, received {status}; "
-                      f"request_id={request_id}; safe_diagnostic={diagnostic}"
-                  )
+                  raise RuntimeError(f"{method} {path}: expected {expected}, received {status}; request_id={request_id}; safe_diagnostic={diagnostic}")
               return status, data
 
           def profile(token, expected=(200,)):
@@ -110,18 +135,14 @@ jobs:
           def delete_account(token):
               try:
                   call("DELETE", "/user/account", token=token, expected=(200,))
-              except Exception:
-                  pass
+              except Exception as error:
+                  print(f"Cleanup warning (non-fatal): {type(error).__name__}")
 
           try:
               _, registered = call("POST", "/auth/register", {
-                  "name": "RAVEN23 CI User",
-                  "email": email,
-                  "username": username,
-                  "password": password,
-                  "device_id": device_id,
-                  "device_name": "GitHub Actions disposable test",
-                  "platform": "android",
+                  "name": "RAVEN23 CI User", "email": email, "username": username,
+                  "password": password, "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test", "platform": "android",
               }, expected=(201,))
               first_token = registered.get("token")
               user_id = (registered.get("user") or {}).get("id")
@@ -133,11 +154,8 @@ jobs:
                   raise RuntimeError("Profile did not resolve the registered PostgreSQL user.")
 
               _, login = call("POST", "/auth/login", {
-                  "email": email,
-                  "password": password,
-                  "device_id": device_id,
-                  "device_name": "GitHub Actions disposable test",
-                  "platform": "android",
+                  "email": email, "password": password, "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test", "platform": "android",
               })
               second_token = login.get("token")
               if not second_token or (login.get("user") or {}).get("id") != user_id:
@@ -146,20 +164,13 @@ jobs:
               profile(first_token, expected=(401,))
               profile(second_token)
 
-              call("POST", "/auth/login", {
-                  "email": email,
-                  "password": "incorrect-password-for-smoke-test",
-              }, expected=(401,))
-
+              call("POST", "/auth/login", {"email": email, "password": "incorrect-password-for-smoke-test"}, expected=(401,))
               call("POST", "/auth/logout", token=second_token)
               profile(second_token, expected=(401,))
 
               _, relogin = call("POST", "/auth/login", {
-                  "email": email,
-                  "password": password,
-                  "device_id": device_id,
-                  "device_name": "GitHub Actions disposable test",
-                  "platform": "android",
+                  "email": email, "password": password, "device_id": device_id,
+                  "device_name": "GitHub Actions disposable test", "platform": "android",
               })
               final_token = relogin.get("token")
               if not final_token:
