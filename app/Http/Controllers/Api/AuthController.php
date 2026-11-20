@@ -150,11 +150,11 @@ class AuthController extends Controller
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        $this->markStage($request, 'register.begin_transaction');
-        return DB::transaction(function () use ($data, $request): JsonResponse {
-            $this->markStage($request, 'register.resolve_guest_token');
-            $guest = $this->guestAccount($data['guest_token'] ?? null);
+        $this->markStage($request, 'register.resolve_guest_token');
+        $guest = $this->guestAccount($data['guest_token'] ?? null);
 
+        $this->markStage($request, 'register.persist_account_and_session');
+        $payload = DB::transaction(function () use ($data, $guest, $request): array {
             if ($guest) {
                 $this->markStage($request, 'register.upgrade_guest_user');
                 // Upgrade the existing guest row so its identity and linked
@@ -188,9 +188,18 @@ class AuthController extends Controller
                 ]);
             }
 
-            $this->markStage($request, 'register.issue_session');
-            return $this->session($user, $request, 201);
+            return [
+                'user_id' => (int) $user->id,
+                'response_status' => 201,
+            ];
         });
+
+        // Session issuance is deliberately outside the account transaction.
+        // If the token/device write fails, the user remains recoverable and a
+        // retry does not get misreported as a failed user-row transaction.
+        $this->markStage($request, 'register.reload_user');
+        $user = User::findOrFail($payload['user_id']);
+        return $this->session($user, $request, $payload['response_status']);
     }
 
     public function login(Request $request): JsonResponse
@@ -202,31 +211,30 @@ class AuthController extends Controller
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        $this->markStage($request, 'login.begin_transaction');
-        return DB::transaction(function () use ($data, $request): JsonResponse {
-            $this->markStage($request, 'login.find_account');
-            $user = User::query()
-                ->where('email', Str::lower(trim($data['email'])))
-                ->where('is_guest', false)
-                ->lockForUpdate()
-                ->first();
+        $this->markStage($request, 'login.find_account');
+        $user = User::query()
+            ->where('email', Str::lower(trim($data['email'])))
+            ->where('is_guest', false)
+            ->first();
 
-            if (!$user || !Hash::check($data['password'], $user->password)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The supplied credentials are invalid.',
-                ], 401);
-            }
+        if (!$user || !Hash::check($data['password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The supplied credentials are invalid.',
+            ], 401);
+        }
 
-            $this->markStage($request, 'login.consume_guest_account');
-            $this->discardGuest(
-                $this->guestAccount($data['guest_token'] ?? null),
-                $user,
-            );
+        $this->markStage($request, 'login.consume_guest_account');
+        $guest = $this->guestAccount($data['guest_token'] ?? null);
+        if ($guest && !$guest->is($user)) {
+            DB::transaction(function () use ($guest): void {
+                $guest->tokens()->delete();
+                $guest->delete();
+            });
+        }
 
-            $this->markStage($request, 'login.issue_session');
-            return $this->session($user, $request);
-        });
+        $this->markStage($request, 'login.issue_session');
+        return $this->session($user, $request);
     }
 
     public function google(Request $request): JsonResponse
@@ -353,22 +361,18 @@ class AuthController extends Controller
 
     public function guest(Request $request): JsonResponse
     {
-        $this->markStage($request, 'guest.begin_transaction');
-        return DB::transaction(function () use ($request): JsonResponse {
-            $this->markStage($request, 'guest.insert_user');
-            $suffix = Str::lower(Str::random(16));
-            $user = User::create([
-                'name' => 'Guest',
-                'email' => "guest-{$suffix}@guest.raven23.invalid",
-                'username' => "guest_{$suffix}",
-                'password' => Str::random(64),
-                'provider' => 'guest',
-                'is_guest' => true,
-            ]);
+        $this->markStage($request, 'guest.insert_user');
+        $user = User::create([
+            'name' => 'Guest',
+            'email' => 'guest-' . Str::lower(Str::random(16)) . '@guest.raven23.invalid',
+            'username' => 'guest_' . Str::lower(Str::random(16)),
+            'password' => Str::random(64),
+            'provider' => 'guest',
+            'is_guest' => true,
+        ]);
 
-            $this->markStage($request, 'guest.issue_session');
-            return $this->session($user, $request);
-        });
+        $this->markStage($request, 'guest.issue_session');
+        return $this->session($user, $request);
     }
 
     public function logout(Request $request): JsonResponse
