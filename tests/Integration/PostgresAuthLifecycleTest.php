@@ -193,13 +193,21 @@ class PostgresAuthLifecycleTest extends TestCase
         $registration->assertJsonPath('success', true);
         [$userId, $firstToken] = $this->rememberSession($registration->json());
 
-        $user = User::findOrFail($userId);
+        // Simulate the next HTTP request running with a fresh PDO connection,
+        // as it does when Render routes a request after the registration call.
+        DB::purge('pgsql');
+        $user = User::on('pgsql')->findOrFail($userId);
         $this->assertTrue(Hash::check($data['password'], $user->password));
         $this->assertDatabaseHas('personal_access_tokens', [
             'tokenable_id' => $userId,
             'tokenable_type' => User::class,
         ]);
+        $this->withToken($firstToken)
+            ->getJson('/api/v1/user/profile')
+            ->assertOk()
+            ->assertJsonPath('user.id', $userId);
 
+        DB::purge('pgsql');
         $login = $this->postJson('/api/v1/auth/login', [
             'email' => $data['email'],
             'password' => $data['password'],
