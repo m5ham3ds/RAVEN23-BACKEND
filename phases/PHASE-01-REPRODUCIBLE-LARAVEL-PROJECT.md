@@ -1,6 +1,6 @@
 # المرحلة 01 — تحويل المستودع إلى مشروع Laravel مستقل قابل لإعادة البناء
 
-**الحالة:** IN_PROGRESS  
+**الحالة:** COMPLETE  
 **الاعتماديات:** المرحلة 00 COMPLETE
 
 ## سجل التنفيذ — 21 نوفمبر 2026
@@ -15,7 +15,7 @@
 - أزيل workflow المؤقت الذي أنشأ lock بعد تثبيت الملف.
 - Docker Validation #198 و#204 فشلا في اختبار المسارات بسبب طريقة تصفية CLI ثم بسبب استبدال طرق HTTP عند وجود URI له GET/PUT. جُمعت الطرق بدل استبدالها، كما أُنشئ ملف `.env` فارغ داخل مرحلة الاختبار لتجنب تحذيرات dotenv المتكررة. Docker #207: SUCCESS على commit `3f4ead...` — Docker image، SQLite (13 tests / 92 assertions)، PostgreSQL 16 (3 tests / 72 assertions) كلها نجحت. Docker #210 قيد التنفيذ على أحدث SHA `519c3f...` الذي يضيف migrations غير مدمرة واختبار حفظ بيانات users/cache/jobs. لا يغلق Phase 01 حتى ينجح #210 على هذا SHA.
 
-**الحكم الحالي:** IN_PROGRESS. أضيفت أيضًا حماية للمigrations الأساسية كي لا تعيد إنشاء جداول users/cache/jobs التي قد تكون موجودة في قاعدة قديمة، وأضيف اختبار يثبت بقاء بيانات مستخدم وcache وqueue قائمة قبل migration. لا تسجل المرحلة COMPLETE حتى ينجح Docker build واختبارات SQLite وPostgreSQL على أحدث SHA الذي يحتوي حماية migrations واختبار حفظ البيانات القديمة.
+**الحكم الحالي:** IN_PROGRESS. أضيفت أيضًا حماية للمigrations الأساسية كي لا تعيد إنشاء جداول users/cache/jobs التي قد تكون موجودة في قاعدة قديمة، وأضيف اختبار يثبت بقاء بيانات مستخدم وcache وqueue قائمة قبل migration. أُغلقت المرحلة بعد نجاح Docker build وSQLite وPostgreSQL على SHA موحد `519c3f1039f05818b413d466fbc31793ee6daeb6`؛ التفاصيل في تقرير `PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
 
 ## الهدف
 إزالة الاعتماد على إنشاء تطبيق Laravel جديد أثناء Docker build، وجعل المستودع يحتوي تطبيق Laravel كاملًا باعتماديات ثابتة وقابلة لإعادة البناء.
