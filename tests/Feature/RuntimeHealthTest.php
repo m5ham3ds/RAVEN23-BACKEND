@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class RuntimeHealthTest extends TestCase
@@ -51,6 +52,20 @@ class RuntimeHealthTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('database', 'connected')
             ->assertJsonPath('schema', 'ready');
+    }
+
+    public function test_readiness_returns_503_when_persistent_runtime_schema_is_incomplete(): void
+    {
+        $this->prepareReadyDatabase();
+
+        Schema::drop('cache_locks');
+
+        $this->getJson('/ready')
+            ->assertStatus(503)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 'not_ready')
+            ->assertJsonPath('checks.database', 'ok')
+            ->assertJsonPath('checks.schema', 'incomplete');
     }
 
     public function test_readiness_returns_503_without_exposing_connection_details(): void
