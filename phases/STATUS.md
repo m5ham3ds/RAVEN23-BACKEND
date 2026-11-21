@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 مغلقة وPhase 02 قيد التنفيذ  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 مغلقة وPhase 02 قيد الإصلاح والتحقق  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -14,7 +14,7 @@
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
-| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime مضافة. #220/#227 كشفا مسار Caddy قديمًا وأُصلح. #229/#234 بنيا الصورة واجتازا SQLite لكن /ready أعاد 500 بدل 503 عند DB غير متاح؛ #236 يعمل على أحدث SHA `e7db3d5` مع اختبار PDO refused وإظهار response/logs |
+| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime مضافة. #220/#227 كشفا مسار Caddy قديمًا وأُصلح. #229/#234/#236 بنوا الصورة واجتازوا SQLite، لكن no-DB `/ready` أعاد 500 بدل 503. استبدلنا logging facade بـPHP native `error_log` الآمن؛ #240 يختبر التعديل و#241 ينتظر على أحدث SHA `358fa251` مع JSON readiness assertion |
 | 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
@@ -55,7 +55,8 @@
 - النطاق: استبدال PHP built-in server ببيئة HTTP إنتاجية محمولة، إزالة اعتماد startup على Render/Neon، وفصل migration task عن تشغيل web container.
 - الخيار قيد التنفيذ: FrankenPHP/Caddy على PHP 8.4؛ القرار النهائي يتطلب نجاح Docker وHTTP/health/readiness/non-root checks.
 - فرع التنفيذ: `feature/phase-02-portable-runtime`، وPR منفصل يستهدف فرع Phase 01 المكتمل.
-- CI #229/#234: Docker image + SQLite + PostgreSQL image build اجتازت؛ فشل no-DB readiness بسبب HTTP 500. CI #236 IN_PROGRESS على SHA `e7db3d547c2852ddcf255bbbddce55cadff77b0d`، ويشمل DB_HOST=127.0.0.1/DB_PORT=1 مع body/log diagnostics واختبار Feature لاتصال PDO المرفوض.
+- CI #229/#234/#236: Docker build + PHP lint + SQLite suite + PostgreSQL test image build PASS؛ #236 فشل فقط في no-DB readiness (HTTP 500 بدلاً من 503) بعد نجاح `/up`.
+- التعديل التشخيصي: استبدال Laravel `Log::warning` داخل catch بـPHP `error_log` حتى لا تمنع مشكلة قناة logging إعادة 503. CI #240 قيد التنفيذ على SHA `9458b9c2e0d5c722cdf96b111218dec778e5ba27`، و#241 pending على SHA PR الحالي `358fa2511355acb9166d5b4b1cec397c61d12fc9` مع التحقق من JSON contract.
 - لا نشر، ولا اتصالات بقاعدة الإنتاج، ولا migrations تلقائية على بيئة غير معروفة.
 
 
@@ -81,4 +82,4 @@
 
 ## العمل التالي المسموح
 
-ابدأ Phase 01 — Reproducible Laravel Project وفق مواصفته. حافظ على AuthController وUser model وSanctum وGoogle verifier وmigrations والاختبارات الحالية. لا تبدأ AWS أو production data migration في Phase 01.
+أكمل إصلاح Phase 02 أولًا، ولا تعتبرها مكتملة قبل نجاح Docker وSQLite وPostgreSQL وHTTP readiness/no-DB/non-root/PHP-asset checks على commit واحد. بعد ذلك فقط ابدأ Phase 03 وفق `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`. لا تبدأ AWS أو production data migration.
