@@ -92,9 +92,24 @@ class AuthController extends Controller
                 'schema_name' => $afterIdentity->schema_name ?? null,
                 'search_path' => $afterIdentity->search_path ?? null,
             ]);
-            if ($persistedUser !== null) {
-                $user = $persistedUser;
+            if ($persistedUser === null) {
+                Log::critical('RAVEN23 account persistence could not be verified after reconnect', [
+                    'user_id' => (int) $user->getKey(),
+                    'database_name' => $afterIdentity->database_name ?? null,
+                    'schema_name' => $afterIdentity->schema_name ?? null,
+                    'transaction_level' => $afterConnection->transactionLevel(),
+                ]);
+
+                // Never issue a bearer token for an Eloquent instance whose
+                // account row is not visible through a fresh PostgreSQL
+                // connection. This prevents successful-looking responses and
+                // orphaned Sanctum tokens when a pooled write was not durable.
+                throw new \\RuntimeException(
+                    'The account could not be verified after refreshing the database connection.'
+                );
             }
+
+            $user = $persistedUser;
             $user->setConnection($connectionName);
         }
 
