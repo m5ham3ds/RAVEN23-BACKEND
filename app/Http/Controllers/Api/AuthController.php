@@ -104,7 +104,7 @@ class AuthController extends Controller
                 // account row is not visible through a fresh PostgreSQL
                 // connection. This prevents successful-looking responses and
                 // orphaned Sanctum tokens when a pooled write was not durable.
-                throw new \\RuntimeException(
+                throw new \RuntimeException(
                     'The account could not be verified after refreshing the database connection.'
                 );
             }
