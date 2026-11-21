@@ -9,22 +9,32 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: raven23-backend-validation-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   docker-build:
     name: Build and test Laravel API image
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: raven23_test
+          POSTGRES_USER: raven23_test
+          POSTGRES_PASSWORD: raven23_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U raven23_test -d raven23_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Validate PostgreSQL integration database secret
-        run: |
-          set -eu
-          test -n "${NEON_DB_URL}" || { echo "::error::Missing repository secret NEON_DB_URL; PostgreSQL integration tests cannot run."; exit 1; }
-          echo "PostgreSQL integration secret is present. Its value is not displayed."
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -32,9 +42,18 @@ jobs:
       - name: Build production image and run SQLite tests
         run: docker build --pull -t raven23-backend:ci .
 
-      - name: Run PostgreSQL integration suite using isolated secret mount
-        env:
-          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+      - name: Build reusable PostgreSQL integration-test image
+        run: docker build --pull --target postgres-test -t raven23-backend:postgres-test .
+
+      - name: Run PostgreSQL migrations and lifecycle suite on isolated CI database
         run: |
           set -eu
-          docker build --pull --secret id=neon_db_url,env=NEON_DB_URL --target postgres-test -t raven23-backend:postgres-test .
+          docker run --rm --network host \
+            -e APP_ENV=testing \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_SSLMODE=disable \
+            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            --entrypoint sh \
+            raven23-backend:postgres-test \
+            -c 'set -eu; php artisan migrate --force; php artisan test tests/Integration/PostgresAuthLifecycleTest.php'
