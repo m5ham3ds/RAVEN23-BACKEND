@@ -91,6 +91,13 @@ jobs:
             rm -f "$readiness_body_file"
             exit 1
           }
+          jq -e '.success == false and .status == "not_ready" and .checks.application == "ok" and .checks.database == "unavailable" and .checks.schema == "unknown"' "$readiness_body_file" >/dev/null || {
+            echo "::error::Readiness returned HTTP 503 but the JSON contract was incorrect."
+            cat "$readiness_body_file" || true
+            docker logs "$container_name" || true
+            rm -f "$readiness_body_file"
+            exit 1
+          }
           rm -f "$readiness_body_file"
 
           echo "PASS: the web process starts and /up is healthy without DB_URL; /ready correctly returns 503."
