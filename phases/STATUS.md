@@ -45,7 +45,7 @@
 - Composer Lock Bootstrap #18: SUCCESS؛ حل الاعتماديات، `composer validate --strict`، ثم إزالة vendor وإعادة التثبيت من lock نجحت.
 - Docker #198 و#204: FAIL في اختبار Foundation الخاص بطرق HTTP المكررة لمسار واحد؛ أضيف تجميع الطرق بدل استبدالها. كما أظهرت التحذيرات غياب `.env` في الاختبارات؛ أصبح الملف الفارغ ينشأ داخل مرحلة اختبار Docker فقط.
 - أضيفت حماية للمigrations الأساسية users/cache/jobs بحيث لا تعيد إنشاء جداول قديمة، وrollback غير مدمر، واختبار يثبت حفظ صفوف المستخدم/cache/queue.
-- Docker #207: IN_PROGRESS على SHA أقدم `3f4ead...`؛ Docker #210: PENDING على أحدث SHA أعلاه. لا توجد بعد نتيجة نهائية لبوابات SQLite/PostgreSQL على أحدث SHA.
+- Docker #207: SUCCESS على SHA أقدم `3f4ead...`؛ Docker build نجح، SQLite 13 tests / 92 assertions، PostgreSQL 16: 3 tests / 72 assertions. Docker #210: IN_PROGRESS على أحدث SHA أعلاه، ويختبر migrations غير المدمرة واختبار حفظ البيانات القديمة. لا تعتبر المرحلة مكتملة قبل نتيجة #210.
 - لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو تشغيل startup probe. ولم تُقرأ قيم الأسرار.
 - المرحلة غير مكتملة حتى نجاح Docker وSQLite وPostgreSQL على نفس SHA.
 
