@@ -42,7 +42,7 @@
 | PostgreSQL 16 migrations + auth lifecycle | PENDING latest CI |
 | Actual HTTP liveness/readiness | FAIL on #220 due to wrong Caddyfile path; fix pushed and latest CI pending |
 | Non-root runtime user verification | PENDING latest CI (HTTP server could not start on correct unprivileged port in #220) |
-| Direct uploaded PHP execution blocked | PENDING latest CI; Caddy matcher simplified to RE2-compatible regex |
+| Direct uploaded PHP execution blocked | PENDING latest CI; real temporary PHP fixture added to smoke test, RE2 matcher moved to site scope and executed before php_server |
 | SIGTERM graceful process exit | Implementation added; dedicated runtime assertion pending |
 | Runtime startup does not connect/write/migrate DB | Code path removed; test/CI confirmation pending |
 | No Render/Neon required for build/test | Portable CI workflow added; confirm after full workflow |
@@ -58,7 +58,7 @@
 
 ## 5. الخطوات التالية
 
-1. فحص نتيجة Docker Validation #220.
+1. إنهاء Docker #229، ثم فحص Docker #234 على أحدث SHA (بناء + SQLite + PostgreSQL + HTTP no-DB + readiness + non-root + PHP fixture).
 2. عند أي فشل، استخراج السبب من logs وإصلاحه على نفس الفرع.
 3. اجتياز SQLite feature suite، ثم PostgreSQL 16 lifecycle.
 4. اجتياز HTTP smoke على صورة FrankenPHP الحقيقية، مع liveness/readiness وnon-root وPHP asset blocking.
