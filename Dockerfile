@@ -66,7 +66,7 @@ CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"
 FROM php:8.4-cli-bookworm AS runtime
 
 ARG RAVEN23_SOURCE_COMMIT=unknown
-ENV RAVEN23_SOURCE_COMMIT=\${RAVEN23_SOURCE_COMMIT}
+ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev ca-certificates \
