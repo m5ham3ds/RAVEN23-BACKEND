@@ -1,0 +1,102 @@
+name: RAVEN23 Production Account Retry 2
+on:
+  push:
+    branches: [main]
+    paths: [".github/workflows/production-account-retry-2.yml"]
+permissions:
+  contents: read
+jobs:
+  live-account:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API: https://raven23-backend.onrender.com/api/v1
+      SHA: ${{ github.sha }}
+    steps:
+      - name: Wait for matching live backend
+        run: |
+          python3 - <<'PY'
+          import os,time,json,urllib.request,urllib.error
+          api=os.environ["API"]
+          end=time.monotonic()+900
+          while time.monotonic()<end:
+            q=urllib.request.Request(api+"/health",headers={"Cache-Control":"no-cache"})
+            try:
+              with urllib.request.urlopen(q,timeout=45) as r: code,data=r.status,r.read()
+            except urllib.error.HTTPError as e: code,data=e.code,e.read()
+            except Exception: time.sleep(10); continue
+            try: h=json.loads(data)
+            except Exception: h={}
+            if code==200 and h.get("success") and h.get("database")=="connected" and h.get("schema")=="ready" and (h.get("runtime_target") or {}).get("render_git_commit")==os.environ["SHA"][:12]:
+              print("PASS: exact production deployment and PostgreSQL health verified"); break
+            time.sleep(10)
+          else: raise SystemExit("Production deployment was not ready")
+          PY
+      - name: Create, authenticate and remove one temporary production account
+        run: |
+          python3 - <<'PY'
+          import os,json,uuid,secrets,urllib.request,urllib.error
+          api=os.environ["API"]
+          suffix=uuid.uuid4().hex[:16]
+          email="raven-check-"+suffix+"@example.test"
+          password="R!"+secrets.token_urlsafe(20)
+          device={"device_id":str(uuid.uuid4()),"device_name":"RAVEN23 CI","platform":"android"}
+          tokens=[]
+          done=False
+          attempted=False
+          def call(method,path,obj=None,token=None):
+            raw=json.dumps(obj).encode() if obj is not None else None
+            headers={"Accept":"application/json","Cache-Control":"no-cache, no-store"}
+            if raw is not None: headers["Content-Type"]="application/json"
+            if token: headers["Authorization"]="Bearer "+token
+            req=urllib.request.Request(api+path,data=raw,headers=headers,method=method)
+            try:
+              with urllib.request.urlopen(req,timeout=45) as r: status,body=r.status,r.read()
+            except urllib.error.HTTPError as e: status,body=e.code,e.read()
+            try: return status,json.loads(body) if body else {}
+            except Exception: return status,{}
+          def gone():
+            return call("POST","/auth/login",{"email":email,"password":password})[0]==401
+          def clean():
+            for t in reversed(tokens):
+              try:
+                if call("DELETE","/user/account",{},t)[0]==200 and gone(): return True
+              except Exception: pass
+            try:
+              s,b=call("POST","/auth/login",{"email":email,"password":password,**device})
+              t=b.get("token")
+              return bool(s==200 and t and call("DELETE","/user/account",{},t)[0]==200 and gone()) or (s==401 and gone())
+            except Exception: return False
+          try:
+            attempted=True
+            s,b=call("POST","/auth/register",{"name":"RAVEN23 CI","email":email,"username":"raven_"+suffix,"password":password,**device})
+            if s!=201:
+              print("REGISTER:",json.dumps({"status":s,"message":b.get("message"),"fields":sorted(b)},sort_keys=True))
+              raise RuntimeError("registration HTTP "+str(s))
+            uid=(b.get("user") or {}).get("id")
+            t=b.get("token")
+            if not uid or not t: raise RuntimeError("registration response missing user or token")
+            tokens.append(t)
+            s,p=call("GET","/user/profile",token=t)
+            if s!=200 or (p.get("user") or {}).get("id")!=uid: raise RuntimeError("profile check failed")
+            s,l=call("POST","/auth/login",{"email":email,"password":password,**device})
+            t2=l.get("token")
+            if s!=200 or (l.get("user") or {}).get("id")!=uid or not t2: raise RuntimeError("login check failed")
+            tokens.append(t2)
+            if call("GET","/user/profile",token=t)[0]!=401: raise RuntimeError("previous device token still valid")
+            if call("GET","/user/profile",token=t2)[0]!=200: raise RuntimeError("replacement token invalid")
+            if call("DELETE","/user/account",{},t2)[0]!=200 or not gone(): raise RuntimeError("account deletion was not verified")
+            done=True
+            if call("GET","/user/profile",token=t2)[0]!=401: raise RuntimeError("deleted token still valid")
+            print("PASS: live production registration, profile, password login and same-device token replacement")
+            print("PASS: temporary account deleted; login and token access now return 401")
+          except Exception as e:
+            failure=str(e)
+          finally:
+            if attempted and not done:
+              done=clean()
+              if done: print("CLEANUP: temporary production account removed")
+              else: raise SystemExit("CRITICAL: temporary production account cleanup could not be verified")
+          if not done: raise SystemExit("Production account lifecycle did not complete")
+          if 'failure' in locals(): raise SystemExit("FAIL: "+failure)
+          PY
