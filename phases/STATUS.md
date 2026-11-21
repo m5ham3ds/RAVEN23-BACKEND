@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 21 نوفمبر 2026 — مراجعة CI وإصلاحات Phase 01  
+**آخر تحديث:** 22 نوفمبر 2026 — إغلاق Phase 01 وبدء Phase 02  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -13,8 +13,8 @@
 | المرحلة | الحالة | السبب / الاعتماد |
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
-| 01 — Laravel مستقل | IN_PROGRESS | PR #2 مفتوح كمسودة؛ الهيكل وComposer lock أضيفا، ونتائج Docker/SQLite/PostgreSQL النهائية ما زالت مطلوبة |
-| 02 — Runtime محمول | NOT_STARTED | تنتظر 01 |
+| 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
+| 02 — Runtime محمول | IN_PROGRESS | بدأ بعد اكتمال Phase 01؛ فرع مستقل وPR منفصل، واختيار FrankenPHP موثق مبدئيًا |
 | 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
@@ -36,18 +36,26 @@
 
 هذه نتائج الاختبارات الموجودة فقط، ولا تثبت التكاملات الخارجية غير المختبرة.
 
-## تقدم Phase 01 — 21 نوفمبر 2026
+## إغلاق Phase 01 — 22 نوفمبر 2026
 
 - فرع التنفيذ: `feature/phase-01-laravel-project`
-- PR: [#2](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2), draft/open, not merged.
-- أحدث SHA: `519c3f1039f05818b413d466fbc31793ee6daeb6`.
-- أضيفت بنية Laravel 13 الأساسية وComposer manifest/lock وPHPUnit وملفات بيئة آمنة.
-- Composer Lock Bootstrap #18: SUCCESS؛ حل الاعتماديات، `composer validate --strict`، ثم إزالة vendor وإعادة التثبيت من lock نجحت.
-- Docker #198 و#204: FAIL في اختبار Foundation الخاص بطرق HTTP المكررة لمسار واحد؛ أضيف تجميع الطرق بدل استبدالها. كما أظهرت التحذيرات غياب `.env` في الاختبارات؛ أصبح الملف الفارغ ينشأ داخل مرحلة اختبار Docker فقط.
-- أضيفت حماية للمigrations الأساسية users/cache/jobs بحيث لا تعيد إنشاء جداول قديمة، وrollback غير مدمر، واختبار يثبت حفظ صفوف المستخدم/cache/queue.
-- Docker #207: SUCCESS على SHA أقدم `3f4ead...`؛ Docker build نجح، SQLite 13 tests / 92 assertions، PostgreSQL 16: 3 tests / 72 assertions. Docker #210: IN_PROGRESS على أحدث SHA أعلاه، ويختبر migrations غير المدمرة واختبار حفظ البيانات القديمة. لا تعتبر المرحلة مكتملة قبل نتيجة #210.
-- لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو تشغيل startup probe. ولم تُقرأ قيم الأسرار.
-- المرحلة غير مكتملة حتى نجاح Docker وSQLite وPostgreSQL على نفس SHA.
+- PR #2: مفتوح كمسودة، غير مدمج.
+- SHA الذي اجتاز جميع البوابات: `519c3f1039f05818b413d466fbc31793ee6daeb6`.
+- Docker Validation #210: SUCCESS.
+- Docker image build وPHP lint وArtisan وroute registration: PASS.
+- SQLite: **14 tests / 100 assertions**، بما فيها regression test يحفظ rows القديمة في users/cache/jobs.
+- PostgreSQL 16: **3 integration tests / 72 assertions**.
+- Composer Lock Bootstrap #18: dependency resolution و`composer validate --strict` وclean locked install: PASS.
+- لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو قراءة أسرار أو نشر التطبيق.
+- تقرير الإغلاق: `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
+
+## تقدم Phase 02 — 22 نوفمبر 2026
+
+- بدأت بعد اجتياز جميع معايير Phase 01.
+- النطاق: استبدال PHP built-in server ببيئة HTTP إنتاجية محمولة، إزالة اعتماد startup على Render/Neon، وفصل migration task عن تشغيل web container.
+- الخيار قيد التنفيذ: FrankenPHP/Caddy على PHP 8.4؛ القرار النهائي يتطلب نجاح Docker وHTTP/health/readiness/non-root checks.
+- فرع التنفيذ: `feature/phase-02-portable-runtime`، وPR منفصل يستهدف فرع Phase 01 المكتمل.
+- لا نشر، ولا اتصالات بقاعدة الإنتاج، ولا migrations تلقائية على بيئة غير معروفة.
 
 
 ## مخرجات Phase 00
