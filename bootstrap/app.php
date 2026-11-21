@@ -20,7 +20,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Only trust explicitly configured proxy addresses. Set TRUSTED_PROXIES
+        // to an exact IP/CIDR list when TLS is terminated upstream.
+        $trustedProxies = trim((string) env('TRUSTED_PROXIES', ''));
+        if ($trustedProxies !== '') {
+            $middleware->trustProxies(
+                at: $trustedProxies === '*'
+                    ? '*'
+                    : array_values(array_filter(array_map('trim', explode(',', $trustedProxies)))),
+            );
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Prevent Laravel's default QueryException reporter from emitting raw
