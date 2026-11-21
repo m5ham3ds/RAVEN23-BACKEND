@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
 
@@ -94,11 +93,18 @@ class HealthController extends Controller
                 'source_commit' => $this->sourceCommit(),
             ]);
         } catch (Throwable $exception) {
-            // Do not expose the exception message, SQL, database host, or URI.
-            Log::warning('RAVEN23 readiness check failed', [
+            // Use PHP's native error log here: readiness must still return
+            // HTTP 503 even when the Laravel logging channel itself is unavailable.
+            // Never include SQL, exception messages, hosts, usernames, or passwords.
+            $logRecord = [
+                'event' => 'raven23_readiness_check_failed',
                 'connection' => $connectionName,
                 'exception_type' => get_class($exception),
-            ]);
+            ];
+            error_log(
+                json_encode($logRecord, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE)
+                    ?: 'raven23_readiness_check_failed',
+            );
 
             return response()->json([
                 'success' => false,
