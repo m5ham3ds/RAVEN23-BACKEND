@@ -95,22 +95,15 @@ jobs:
           python3 - <<'PY'
           import json
           import os
-          import re
           import time
           import urllib.request
           from urllib.parse import parse_qs, unquote, urlsplit
 
-          raw_url = os.environ["NEON_DB_URL"]
-          parsed = urlsplit(raw_url)
-          expected_host = re.sub(r"-pooler(?=\\.|$)", "", (parsed.hostname or "").lower())
+          parsed = urlsplit(os.environ["NEON_DB_URL"])
+          expected_host = (parsed.hostname or "").lower().replace("-pooler.", ".")
           expected_database = unquote(parsed.path.strip("/"))
           query = parse_qs(parsed.query)
           expected_schema = (query.get("schema") or ["public"])[0].lower()
-          options = (query.get("options") or [""])[0]
-          if "schema" not in query:
-              match = re.search(r"search_path\\s*=\\s*\\\"?([a-zA-Z0-9_,]+)", options, re.I)
-              if match:
-                  expected_schema = match.group(1).split(",")[0].lower()
 
           request = urllib.request.Request(
               "https://raven23-backend.onrender.com/api/v1/health?target_check=" + str(int(time.time())),
