@@ -50,6 +50,12 @@ final class Raven23AuthSchema
             }
         });
 
+        // Reconcile legacy installations that already had a nullable is_guest
+        // column. NULL is a normal account state, never proof of a guest session.
+        DB::statement('UPDATE users SET is_guest = FALSE WHERE is_guest IS NULL');
+        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET DEFAULT FALSE');
+        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL');
+
         // Preserve valid existing usernames and backfill only missing,
         // malformed or duplicate values. No account rows are removed.
         $users = DB::table('users')
