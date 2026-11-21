@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -250,7 +251,18 @@ class AuthController extends Controller
             ->where('is_guest', false)
             ->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        $passwordMatches = $user !== null && Hash::check($data['password'], $user->password);
+        if (!$user || !$passwordMatches) {
+            // Safe diagnostic only: never log the email, submitted password,
+            // stored hash, SQL or bearer token.
+            Log::warning('RAVEN23 login credentials rejected', [
+                'request_id' => (string) Str::uuid(),
+                'account_found' => $user !== null,
+                'password_hash_matches' => $passwordMatches,
+                'is_guest' => $user ? (bool) $user->is_guest : null,
+                'provider' => $user ? (string) $user->provider : null,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'The supplied credentials are invalid.',
