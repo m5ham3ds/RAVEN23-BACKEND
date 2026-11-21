@@ -87,6 +87,67 @@ jobs:
             raven23-backend:diagnostics \
             /diagnostics/runtime-db-diagnostics.php
 
+      - name: Confirm repository Neon secret matches the live Render database target
+        if: github.event_name == 'push' || inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import time
+          import urllib.request
+          from urllib.parse import parse_qs, unquote, urlsplit
+
+          raw_url = os.environ["NEON_DB_URL"]
+          parsed = urlsplit(raw_url)
+          expected_host = re.sub(r"-pooler(?=\\.|$)", "", (parsed.hostname or "").lower())
+          expected_database = unquote(parsed.path.strip("/"))
+          query = parse_qs(parsed.query)
+          expected_schema = (query.get("schema") or ["public"])[0].lower()
+          options = (query.get("options") or [""])[0]
+          if "schema" not in query:
+              match = re.search(r"search_path\\s*=\\s*\\\"?([a-zA-Z0-9_,]+)", options, re.I)
+              if match:
+                  expected_schema = match.group(1).split(",")[0].lower()
+
+          request = urllib.request.Request(
+              "https://raven23-backend.onrender.com/api/v1/health?target_check=" + str(int(time.time())),
+              headers={
+                  "Accept": "application/json",
+                  "Cache-Control": "no-cache, no-store",
+                  "User-Agent": "RAVEN23-Neon-Target-Match",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=45) as response:
+              status = response.status
+              health = json.loads(response.read().decode("utf-8"))
+
+          target = health.get("runtime_target") or {}
+          actual_host = str(target.get("configured_host") or "").lower()
+          actual_database = str(target.get("configured_database") or "")
+          connected_database = str(target.get("database_name") or "")
+          actual_schema = str(target.get("schema_name") or "").lower()
+
+          print(f"CI_NEON_TARGET host={expected_host} database={expected_database} schema={expected_schema}")
+          print(f"RENDER_TARGET host={actual_host} database={actual_database} connected_database={connected_database} schema={actual_schema}")
+
+          if (
+              status != 200
+              or health.get("success") is not True
+              or health.get("database") != "connected"
+              or health.get("schema") != "ready"
+              or expected_host != actual_host
+              or expected_database != actual_database
+              or expected_database != connected_database
+              or expected_schema != actual_schema
+          ):
+              raise SystemExit("FAIL: GitHub Neon secret does not match the live Render application database target.")
+
+          print("PASS: GitHub Neon diagnostic secret and live Render application use the same PostgreSQL host, database and schema.")
+          PY
+
       - name: Verify production HTTP process retains Neon environment
         if: github.event_name == 'push' || inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
         env:
