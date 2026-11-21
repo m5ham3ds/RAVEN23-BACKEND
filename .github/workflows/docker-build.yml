@@ -58,6 +58,11 @@ jobs:
           docker run -d --name "$container_name" --network host \
             -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
             -e DB_CONNECTION=pgsql \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=1 \
+            -e DB_DATABASE=raven23_unavailable_test \
+            -e DB_USERNAME=raven23_unavailable_test \
+            -e DB_PASSWORD=unavailable \
             -e RAVEN23_SOURCE_COMMIT="${GITHUB_SHA}" \
             raven23-backend:ci
 
@@ -75,11 +80,18 @@ jobs:
             exit 1
           }
 
-          readiness_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 5 http://127.0.0.1:10000/ready)"
+          readiness_body_file="$(mktemp)"
+          readiness_status="$(curl --silent --show-error --output "$readiness_body_file" --write-out '%{http_code}' --max-time 5 http://127.0.0.1:10000/ready)"
           test "$readiness_status" = "503" || {
-            echo "::error::Expected readiness HTTP 503 without PostgreSQL; got $readiness_status."
+            echo "::error::Expected readiness HTTP 503 with PostgreSQL unreachable on 127.0.0.1:1; got $readiness_status."
+            echo "Readiness response body:"
+            cat "$readiness_body_file" || true
+            echo "Container logs:"
+            docker logs "$container_name" || true
+            rm -f "$readiness_body_file"
             exit 1
           }
+          rm -f "$readiness_body_file"
 
           echo "PASS: the web process starts and /up is healthy without DB_URL; /ready correctly returns 503."
 
