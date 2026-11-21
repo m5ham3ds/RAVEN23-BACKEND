@@ -3,7 +3,7 @@
     auto_https off
 }
 
-:{$PORT} {
+http://:{$PORT} {
     root * /var/www/html/public
 
     encode zstd gzip
