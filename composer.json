@@ -3,7 +3,7 @@
     "name": "raven23/backend",
     "type": "project",
     "description": "Laravel API and service backend for the RAVEN23 application.",
-    "keywords": ["raven23", "laravel", "api"],
+    "keywords": ["raven23", "laravel", "api", "backend-api"],
     "license": "proprietary",
     "require": {
         "php": "^8.3",
