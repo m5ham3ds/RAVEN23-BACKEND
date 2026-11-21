@@ -55,8 +55,7 @@
 - النطاق: استبدال PHP built-in server ببيئة HTTP إنتاجية محمولة، إزالة اعتماد startup على Render/Neon، وفصل migration task عن تشغيل web container.
 - الخيار قيد التنفيذ: FrankenPHP/Caddy على PHP 8.4؛ القرار النهائي يتطلب نجاح Docker وHTTP/health/readiness/non-root checks.
 - فرع التنفيذ: `feature/phase-02-portable-runtime`، وPR منفصل يستهدف فرع Phase 01 المكتمل.
-- CI #229/#234/#236: Docker build + PHP lint + SQLite suite + PostgreSQL test image build PASS؛ #236 فشل فقط في no-DB readiness (HTTP 500 بدلاً من 503) بعد نجاح `/up`.
-- التعديل التشخيصي: استبدال Laravel `Log::warning` داخل catch بـPHP `error_log` حتى لا تمنع مشكلة قناة logging إعادة 503. CI #240 قيد التنفيذ على SHA `9458b9c2e0d5c722cdf96b111218dec778e5ba27`، و#241 pending على SHA PR الحالي `358fa2511355acb9166d5b4b1cec397c61d12fc9` مع التحقق من JSON contract.
+- CI #229/#234/#236/#240: Docker build + PHP lint + SQLite suite + PostgreSQL test image build PASS؛ الفشل الوحيد كان no-DB readiness HTTP 500. السبب الجذري: `/ready` داخل `routes/web.php` يمر عبر `StartSession` و`ShareErrorsFromSession`; في الإنتاج يستخدم `SESSION_DRIVER=database` فيفشل قبل controller عند تعطل PostgreSQL. الإصلاح: استثناء middleware الجلسات عن `/ready` فقط، مع اختبار `SESSION_DRIVER=database` و`session.connection=pgsql` واتصال مرفوض. CI #244 يختبر middleware exclusion، و#245 pending على SHA `9968e749bce03be0c52705ac57784ae58de3d8a7` ويضيف JSON contract assertion. كما أصبح catch يستخدم native `error_log` آمنًا بدل logging facade.
 - لا نشر، ولا اتصالات بقاعدة الإنتاج، ولا migrations تلقائية على بيئة غير معروفة.
 
 
