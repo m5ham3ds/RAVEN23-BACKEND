@@ -75,7 +75,7 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'token' => $issued->plainTextToken,
-            'user' => $user->fresh()->toRavenArray(),
+            'user' => $user->toRavenArray(),
         ], $status);
     }
 
@@ -177,7 +177,7 @@ class AuthController extends Controller
                     'is_account_verified' => false,
                     'is_guest' => false,
                 ])->save();
-                $user = $guest->fresh();
+                $user = $guest;
             } else {
                 $this->markStage($request, 'register.insert_user');
                 $user = User::create([
@@ -194,7 +194,7 @@ class AuthController extends Controller
             }
 
             return [
-                'user_id' => (int) $user->id,
+                'user' => $user,
                 'response_status' => 201,
             ];
         });
@@ -203,7 +203,7 @@ class AuthController extends Controller
         // If the token/device write fails, the user remains recoverable and a
         // retry does not get misreported as a failed user-row transaction.
         $this->markStage($request, 'register.reload_user');
-        $user = User::findOrFail($payload['user_id']);
+        $user = $payload['user'];
         return $this->session($user, $request, $payload['response_status']);
     }
 
