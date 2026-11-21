@@ -85,3 +85,20 @@
 
 ## 7. توثيق اختيار أي أداة
 عند الاختيار بين البدائل، سجل: البدائل، سبب الاختيار، قياسات الاختبار، التكلفة الحالية وما بعد التجربة، عبء الإدارة، تأثيره على قابلية النقل، طريقة التراجع، التاريخ والـcommit وتقرير المرحلة. لا تصف أي خدمة مرشحة بأنها مفعلة قبل وجود دليل.
+
+
+## 8. تفاصيل خط الأساس المثبتة من Dockerfile وGitHub Actions
+
+- Docker build base: PHP 8.4 CLI على Debian Bookworm.
+- Composer: Composer 2 image.
+- Laravel: Laravel 13 يُنشأ وقت البناء عبر composer create-project؛ لذلك لا يوجد composer.lock في مصدر المستودع الحالي.
+- Packages التي يضيفها Dockerfile صراحة: laravel/sanctum ^4.2 وgoogle/apiclient ^2.18.
+- PHP extensions المثبتة في build: pdo_pgsql وpdo_sqlite وmbstring وxml وcurl وzip وopcache. Runtime يثبت pdo_pgsql وmbstring وxml وcurl وopcache.
+- Docker build يثبت متطلبات OS باستخدام apt، ويستخدم Docker Buildx في GitHub Actions.
+- GitHub Actions runner: ubuntu-latest.
+- Integration DB: PostgreSQL 16 service container داخل CI.
+- GitHub Actions references التي ظهرت: actions/checkout@v4 وdocker/setup-buildx-action@v3.
+- خادم runtime الحالي php -S عبر PHP CLI، وليس Nginx/PHP-FPM.
+- لا يوجد registry/deploy workflow لـ AWS في ملفات workflows الحالية؛ لا يوجد دليل على OIDC deployment role.
+
+هذه تفاصيل implementation الحالي وليست توصية للاستمرار به. المرحلة 01 ستثبت dependency manifests والـlock، والمرحلتان 02 و10 ستختاران runtime وCI المحدثين.

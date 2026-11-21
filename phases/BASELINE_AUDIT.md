@@ -2,35 +2,31 @@
 
 ## معلومات المراجعة
 
-- المستودع: m5ham3ds/RAVEN23-BACKEND (خاص).
-- الفرع: main.
-- Commit Backend: 9f29fa55afa21c0445be82d4590a4a532bb1747c.
-- مستودع Android: m5ham3ds/RAVEN23، commit 6d12023e446db3d444716c3b407572a89cf545be.
+- Backend repository: m5ham3ds/RAVEN23-BACKEND (خاص).
+- Android repository: m5ham3ds/RAVEN23.
+- Backend baseline: 9f29fa55afa21c0445be82d4590a4a532bb1747c.
+- Android baseline: 6d12023e446db3d444716c3b407572a89cf545be.
 - التاريخ: 21 نوفمبر 2026.
-- نوع المراجعة: قراءة ملفات وsource contracts وسجل CI فقط؛ لم يتم تعديل بيانات الإنتاج أو الملفات.
-- الحالة: **Phase 00 PARTIAL / IN_PROGRESS.**
+- نوع المراجعة: Git trees وsource/config/tests/workflows وclient API contracts؛ read-only.
+- الحالة: **Phase 00 COMPLETE — static source inventory.**
 
-## 1. مكونات المستودع
+## 1. حجم وبنية المستودع
 
-تم فحص مجلدات الجذر والملفات ذات الصلة:
-- .github/workflows/
-- app/Http/Controllers/Api/
-- app/Models/
-- app/Support/
-- bootstrap/
-- config/
-- database/migrations/
-- docker/
-- routes/
-- tests/Feature/
-- tests/Integration/
-- Dockerfile وREADME.md و.dockerignore.
+Git tree recursive على Backend baseline لم يكن truncated:
+- 34 tracked files.
+- 17 directories.
+- 10 GitHub Actions workflows.
+- 5 database migrations.
+- 2 test files (Feature وIntegration).
+- لا توجد composer.json أو composer.lock أو artisan أو .env.example في الجذر.
 
-المجلدات والملفات الأساسية التي ظهرت في الجرد مفصلة في API_CONTRACT_INVENTORY.md وWORKFLOW_INVENTORY.md.
+الفهرس الكامل: BACKEND_FILE_CATALOG.md.
+
+مستودع Android عند SHA المذكور يحتوي 2,085 tracked files بحسب Git tree recursive. تمت مراجعة وحدات Laravel client/sync ذات العلاقة، ولم تُعامل ملفات Scraper API/TMDB كأنها Laravel backend.
 
 ## 2. ملاحظة هيكل Laravel
 
-لم يظهر composer.json أو composer.lock أو artisan أو Laravel full skeleton في جذر المستودع. يقوم Dockerfile بإنشاء Laravel 13 جديد أثناء البناء، ويثبت Sanctum وgoogle/apiclient ثم ينسخ ملفات RAVEN23 المحددة إليه. هذه طريقة أثبتت نجاحها في CI لكنها لا تجعل المصدر مشروع Laravel مستقلًا بالكامل، ولا تثبت كل الاعتماديات عبر lock file.
+Dockerfile ينشئ Laravel 13 جديدًا أثناء البناء عبر composer create-project، ويضيف Sanctum وgoogle/apiclient ثم ينسخ ملفات RAVEN23 المحددة إليه. هذه طريقة أثبتت نجاحها في CI لكنها لا تجعل المصدر مشروع Laravel مستقلًا بالكامل، ولا تثبت كل الاعتماديات عبر lock file.
 
 Docker يستخدم PHP 8.4 CLI بينما README يذكر PHP 8.3+؛ يجب توحيد النسخة المدعومة في Phase 01.
 
@@ -65,45 +61,45 @@ Docker يستخدم PHP 8.4 CLI بينما README يذكر PHP 8.3+؛ يجب ت�
 
 ## 5. نتائج مطابقة Flutter API
 
-مستودع RAVEN23 لديه LaravelApi وAuthRepository وrepositories للمفضلة والسجل وwellness والقوائم والاشتراكات والأجهزة والإعلانات والإعدادات والرسائل وFlix AI. كثير من هذه الطبقات يتوقع routes غير موجودة في Backend الحالي. راجع:
-- API_CONTRACT_INVENTORY.md
-- FEATURE_MATRIX.md
+مستودع RAVEN23 لديه LaravelApi وAuthRepository وrepositories للمفضلة والسجل وwellness والقوائم والاشتراكات والأجهزة والإعلانات والإعدادات والرسائل وFlix AI. كثير من هذه الطبقات يتوقع routes غير موجودة في Backend الحالي. راجع API_CONTRACT_INVENTORY.md وFEATURE_MATRIX.md.
 
-الملاحظة الحرجة: MigrationFlags الافتراضي عند تعطيل Firebase وLOCAL_DEV_MODE يعطي auth,ads,sync، ما يعني أن ads/sync يمكن تشغيلهما في build عادي رغم غياب routes الخادم المقابلة. يجب حسم سلوك flags قبل الاعتماد على Backend الجديد.
+الملاحظة الحرجة: MigrationFlags الافتراضي عند تعطيل Firebase وLOCAL_DEV_MODE يعطي auth,ads,sync، ما يعني أن ads/sync يمكن تشغيلهما في build عادي رغم غياب routes الخادم المقابلة.
 
 openapi.json في تطبيق RAVEN23 هو وصف Scraper API v2 ولا يمثل عقد Laravel.
 
 ## 6. مشكلات ومخاطر معمارية وتشغيلية
 
 1. غياب Composer manifests في الجذر واعتماد Docker على create-project أثناء البناء.
-2. خادم HTTP: docker/start.sh يستخدم PHP built-in server. يجب استبداله ببيئة إنتاجية مناسبة بعد مقارنة Nginx + PHP-FPM وFrankenPHP.
-3. الارتباط بالمزود: README وstartup scripts وفحوص DB وworkflows تفترض Render وNeon pooled/direct URLs.
-4. migrations تعمل تلقائيًا عند startup باستخدام --force؛ يلزم فصل migration release job في إعادة التصميم.
-5. docker/verify-auth-schema.php ينشئ probe account وSanctum token وdevice metadata ويحاول تنظيفها خلال startup؛ هذا ليس فحصًا read-only.
-6. health response تعرض host/database/schema/commit/instance، كما تعرض بعض أخطاء API اسم الملف والسطر. يجب حصر التشخيص الداخلي في السجلات المحمية.
-7. CACHE_STORE=file مفروض في الإنتاج؛ مخزن محلي غير مشترك بين instances.
-8. Auth: Firebase session exchange غير موجود، password reset/email verification غير مكتمل، device listing/limit enforcement غير مكتمل.
-9. Backend لا يحتوي حاليًا migrations/routes واضحة لمفضلة المستخدم، watch history/progress، wellness، playlists، ads/config/notifications/devices/billing/wallet/Flix AI.
-10. خمس workflows account retry متكررة تستخدم كتابة وحذف حسابات اصطناعية على production Render؛ ينبغي نقل هذه الاختبارات إلى staging disposable.
+2. runtime يستخدم PHP built-in server؛ يجب اختيار Nginx/PHP-FPM أو FrankenPHP في Phase 02.
+3. startup مرتبط بـ Render/Neon ويشغل migrations تلقائيًا.
+4. verify-auth-schema.php ينشئ probe account وSanctum token وdevice metadata ويحاول تنظيفها خلال startup؛ هذا ليس فحصًا read-only.
+5. public health/error responses تكشف معلومات runtime/source أكثر مما يلزم.
+6. file cache محلي وغير مشترك بين instances.
+7. بعض مسارات المصادقة موجودة لكن reset/verification غير مكتمل، وFirebase exchange غير موجود، وإدارة الأجهزة/حدودها جزئية.
+8. كثير من Laravel paths التي يطلبها Flutter لا تقابلها routes في Backend الحالي.
+9. Flutter default flags عند تعطيل Firebase تشمل auth+ads+sync؛ يلزم ضبط rollout/feature gates قبل تفعيل التطبيق على Backend الجديد.
+10. خمس workflows production-account retry متشابهة وتكتب على production؛ يجب توحيدها على staging disposable.
 11. auth-smoke يعرّف workflow_dispatch لكن شرط job يسمح push فقط.
-12. لا يوجد دليل في source أو سجل Actions تمت مراجعته على backup/restore rehearsal أو AWS OIDC deployment.
+12. لا يوجد دليل مصدر/CI على backup restore drill أو AWS OIDC deployment حتى الآن.
+13. اختلاف في contract: photo_url يرسله RegisterRequest ولا يحفظه backend على مسار التسجيل؛ وDELETE user/account لا ينفذ wallet credit protection التي يتوقعها العميل.
 
 ## 7. البيانات وقاعدة الإنتاج
 
 لم يتم الاتصال بقاعدة Neon الإنتاجية أو عرض أي user rows أو token rows أو counts أو schema فعلي. الجرد في DATABASE_AND_DATA_INVENTORY.md مبني على migrations/models/اختبارات العميل فقط. كما لم يتم التحقق من وجود بيانات Firestore تاريخية فعلية؛ وثيقة migration PRD تذكرها كتاريخ تصميم، لا كدليل على وضع البيانات الحالي.
 
-## 8. ما لم يتم إثباته
+## 8. حدود التحقق الخارجي
 
-- لم يتم فحص كل ملف Flutter سطرًا بسطر؛ dynamic routes sweep لا يزال مطلوبًا.
-- لم يتم توثيق جميع request/response fields للمسارات الديناميكية.
 - لم يتم قراءة قيم secrets أو DB URLs أو APP_KEY أو OAuth secrets.
 - لم يتم اختبار Google OAuth الحقيقي على Android.
 - لم يتم اختبار إرسال البريد أو الإشعارات أو الدفع أو التخزين.
-- لم يتم تنفيذ Docker build من هذه الجلسة؛ تم الاعتماد على سجل GitHub Actions.
+- لم يتم تنفيذ Docker build في هذه المراجعة؛ استُخدمت سجلات GitHub Actions.
 - لم يتم إنشاء AWS account أو موارد سحابية.
 
-## 9. المخرجات الحالية للمرحلة 00
+هذه ليست نواقص في inventory؛ هي اختبارات تشغيل تذهب إلى مراحلها المعنية لاحقًا.
 
+## 9. المخرجات النهائية للمرحلة 00
+
+- BACKEND_FILE_CATALOG.md
 - API_CONTRACT_INVENTORY.md
 - DATABASE_AND_DATA_INVENTORY.md
 - ENVIRONMENT_AND_SECRET_NAMES.md
@@ -111,4 +107,4 @@ openapi.json في تطبيق RAVEN23 هو وصف Scraper API v2 ولا يمثل 
 - FEATURE_MATRIX.md
 - reports/PHASE-00-REPORT-2026-11-21.md
 
-التقرير PARTIAL؛ لا تنتقل إلى Phase 01 حتى إكمال dynamic route sweep ومطابقة schemas التفصيلية وإغلاق بقية معايير القبول. لم تتغير ملفات تطبيق أو إعدادات إنتاج أو بيانات في هذه المراجعة.
+**النتيجة:** Phase 00 COMPLETE على مستوى الجرد المصدري الثابت. لا يوجد تغيير في كود Backend أو إعدادات الإنتاج أو قاعدة البيانات. المرحلة التالية المسموح بها هي Phase 01 — Reproducible Laravel Project.

@@ -3,8 +3,7 @@
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
 > Commit خط الأساس: 9f29fa55afa21c0445be82d4590a4a532bb1747c — 21 نوفمبر 2026  
-> الفرع الحالي للخطة والتوثيق: docs/backend-phased-roadmap  
-> حالة التنفيذ: المرحلة 00 قيد العمل؛ لم تبدأ إعادة الهيكلة البرمجية.
+> الفرع الحالي للخطة والجرد: docs/backend-phased-roadmap
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
 
@@ -12,18 +11,23 @@
 
 1. MASTER_PLAN.md — الخطة الشاملة وتقسيم المراحل واعتمادياتها.
 2. STATUS.md — الحالة الحالية لكل مرحلة وما يمنع البدء أو الإغلاق.
-3. BASELINE_AUDIT.md — نتائج مراجعة المستودع الحالية وما لم يتم التحقق منه.
-4. API_CONTRACT_INVENTORY.md — مطابقة المسارات الحالية مع طلبات تطبيق RAVEN23.
-5. DATABASE_AND_DATA_INVENTORY.md — جرد الجداول والبيانات والـmigrations.
-6. ENVIRONMENT_AND_SECRET_NAMES.md — أسماء متغيرات البيئة والأسرار فقط، دون قيم.
-7. WORKFLOW_INVENTORY.md — جرد GitHub Actions والاختبارات وعمليات النشر.
-8. FEATURE_MATRIX.md — ما هو موجود ومختبر، وما هو جزئي أو مفقود.
-9. TOOLS_AND_SERVICES.md — الأدوات والتقنيات والخدمات الحالية والمقترحة.
-10. USER_RULES_AND_CONSTRAINTS.md — قواعد المستخدم وقيوده غير القابلة للتجاوز.
-11. EXECUTION_PROTOCOL.md — آلية العمل والاختبار وتسجيل النتائج وإغلاق المرحلة.
-12. DECISIONS.md — سجل القرارات المعمارية والمنتج.
-13. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
-14. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
+3. BASELINE_AUDIT.md — نتائج مراجعة المستودع وحدود التحقق.
+4. BACKEND_FILE_CATALOG.md — فهرس كل الملفات المتتبعة في Backend عند خط الأساس.
+5. API_CONTRACT_INVENTORY.md — مطابقة المسارات الحالية مع طلبات تطبيق RAVEN23.
+6. DATABASE_AND_DATA_INVENTORY.md — جرد الجداول والبيانات والـmigrations.
+7. ENVIRONMENT_AND_SECRET_NAMES.md — أسماء متغيرات البيئة والأسرار فقط، دون قيم.
+8. WORKFLOW_INVENTORY.md — جرد GitHub Actions والاختبارات وعمليات النشر.
+9. FEATURE_MATRIX.md — ما هو موجود ومختبر، وما هو جزئي أو مفقود.
+10. TOOLS_AND_SERVICES.md — الأدوات والتقنيات والخدمات الحالية والمقترحة.
+11. USER_RULES_AND_CONSTRAINTS.md — قواعد المستخدم وقيوده غير القابلة للتجاوز.
+12. EXECUTION_PROTOCOL.md — آلية العمل والاختبار وتسجيل النتائج وإغلاق المرحلة.
+13. DECISIONS.md — سجل القرارات المعمارية والمنتج.
+14. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
+15. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
+
+## الحالة الحالية
+
+Phase 00 COMPLETE على مستوى الجرد المصدري. المرحلة التالية المسموح بها Phase 01 — Reproducible Laravel Project.
 
 ## قواعد هذا المجلد
 
@@ -34,12 +38,6 @@
 - المرحلة لا تُعتبر مكتملة بمجرد نجاح البناء؛ يجب تحقق معايير القبول مع أدلة مرتبطة بالـcommit الصحيح.
 - إذا كانت المرحلة مكتملة برمجيًا لكنها تنتظر حسابًا أو سرًا أو موافقة أو جهازًا حقيقيًا، يُسجل الجزء المنجز والجزء المنتظر بوضوح.
 - بعد كل تغيير حالة، يجب تحديث STATUS.md وMASTER_PLAN.md.
-
-## حالة المرحلة 00 الآن
-
-تم إنشاء المخرجات الأولية التالية: API_CONTRACT_INVENTORY.md، DATABASE_AND_DATA_INVENTORY.md، ENVIRONMENT_AND_SECRET_NAMES.md، WORKFLOW_INVENTORY.md، FEATURE_MATRIX.md، والتقرير المرحلي PHASE-00-REPORT-2026-11-21.md.
-
-التقرير الحالي PARTIAL؛ المرحلة ما زالت IN_PROGRESS لأن dynamic API call-site sweep واستكمال بعض request/response schemas لم ينتهيا. لا تبدأ المرحلة 01 حتى تصبح المرحلة 00 COMPLETE.
 
 ## سلامة البيانات
 

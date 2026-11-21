@@ -1,8 +1,8 @@
-# تقرير تنفيذ المرحلة 00 — جرد المستودع وتثبيت خط الأساس
+# تقرير إغلاق المرحلة 00 — جرد المستودع وتثبيت خط الأساس
 
-- **الحالة:** PARTIAL — المرحلة 00 ما زالت IN_PROGRESS
+- **الحالة:** COMPLETE — اكتمل الجرد المصدري الثابت؛ لم تُجرَ اختبارات تكامل إنتاجية.
 - **تاريخ البدء:** 2026-11-21
-- **تاريخ التقرير:** 2026-11-21
+- **تاريخ الإغلاق:** 2026-11-21
 - **الفرع:** docs/backend-phased-roadmap
 - **Backend baseline SHA:** 9f29fa55afa21c0445be82d4590a4a532bb1747c
 - **Android baseline SHA:** 6d12023e446db3d444716c3b407572a89cf545be
@@ -10,109 +10,123 @@
 
 ## 1. النتيجة التنفيذية
 
-تمت مراجعة بنية المستودع الخاص وملفات Laravel الأساسية وroutes وmodels وmigrations وDocker scripts والاختبارات و10 GitHub Actions workflows. كما تمت مطابقة مجموعة واسعة من مصادر Flutter repositories وAPI clients وsync engines والاختبارات الاختيارية ووثائق الهجرة.
+اكتمل الجرد الثابت للمستودع الخاص، وملفات Laravel وDocker وmigrations والاختبارات وGitHub Actions، مع مطابقة طبقات Laravel client الرئيسية داخل تطبيق RAVEN23.
 
-النتيجة الأساسية: Backend الحالي يحتوي نظام مصادقة حقيقيًا ومختبرًا، لكنه لا يحتوي معظم خدمات بيانات RAVEN23 التي يتوقعها تطبيق Android (المفضلة، watch history/progress، wellness، playlists، config، ads، push، billing). لذلك لا يجوز بدء إعادة الهيكلة دون إتمام خريطة العقود والـfeature gates وحسم التناقض بين الميزات التي يفعلها التطبيق افتراضيًا والمسارات غير الموجودة في الخادم.
+النتيجة: Backend الحالي ليس مشروعًا فارغًا؛ يحتوي مصادقة حقيقية ومختبرة. لكنه لا يقدم معظم المجالات التي يتوقعها تطبيق Android للمفضلة وسجل المشاهدة والتقدم وwellness والقوائم والإعدادات والإعلانات والإشعارات والاشتراكات والمحفظة. كما أن المشروع ليس Laravel self-contained في الوقت الحالي بسبب غياب Composer manifests واعتماد Docker على إنشاء skeleton أثناء البناء.
 
-## 2. ما تم في هذه الدفعة
+تم توثيق هذه الفجوات وتحديدها كأعمال تنفيذ لاحقة. لا توجد حاجة لإعادة كتابة المصادقة من الصفر.
 
-- تأكيد المستودع والـbranches وbaseline SHAs.
-- جرد مجلدات الجذر في Backend ومحتويات app/bootstrap/config/database/docker/routes/tests/.github/workflows.
-- فحص AuthController وUser model وGoogle verifier وRaven23AuthSchema.
-- فحص migrations الخمس الحالية.
-- فحص Dockerfile وstart/router/DB target/schema verification/diagnostics.
-- فحص routes/api.php وREADME وconfig files.
-- قراءة Feature وPostgreSQL Integration tests.
-- جرد 10 workflows وتحديد triggers وRender/Neon coupling والنسخ المتكررة.
-- قراءة GitHub Actions results والـlogs لخط الأساس: Docker #182 وLive Smoke #127.
-- تحديد failure سابق #180 وسبب PHP syntax بدقة.
-- مطابقة client-side AuthRepository وLaravelApi وSyncCoordinator وrepositories (bookmarks/recent/wellness/playlists/billing/device/ads/config/announcement/push/Flix AI) ومصادر البيئة.
-- تمييز OpenAPI Scraper v2 عن عقد Laravel.
-- إعداد 5 ملفات inventory ومصفوفة ميزات.
+## 2. نطاق الجرد والدليل
 
-## 3. الملفات/المراجع التي أُنشئت أو عُدلت
+### Backend
 
+- تم طلب Git tree recursive على commit الأساس؛ النتيجة غير truncated.
+- العدد المؤكد: **34 ملفًا tracked في 17 مجلدًا**.
+- من بينها **10 GitHub Actions workflows** و5 migrations وملفا اختبار.
+- كل الملفات المتتبعة تظهر في BACKEND_FILE_CATALOG.md، مع تصنيف مكوناتها في ملفات الجرد المتخصصة.
+
+### Android client
+
+- تم فحص Git tree recursive لمستودع RAVEN23 عند SHA 6d12023e446db3d444716c3b407572a89cf545be؛ tree غير truncated واحتوى 2,085 ملفًا tracked.
+- تمت مراجعة طبقات Laravel client الرئيسية: AuthRepository، LaravelApi، repositories للمفضلة والقوائم والسجل وwellness والاشتراكات والأجهزة والإعلانات والإعدادات والرسائل وFlix AI، sync engines/transport/coordinator، feature gates، Firebase session bridge، integration tests.
+- تم فصل Scraper API v2 وTMDB requests عن Laravel account/data API.
+
+### قاعدة البيانات والبيانات
+
+- تمت مراجعة migrations الخمس وUser model وRaven23AuthSchema واختبارات SQLite/PostgreSQL.
+- تم توثيق الجداول والحقول والقيود التي يمكن إثباتها من المصدر.
+- لم يتم الاتصال بNeon الإنتاجية أو استعراض users/tokens أو counts أو البيانات الشخصية؛ هذا حد أمان مقصود وليس نسيانًا في التنفيذ.
+
+### البيئة والأسرار
+
+- تم حصر أسماء environment variables وGitHub Secrets التي تظهر في ملفات Backend وFlutter ذات العلاقة.
+- لم تتم قراءة أي secret value أو DB URL أو APP_KEY أو OAuth secret.
+
+### Workflows وCI
+
+- تمت مراجعة 10 workflows وتصنيف triggers وpermissions وبيئة PostgreSQL المؤقتة وRender/Neon coupling والتكرار.
+- تم فحص سجلات CI الأساسية والنتائج التاريخية المعروفة.
+
+## 3. المخرجات النهائية للمرحلة
+
+- phases/BACKEND_FILE_CATALOG.md
 - phases/API_CONTRACT_INVENTORY.md
 - phases/DATABASE_AND_DATA_INVENTORY.md
 - phases/ENVIRONMENT_AND_SECRET_NAMES.md
 - phases/WORKFLOW_INVENTORY.md
 - phases/FEATURE_MATRIX.md
 - phases/BASELINE_AUDIT.md
-- phases/PHASE-00-BASELINE-INVENTORY.md
-- phases/MASTER_PLAN.md
 - phases/STATUS.md
-- phases/README.md
+- phases/MASTER_PLAN.md
+- phases/PHASE-00-BASELINE-INVENTORY.md
 
-## 4. أدلة CI المرصودة
+## 4. أدلة CI المرجعية
 
 - Backend Docker Validation #182 على 9f29fa55afa21c0445be82d4590a4a532bb1747c: SUCCESS — 11 Feature tests / 68 assertions، و3 PostgreSQL integration tests / 72 assertions.
   https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44905418246
-- Live Authentication Smoke #127 على نفس SHA: SUCCESS — فحص GET-only للـhealth والـdatabase/schema/commit/routes على Render.
+- Live Authentication Smoke #127 على SHA نفسه: SUCCESS — GET-only health/database/schema/commit/routes check على Render.
   https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44905418305
 - Roadmap PR validation #183 على 0f650a667e981c5e5a4341d33a17dcc3ae27ee76: SUCCESS.
   https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44945588390
 
-هذه الأدلة تخص الاختبارات التي شُغلت فقط. لا تثبت عمل Google الحقيقي أو بريد reset أو مزامنة البيانات أو تخزين الملفات أو الدفع.
+هذه الأدلة تخص الاختبارات الموجودة فقط. لا تثبت Google OAuth الحقيقي أو البريد أو مزامنة المجالات الناقصة أو الدفع أو النسخ الاحتياطي.
 
-## 5. المخاطر والنتائج المهمة
+## 5. نتائج ومخاطر يجب أن تنتقل إلى المراحل اللاحقة
 
-1. مشروع Laravel غير مستقل: لا composer.json/lock في جذر repo، وDocker ينشئ skeleton جديدًا أثناء كل build.
-2. runtime يستخدم PHP built-in server بدل Nginx/PHP-FPM أو FrankenPHP.
-3. startup مرتبط بـ Render/Neon ويفرض DB_URL وDB_MIGRATION_URL.
-4. migrations تشغّل تلقائيًا عند startup.
-5. verify-auth-schema.php ينشئ probe user/token/device metadata ويزيله عند كل startup؛ هذا ليس فحصًا read-only.
-6. health/error responses تكشف runtime host/schema/commit/instance وبعض تفاصيل source line.
-7. cache مخزن file محلي، وليس مشتركًا بين instances.
-8. Auth موجود ومختبر، لكن Firebase session exchange غير موجود، password reset/email verification غير مكتمل، وdevice listing/limit enforcement غير مكتمل.
-9. توجد فجوة كبيرة بين Flutter client API calls وبين Backend routes؛ التفاصيل في API_CONTRACT_INVENTORY وFEATURE_MATRIX.
-10. Flutter default flags عند تعطيل Firebase تسمح auth+ads+sync، رغم غياب routes ads/sync في الخادم.
-11. 5 workflows account retry مكررة تنفذ إنشاء/حذف حسابات اصطناعية على production Render؛ يجب نقل اختبارات الكتابة إلى staging disposable قبل توحيد CI.
-12. لا يوجد دليل في المصدر أو سجل Actions تمت مراجعته على backup/restore rehearsal أو AWS OIDC deployment.
-13. توجد وثيقة تاريخية عن Firestore data migration، لكن لم يتم الوصول إلى Firebase/Firestore أو إثبات وضع البيانات التاريخية.
+1. المشروع غير self-contained: لا composer.json/lock في الجذر، وDocker ينشئ Laravel skeleton أثناء build.
+2. runtime يستخدم PHP built-in server؛ يجب اختيار Nginx/PHP-FPM أو FrankenPHP في Phase 02.
+3. startup مرتبط بـ Render/Neon ويشغل migrations تلقائيًا.
+4. verify-auth-schema.php ينشئ probe rows ثم يحاول تنظيفها في كل startup؛ لا تعتبره health check read-only.
+5. public health/error responses تكشف معلومات runtime/source أكثر مما يلزم.
+6. file cache محلي وغير مشترك بين عدة instances.
+7. بعض مسارات المصادقة موجودة لكن reset/verification غير مكتمل، وFirebase exchange غير موجود، وإدارة الأجهزة/حدودها جزئية.
+8. كثير من Laravel paths التي يطلبها Flutter لا تقابلها routes في Backend الحالي.
+9. Flutter default flags عند تعطيل Firebase تشمل auth+ads+sync؛ يلزم ضبط rollout/feature gates قبل تفعيل التطبيق على Backend.
+10. خمس workflows production-account retry متشابهة وتكتب على production؛ يجب توحيدها على staging disposable.
+11. هناك mismatch في contract: photo_url يرسله RegisterRequest لكنه لا يُحفظ عبر مسار التسجيل في Backend؛ account deletion لا ينفذ wallet credit protection التي يتوقعها العميل.
+12. لا يوجد دليل مصدر/CI على backup restore drill أو AWS OIDC deploy حتى الآن.
 
-## 6. ما لم يُنفذ عمدًا
+## 6. ما لم يتم اختباره — ويسجل لاحقًا
 
-- لم يتم الاتصال بقاعدة Neon/RDS الإنتاجية.
-- لم تتم قراءة أي user rows أو عدد حسابات أو tokens أو بيانات مشاهدة.
-- لم تتم قراءة قيم GitHub Secrets أو DB URLs أو APP_KEY أو OAuth secrets.
-- لم يتم تشغيل أي workflow يكتب على الإنتاج.
-- لم يتم اختبار Google OAuth على جهاز Android أو إرسال بريد.
-- لم يتم تعديل كود Backend/Flutter أو migrations أو إعدادات Render/Neon.
-- لم يتم إنشاء AWS account أو موارد أو تكاليف سحابية.
+- لا اتصال بقاعدة production ولا قراءة user data.
+- لا Google OAuth حقيقي على جهاز Android.
+- لا إرسال verification/reset email.
+- لا تشغيل write integration test على production؛ E2E Flutter opt-in صراحةً للـlocal/disposable staging.
+- لا اختبار مزود دفع أو إشعارات/OneSignal حقيقي.
+- لا backup/restore rehearsal لأن ذلك يتطلب بيئة معزولة وإعدادًا لاحقًا.
+- لا AWS resources أو حساب أو تكاليف تم إنشاؤها.
+
+هذه العناصر ليست blockers لإغلاق الجرد المصدري، لكنها متطلبات لمراحل التنفيذ والتحقق المحددة في MASTER_PLAN.
 
 ## 7. معايير القبول
 
-| المعيار | الحالة | الدليل/السبب |
+| المعيار | الحالة | الدليل |
 |---|---|---|
-| تأكيد repo/branch/SHA | PASS | metadata وGitHub Actions |
-| جرد مجلدات Backend الأساسية | PASS مبدئيًا | root + nested directories التي تم فحصها |
-| مصفوفة API Backend مقابل Flutter | PARTIAL | المسارات الرئيسية والمستودعات الرئيسية جرى ربطها؛ يبقى dynamic call-site sweep كامل |
-| جرد DB من migrations/models | PARTIAL | الموجود في source موثق؛ schema الفعلي الإنتاجي غير مقروء عمدًا |
-| جرد أسماء environment/secrets | PARTIAL | الأسماء المستخرجة من الملفات المعروفة، لا قيمها؛ يستكمل بمراجعة workflows المتبقية |
-| جرد workflows | PASS مبدئيًا | 10 ملفات workflows وفحص triggers والنتائج المتاحة |
-| تصنيف الميزات | PARTIAL | المجالات الرئيسية معروفة، يلزم التحقق من كل consumer/gate |
-| CI baseline evidence | PASS | runs #182/#127 |
-| backup/restore evidence | NOT TESTED | لا اتصال بإنتاج ولا restore |
+| تأكيد repository/branch/SHA | PASS | GitHub metadata |
+| جرد recursive كامل لـBackend | PASS | Git tree: 34 tracked files، غير truncated |
+| جرد workflows/migrations/tests | PASS | WORKFLOW_INVENTORY وBACKEND_FILE_CATALOG |
+| خريطة API Backend مقابل Flutter | PASS على مستوى المصدر | API_CONTRACT_INVENTORY |
+| توثيق DB من migrations/models | PASS على مستوى المصدر | DATABASE_AND_DATA_INVENTORY |
+| جرد أسماء environment/secrets | PASS | ENVIRONMENT_AND_SECRET_NAMES؛ لا قيم |
+| تصنيف الميزات الموجودة/الناقصة | PASS | FEATURE_MATRIX |
+| تصنيف CI التاريخي | PASS | WORKFLOW_INVENTORY وروابط runs |
+| اختبار live database schema وbackup restore | NOT TESTED BY DESIGN | مؤجل إلى staging/backup gates ولا يلزم للجرد |
 
-## 8. المعوقات والاعتماديات
+## 8. قرار إغلاق المرحلة
 
-- WAITING_EXTERNAL: لا يلزم إنشاء AWS account الآن؛ هذا تابع للمرحلة 11.
-- WAITING_DEPENDENCY: لا تبدأ Phase 01 قبل استكمال inventory sweep.
-- USER DECISION: لا يوجد قرار مطلوب الآن؛ يمكن استكمال الجرد دون تغيير إنتاج.
+**Phase 00 = COMPLETE.** اكتمل الجرد المصدري المطلوب ووُثقت الحدود التي لا يمكن أو لا يجوز التحقق منها عبر الإنتاج. لا يوجد تعديل كود أو تغيير قاعدة بيانات من هذه المرحلة.
 
-## 9. الخطوات المتبقية لإغلاق المرحلة 00
+**المرحلة التالية المسموح بها: Phase 01 — Reproducible Laravel Project.** يجب الاستمرار من هذا التقرير والـcommit النهائي الذي يضيفه، وعدم إعادة جرد الملفات أو إعادة اختبارات خط الأساس دون تغيير مصدر أو دليل جديد.
 
-1. sweep إضافي لكل dynamic route/reference في Flutter services/controllers/presentation، وتحديد feature flag ووقت تشغيله.
-2. توثيق schemas الكاملة (request/response) لكل route متوقع من app.
-3. مراجعة بقية files/tests/workflows ذات الصلة وربطها بالـAPI.
-4. فصل الوثائق التاريخية/القديمة عن implementation الحالي وتحديد ما الذي لا يزال مفعلًا.
-5. عند توفر staging فقط، يمكن تنفيذ non-production contract tests؛ لا تنتظر هذه المرحلة اتصالًا ببيانات الإنتاج.
-6. تحديث report إلى COMPLETE فقط بعد إغلاق كل البنود وإرفاق evidence.
+## 9. بيانات الاستمرارية
 
-## 10. قرار المرحلة
+ابدأ Phase 01 من الملفات التالية:
+- MASTER_PLAN.md
+- USER_RULES_AND_CONSTRAINTS.md
+- EXECUTION_PROTOCOL.md
+- BACKEND_FILE_CATALOG.md
+- API_CONTRACT_INVENTORY.md
+- DATABASE_AND_DATA_INVENTORY.md
+- FEATURE_MATRIX.md
 
-**PARTIAL / IN_PROGRESS.** المخرجات الحالية ذات فائدة مستقلة وتكشف gap رئيسيًا في نطاق Backend، لكنها لا تغلق Phase 00 بالكامل. المرحلة التالية غير مسموح بها بعد.
-
-## 11. الاستمرارية
-
-ابدأ من هذا التقرير ومن الملفات الخمسة inventory، ثم تابع dynamic route sweep للـFlutter. لا تعد فحص AuthController أو migrations الخمس أو نتائج CI #182/#127 ما لم يظهر commit أحدث أو دليل جديد يغير النتيجة.
+احتفظ بAuthController وUser model وSanctum وGoogle verifier وmigrations والاختبارات الحالية؛ أعد بناء المشروع حولها، ولا تنفذ أي تعديل على قاعدة الإنتاج.

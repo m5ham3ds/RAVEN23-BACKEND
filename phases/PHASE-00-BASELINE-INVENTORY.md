@@ -1,69 +1,43 @@
 # المرحلة 00 — جرد المستودع وتثبيت خط الأساس
 
-**الحالة:** IN_PROGRESS — تم إعداد الجرد التمهيدي ومخرجاته، ولا تزال هناك مراجعات إغلاق.  
+**الحالة:** COMPLETE — اكتمل الجرد المصدري الثابت.  
 **الاعتماديات:** لا توجد  
 **نوع العمل:** قراءة وتحليل وتوثيق؛ دون تغيير في التشغيل أو البيانات.
 
 ## الهدف
+تكوين صورة موثقة لما يملكه Backend حاليًا، وما يستهلكه تطبيق RAVEN23، وما هي البيانات والخدمات والإعدادات الموجودة. تمنع هذه المرحلة إعادة تنفيذ شيء موجود أو إسقاط وظيفة مستخدمة دون قصد.
 
-تكوين صورة موثقة وكاملة لما يملكه Backend حاليًا، وما يستهلكه تطبيق RAVEN23، وما هي البيانات والخدمات والإعدادات الموجودة. تمنع هذه المرحلة إعادة تنفيذ شيء موجود أو إسقاط وظيفة مستخدمة دون قصد.
+## نطاق العمل والنتيجة
 
-## نطاق العمل
+1. **جرد Backend recursive:** اكتمل. Git tree على baseline commit غير truncated ويحتوي 34 tracked files في 17 مجلدًا.
+2. **فحص source/config/Docker/migrations/tests:** اكتمل للمجموعة الكاملة من الملفات المتتبعة؛ راجع BACKEND_FILE_CATALOG.md.
+3. **API inventory:** اكتمل source-level؛ راجع API_CONTRACT_INVENTORY.md.
+4. **مطابقة Flutter:** اكتملت مطابقة repositories وsync/network clients الأساسية على Android baseline؛ تمت تفرقة Laravel account/data APIs عن Scraper API/TMDB.
+5. **Database/data inventory:** اكتمل من models/migrations/client stores؛ لم يتم الاتصال بproduction DB حسب قواعد السلامة.
+6. **Environment/secrets names:** اكتمل من config وDocker وworkflows وFlutter .env.example؛ لم تُقرأ القيم.
+7. **GitHub Actions:** اكتمل جرد 10 workflows مع triggers/permissions/coupling/duplicates.
+8. **CI history:** تم تصنيف runs الأساسية وأمثلة failure/cancelled وربطها بالـSHA.
+9. **Feature matrix:** اكتمل source-level؛ يفرق التنفيذ الخادمي الحقيقي عن client-only والميزات غير المثبتة خارجيًا.
+10. **Risks/decisions:** وثقت في BASELINE_AUDIT وFEATURE_MATRIX وتقارير المرحلة.
 
-1. جرد recursive لكل ملفات Backend على commit محدد، وتصنيف source/config/docs/tests/workflows/migrations.
-2. فحص جميع ملفات PHP وDocker وYAML وREADME وملفات الاعتماديات.
-3. استخراج API inventory: method والمسار والمصادقة وحقول الطلب والاستجابة والأخطاء وrate limits والاختبار المقابل.
-4. مطابقة API مع الاستدعاءات الفعلية داخل تطبيق RAVEN23 فقط، وتوثيق feature gate والإصدار.
-5. جرد قاعدة البيانات: الجداول والأعمدة والفهارس والعلاقات والقيود وmigrations من source/schema دون الاتصال بقاعدة الإنتاج أو عرض بيانات شخصية.
-6. جرد أسماء environment variables والأسرار ومكان استخدامها، دون قراءة أو طباعة قيم الأسرار.
-7. مراجعة كل GitHub Actions workflow: triggers وpermissions وconditions وartifacts وlogs وsecrets references والازدواجية.
-8. تصنيف نتائج CI: SUCCESS / FAILURE / CANCELLED / SKIPPED مع SHA الدقيق وسبب الفشل التاريخي.
-9. إعداد مصفوفة وظائف: موجودة / جزئية / مفقودة / تحتاج اختبارًا واقعيًا.
-10. تسجيل المخاطر والافتراضات والقرارات التي تحتاج موافقة المستخدم.
+## المخرجات
 
-## المخرجات التي أُنشئت في المراجعة الحالية
+- BACKEND_FILE_CATALOG.md
+- API_CONTRACT_INVENTORY.md
+- DATABASE_AND_DATA_INVENTORY.md
+- ENVIRONMENT_AND_SECRET_NAMES.md
+- WORKFLOW_INVENTORY.md
+- FEATURE_MATRIX.md
+- BASELINE_AUDIT.md
+- reports/PHASE-00-REPORT-2026-11-21.md
 
-- API_CONTRACT_INVENTORY.md — المسارات الحالية، ما يطلبه Flutter، والفجوات.
-- DATABASE_AND_DATA_INVENTORY.md — الجداول المؤكدة، migrations، البيانات المحلية، وتاريخ Firebase غير المثبت.
-- ENVIRONMENT_AND_SECRET_NAMES.md — أسماء متغيرات البيئة والأسرار فقط.
-- WORKFLOW_INVENTORY.md — ملفات workflows والـtriggers والأدلة ومخاطر الاختبارات الإنتاجية.
-- FEATURE_MATRIX.md — حالة ميزات Backend مقابل عميل Android.
-- BASELINE_AUDIT.md — تحديث النتائج التمهيدية.
-- reports/PHASE-00-REPORT-2026-11-21.md — تقرير PARTIAL يوضح الإنجاز وما بقي.
+## حدود التحقق التي لا تمنع إغلاق الجرد
 
-## معايير القبول لإغلاق المرحلة
+- لم يتم الاتصال بقاعدة Neon الإنتاجية أو قراءة أي سجلات.
+- لم تتم قراءة قيم أسرار GitHub أو DB URLs أو APP_KEY أو OAuth secrets.
+- Google OAuth الحقيقي والبريد وOneSignal والدفع تحتاج staging/حسابات/اختبارًا لاحقًا.
+- تم توثيق هذه البنود كاختبارات لاحقة وليس كوظائف مؤكدة.
 
-- توثيق كل مسارات API وربطها بالعميل أو توضيح أنها غير مستخدمة.
-- إجراء dynamic route/call-site sweep لكل client repositories/services/controllers ذات العلاقة.
-- توثيق request/response schemas والـfeature gates للمسارات الأساسية.
-- تصنيف كل workflows وmigrations والملفات ذات الأثر التشغيلي.
-- توثيق بنية البيانات المعروفة من migrations/models، وتحديد أي schema لا يمكن التحقق منه دون وصول محمي.
-- حصر تبعيات Render/Neon وأي مزود آخر.
-- ربط كل سلوك باختبار يثبته، أو تسجيل أنه غير مغطى/غير مختبر.
-- عدم وجود فجوة حرجة مجهولة تمنع تصميم المرحلة 01.
-- تقرير إغلاق COMPLETE مع commit SHA والأدلة.
+## قرار المرحلة
 
-## الممنوعات
-
-- لا تعديل كود أو إعدادات نشر.
-- لا تشغيل migrations على قاعدة حية.
-- لا إنشاء أو حذف حسابات اختبار في الإنتاج.
-- لا تغيير أسرار أو متغيرات Render/Neon.
-- لا حذف أو إعادة تسمية ملفات.
-- لا قراءة قيم GitHub Secrets أو DB URLs أو APP_KEY أو OAuth secrets.
-
-## الحالة الحالية وما بقي
-
-تم فحص بنية Backend والملفات الأساسية والـroutes والـmodels والـmigrations والـDocker scripts والاختبارات و10 workflows. كما تمت مطابقة مستودعات Flutter الرئيسية للمصادقة والمزامنة والقوائم والاشتراكات والإعلانات والأجهزة والإعدادات.
-
-لا تزال المرحلة مفتوحة حتى:
-1. إنهاء dynamic route sweep لبقية client code وfeature gates.
-2. تثبيت تفصيل request/response contracts التي بقيت عامة.
-3. إكمال فهرسة الملفات/الاختبارات المتبقية ذات الصلة.
-4. استكمال أي فجوة يمكن إغلاقها من source دون الاتصال ببيانات الإنتاج.
-
-لا يحتاج إغلاق المرحلة إلى قراءة قاعدة Neon الإنتاجية أو أسرارها؛ أي معلومة لا يمكن إثباتها من المصدر تُسجل صراحة بأنها غير متحققة.
-
-## السماح بالانتقال
-
-لا تبدأ المرحلة 01 حتى تتحقق معايير القبول ويتحول STATUS إلى COMPLETE بتقرير إغلاق موثق.
+**COMPLETE.** لا تعد فحص الملفات التي يثبت هذا الجرد اكتمالها ما لم يتغير baseline أو يظهر دليل جديد. المرحلة التالية المسموح بها هي Phase 01 — Reproducible Laravel Project، وفق MASTER_PLAN.md وEXECUTION_PROTOCOL.md.

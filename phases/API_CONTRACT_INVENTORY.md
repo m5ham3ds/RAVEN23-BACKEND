@@ -3,7 +3,7 @@
 **تاريخ الجرد:** 21 نوفمبر 2026  
 **Backend baseline:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
-**الحالة:** PARTIAL — تمت مطابقة المصادر المعروفة؛ ما زال dynamic route sweep مطلوبًا.
+**الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
 ## 1. قاعدة العنوان والعقد العام
 
