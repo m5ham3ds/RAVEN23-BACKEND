@@ -43,33 +43,58 @@ class AuthController extends Controller
         $this->markStage($request, 'session.validate_device_metadata');
         $device = $this->deviceMetadata($request);
         $deviceId = $device['device_id'] ?? null;
-
         $platform = $device['platform'] ?? 'client';
-        $issued = DB::transaction(function () use ($user, $request, $device, $deviceId, $platform) {
+
+        // Registration persists the account in its own transaction. Recreate
+        // the PDO connection before issuing Sanctum credentials so a failed or
+        // stale transaction state from the previous write cannot leak into the
+        // independent token write (notably with pooled PostgreSQL connections).
+        $connectionName = (string) ($user->getConnectionName() ?: config('database.default', 'pgsql'));
+        $this->markStage($request, 'session.reset_database_connection');
+        DB::purge($connectionName);
+        DB::connection($connectionName)->selectOne('select 1');
+        $user->setConnection($connectionName);
+
+        // Issue and persist the replacement session before revoking older
+        // device credentials. Each statement commits independently, so a
+        // failed token write cannot leave the account without its old session.
+        $this->markStage($request, 'session.create_sanctum_token');
+        $issued = $user->createToken('raven23-' . $platform);
+
+        try {
+            $this->markStage($request, 'session.persist_device_metadata');
+            $issued->accessToken->forceFill([
+                'device_id' => $deviceId,
+                'device_name' => $device['device_name'] ?? null,
+                'platform' => $device['platform'] ?? null,
+            ])->save();
+
             if (is_string($deviceId) && $deviceId !== '') {
                 $this->markStage($request, 'session.revoke_previous_token_for_device');
-                $user->tokens()->where('device_id', $deviceId)->delete();
+                $user->tokens()
+                    ->where('device_id', $deviceId)
+                    ->where('id', '<>', $issued->accessToken->getKey())
+                    ->delete();
             }
 
             if (isset($device['replace_device_id'])) {
                 $this->markStage($request, 'session.replace_selected_device_token');
                 // The relationship is scoped to this account; a caller cannot
                 // revoke another user's token by guessing its database ID.
-                $user->tokens()->whereKey((int) $device['replace_device_id'])->delete();
+                $user->tokens()
+                    ->whereKey((int) $device['replace_device_id'])
+                    ->where('id', '<>', $issued->accessToken->getKey())
+                    ->delete();
             }
-
-            $this->markStage($request, 'session.create_sanctum_token');
-            $created = $user->createToken('raven23-' . $platform);
-
-            $this->markStage($request, 'session.persist_device_metadata');
-            $created->accessToken->forceFill([
-                'device_id' => $deviceId,
-                'device_name' => $device['device_name'] ?? null,
-                'platform' => $device['platform'] ?? null,
-            ])->save();
-
-            return $created;
-        });
+        } catch (Throwable $exception) {
+            // Do not leave an unusable partially-created credential behind.
+            try {
+                $issued->accessToken->delete();
+            } catch (Throwable) {
+                // Preserve the original database failure for safe diagnostics.
+            }
+            throw $exception;
+        }
 
         $this->markStage($request, 'session.serialize_user_response');
         return response()->json([
