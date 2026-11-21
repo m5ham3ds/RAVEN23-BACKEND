@@ -19,6 +19,15 @@
         format json
     }
 
-    php_server
-    file_server
+    # Never execute PHP files uploaded into the public assets tree.
+    # Laravel's sole executable front controller remains public/index.php.
+    @blockedPhpFiles {
+        path_regexp blockedPhp \.php(?:/|$)
+        not path /index.php
+    }
+    respond @blockedPhpFiles 404
+
+    php_server {
+        request_body_timeout 30s
+    }
 }
