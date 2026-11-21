@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 21 نوفمبر 2026 — تحديث تنفيذ Phase 01  
+**آخر تحديث:** 21 نوفمبر 2026 — مراجعة CI وإصلاحات Phase 01  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -40,12 +40,15 @@
 
 - فرع التنفيذ: `feature/phase-01-laravel-project`
 - PR: [#2](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2), draft/open, not merged.
-- SHA عند تحديث هذا السجل: `5a077cba5f75753cb83ec47f660c51eeb1212634`.
+- أحدث SHA: `519c3f1039f05818b413d466fbc31793ee6daeb6`.
 - أضيفت بنية Laravel 13 الأساسية وComposer manifest/lock وPHPUnit وملفات بيئة آمنة.
-- CI: Composer lock workflow #18 SUCCESS؛ نجح `composer update` و`composer validate --strict` والتثبيت النظيف. أزيل workflow التوليد المؤقت بعد إنشاء lock.
-- Docker Validation #198: IN_PROGRESS في آخر فحص. Docker Validation #187 فشل قبل الاختبارات بسبب غياب `composer.lock` في SHA أقدم، قبل توليد lock.
+- Composer Lock Bootstrap #18: SUCCESS؛ حل الاعتماديات، `composer validate --strict`، ثم إزالة vendor وإعادة التثبيت من lock نجحت.
+- Docker #198 و#204: FAIL في اختبار Foundation الخاص بطرق HTTP المكررة لمسار واحد؛ أضيف تجميع الطرق بدل استبدالها. كما أظهرت التحذيرات غياب `.env` في الاختبارات؛ أصبح الملف الفارغ ينشأ داخل مرحلة اختبار Docker فقط.
+- أضيفت حماية للمigrations الأساسية users/cache/jobs بحيث لا تعيد إنشاء جداول قديمة، وrollback غير مدمر، واختبار يثبت حفظ صفوف المستخدم/cache/queue.
+- Docker #207: IN_PROGRESS على SHA أقدم `3f4ead...`؛ Docker #210: PENDING على أحدث SHA أعلاه. لا توجد بعد نتيجة نهائية لبوابات SQLite/PostgreSQL على أحدث SHA.
 - لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو تشغيل startup probe. ولم تُقرأ قيم الأسرار.
-- المرحلة غير مكتملة حتى مرور Docker وSQLite وPostgreSQL على نفس SHA.
+- المرحلة غير مكتملة حتى نجاح Docker وSQLite وPostgreSQL على نفس SHA.
+
 
 ## مخرجات Phase 00
 
