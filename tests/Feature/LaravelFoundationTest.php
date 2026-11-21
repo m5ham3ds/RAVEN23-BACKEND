@@ -19,7 +19,12 @@ class LaravelFoundationTest extends TestCase
         $registered = [];
 
         foreach ($routes as $route) {
-            $registered[$route->uri()] = array_values($route->methods());
+            // A URI may intentionally support multiple verbs (e.g. profile GET + PUT).
+            // Accumulate every verb instead of allowing the last route to overwrite it.
+            $registered[$route->uri()] = array_values(array_unique(array_merge(
+                $registered[$route->uri()] ?? [],
+                $route->methods(),
+            )));
         }
 
         $this->assertArrayHasKey('api/v1/auth/register', $registered);
