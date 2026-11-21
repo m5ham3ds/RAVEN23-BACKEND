@@ -2,6 +2,50 @@
 
 Laravel 13 API for the RAVEN23 Android application.
 
+## Reproducible project setup
+
+The repository is a self-contained Laravel application. Dependency versions are defined in `composer.json` and pinned by the committed `composer.lock`; Docker installs from those files and does not run `composer create-project`.
+
+### Requirements
+
+- PHP 8.3 or newer (CI and Docker images use PHP 8.4).
+- Composer 2.
+- PostgreSQL for local integration testing; SQLite is used only for isolated feature and migration tests.
+
+### Local development
+
+```sh
+composer validate --strict
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan route:list --path=api/v1
+php artisan test tests/Feature
+```
+
+Set `DB_CONNECTION=pgsql` and a local disposable PostgreSQL `DB_URL` before running the integration suite. Never point integration tests at production. The test suite is split into:
+- `tests/Feature`: isolated SQLite authentication and Laravel bootstrap/migration tests.
+- `tests/Integration`: PostgreSQL auth lifecycle tests, run only with a disposable CI or staging database.
+
+### Docker validation
+
+```sh
+docker build -t raven23-backend:local .
+docker build --target postgres-test -t raven23-backend:postgres-test .
+```
+
+The default image build validates Composer, checks required PHP extensions, syntax-checks PHP files, executes a clean SQLite migration, runs the Feature tests and verifies required API routes. The `postgres-test` target is executed by GitHub Actions against its ephemeral PostgreSQL 16 service only.
+
+## Runtime
+- Laravel 13 / PHP 8.3+
+- PostgreSQL
+- Laravel Sanctum bearer tokens
+- Google ID-token verification
+
+# RAVEN23 Backend
+
+Laravel 13 API for the RAVEN23 Android application.
+
 ## Runtime
 - Laravel 13 / PHP 8.3+
 - PostgreSQL (Neon)
