@@ -1,6 +1,12 @@
 name: RAVEN23 Runtime Database Diagnostics
 
 on:
+  # Run automatically when this diagnostic workflow is deliberately updated.
+  # All steps are read-only against Neon; the temporary HTTP container is removed.
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/runtime-db-diagnostics.yml"
   workflow_dispatch:
     inputs:
       run_mode:
