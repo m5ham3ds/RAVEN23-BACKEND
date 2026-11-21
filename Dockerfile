@@ -82,7 +82,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 COPY --from=build /opt/raven /var/www/html
-COPY docker/Caddyfile /etc/frankenphp/Caddyfile
+COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /usr/local/bin/raven23-entrypoint
 COPY docker/php-production.ini /usr/local/etc/php/conf.d/99-raven23-production.ini
 
