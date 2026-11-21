@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 مغلقة وPhase 02 قيد الإصلاح والتحقق  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 وPhase 02 مكتملتان؛ Phase 03 بدأت  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -14,8 +14,8 @@
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
-| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime مضافة. #220/#227 كشفا مسار Caddy قديمًا وأُصلح. #229/#234/#236 بنوا الصورة واجتازوا SQLite، لكن no-DB `/ready` أعاد 500 بدل 503. استبدلنا logging facade بـPHP native `error_log` الآمن؛ #240 يختبر التعديل و#241 ينتظر على أحدث SHA `358fa251` مع JSON readiness assertion |
-| 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
+| 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
+| 03 — الأمن والرصد | IN_PROGRESS | بدأت على فرع مستقل بعد إغلاق Phase 02؛ PR #4 قيد الإنشاء على أساس SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d` |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
@@ -49,14 +49,28 @@
 - لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو قراءة أسرار أو نشر التطبيق.
 - تقرير الإغلاق: `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
 
-## تقدم Phase 02 — 22 نوفمبر 2026
+## إغلاق Phase 02 — 22 نوفمبر 2026
 
-- بدأت بعد اجتياز جميع معايير Phase 01.
-- النطاق: استبدال PHP built-in server ببيئة HTTP إنتاجية محمولة، إزالة اعتماد startup على Render/Neon، وفصل migration task عن تشغيل web container.
-- الخيار قيد التنفيذ: FrankenPHP/Caddy على PHP 8.4؛ القرار النهائي يتطلب نجاح Docker وHTTP/health/readiness/non-root checks.
-- فرع التنفيذ: `feature/phase-02-portable-runtime`، وPR منفصل يستهدف فرع Phase 01 المكتمل.
-- CI #229/#234/#236/#240: Docker build + PHP lint + SQLite suite + PostgreSQL test image build PASS؛ الفشل الوحيد كان no-DB readiness HTTP 500. السبب الجذري: `/ready` داخل `routes/web.php` يمر عبر `StartSession` و`ShareErrorsFromSession`; في الإنتاج يستخدم `SESSION_DRIVER=database` فيفشل قبل controller عند تعطل PostgreSQL. الإصلاح: استثناء middleware الجلسات عن `/ready` فقط، مع اختبار `SESSION_DRIVER=database` و`session.connection=pgsql` واتصال مرفوض. CI #244 يختبر middleware exclusion، و#245 pending على SHA `9968e749bce03be0c52705ac57784ae58de3d8a7` ويضيف JSON contract assertion. كما أصبح catch يستخدم native `error_log` آمنًا بدل logging facade.
-- لا نشر، ولا اتصالات بقاعدة الإنتاج، ولا migrations تلقائية على بيئة غير معروفة.
+- الفرع: `feature/phase-02-portable-runtime`
+- PR #3: مفتوح كمسودة وغير مدمج.
+- SHA الذي اجتاز جميع بوابات Phase 02: `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`.
+- Docker Validation #249: **SUCCESS**.
+- Docker image + Composer/PHP lint/Artisan/routes: PASS.
+- SQLite Feature suite: **20 tests / 138 assertions**.
+- PostgreSQL 16 auth lifecycle: **3 tests / 72 assertions**.
+- No-DB start و`/up`: PASS؛ `/ready` يعيد 503 وJSON المتفق عليه عند DB unavailable.
+- PostgreSQL live readiness على قاعدة CI المهاجرة: PASS.
+- One-off migration task على CI فقط: PASS.
+- Non-root `raven:raven` ورفض تنفيذ PHP asset فعلي: PASS.
+- تقرير الإغلاق: `phases/reports/PHASE-02-COMPLETION-REPORT-2026-11-22.md`.
+- لم يتم اتصال production DB أو تغيير Render/Neon أو قراءة أسرار أو deploy أو AWS.
+
+## بدء Phase 03 — 22 نوفمبر 2026
+
+- الاعتماديات 01 و02 مكتملة.
+- فرع التنفيذ المقترح: `feature/phase-03-security-observability`، أساسه Phase02 SHA أعلاه.
+- النطاق: مراجعة authorization/CORS/trusted proxies، إخفاء معلومات البنية العامة، correlation IDs، structured logs الآمنة، rate limits، security headers، Composer/secret/container scanning، واختبارات authorization.
+- لا production DB changes أو secrets reads أو deploy ضمن هذه المرحلة.
 
 
 ## مخرجات Phase 00
