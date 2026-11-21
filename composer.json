@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "raven23/backend",
     "type": "project",
-    "description": "Laravel API and backend services for the RAVEN23 application.",
+    "description": "Laravel API and service backend for the RAVEN23 application.",
     "keywords": ["raven23", "laravel", "api"],
     "license": "proprietary",
     "require": {
