@@ -4,7 +4,7 @@
 **الفرع:** `feature/phase-02-portable-runtime`  
 **PR:** [#3 — Portable production runtime](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/3)  
 **اعتماد Phase01:** code validation SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`  
-**أحدث SHA أثناء هذا التحديث:** `585dfa699828932e254139fbfddf25cebe4933bb` (merge commit يضم تحديث trigger الخاص بفرع Phase01؛ اختبار #220 بُدئ على commit الأب `017a4c13cdd117e8db03e8f393c40765f881e6e6`).
+**أحدث SHA أثناء هذا التحديث:** `28d0d39757981204b3c4fd1d34bcf71912885bef`؛ Run #229 pending على هذا SHA. Run #220 اكتمل بالفشل في HTTP smoke فقط؛ Run #227 (SHA أقدم) كان قيد التنفيذ وآخر #229 ينتظر.
 
 ## 1. ما نُفّذ
 
@@ -40,9 +40,9 @@
 | PHP syntax / Composer validation | PENDING latest CI |
 | SQLite feature tests including RuntimeHealthTest | PENDING latest CI |
 | PostgreSQL 16 migrations + auth lifecycle | PENDING latest CI |
-| Actual HTTP liveness/readiness | PENDING latest CI |
-| Non-root runtime user verification | PENDING latest CI |
-| Direct uploaded PHP execution blocked | PENDING latest CI |
+| Actual HTTP liveness/readiness | FAIL on #220 due to wrong Caddyfile path; fix pushed and latest CI pending |
+| Non-root runtime user verification | PENDING latest CI (HTTP server could not start on correct unprivileged port in #220) |
+| Direct uploaded PHP execution blocked | PENDING latest CI; Caddy matcher simplified to RE2-compatible regex |
 | SIGTERM graceful process exit | Implementation added; dedicated runtime assertion pending |
 | Runtime startup does not connect/write/migrate DB | Code path removed; test/CI confirmation pending |
 | No Render/Neon required for build/test | Portable CI workflow added; confirm after full workflow |
