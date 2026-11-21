@@ -47,10 +47,10 @@ RUN set -eu; \
     APP_ENV=testing APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
       DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= DB_MIGRATION_URL= \
       CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync MAIL_MAILER=array \
-      php artisan test tests/Feature; \
-    php artisan route:list --path=api/v1 --except-vendor > /tmp/raven23-routes.txt; \
-    for route in 'api/v1/auth/register' 'api/v1/auth/login' 'api/v1/auth/google' \
-      'api/v1/auth/guest' 'api/v1/user/profile' 'api/v1/user/change-password'; do \
+      php artisan test tests/Feature --display-warnings; \
+    php artisan route:list --except-vendor > /tmp/raven23-routes.txt; \
+    for route in 'auth/register' 'auth/login' 'auth/google' \
+      'auth/guest' 'user/profile' 'user/change-password'; do \
         grep -Fq "$route" /tmp/raven23-routes.txt || { echo "Missing API route: $route" >&2; exit 1; }; \
     done
 
