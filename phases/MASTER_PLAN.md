@@ -114,7 +114,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 ## 10. الحالة الراهنة
 
-**Phase 01 IN_PROGRESS** على فرع `feature/phase-01-laravel-project` وPR #2 (أحدث SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`). أضيف Laravel skeleton وComposer lock، واجتاز Composer Lock Bootstrap #18 حل الاعتماديات والتحقق الصارم والتثبيت النظيف. صُحح اختبار الطرق المشتركة، وأنشئ ملف env فارغ للاختبارات فقط، وجُعلت migrations الأساسية آمنة للجداول القديمة مع اختبار يحمي بيانات users/cache/jobs. Docker #207 لا يزال يعمل على SHA أقدم، و#210 ينتظر أحدث SHA؛ لم تثبت بعد بوابات Docker/SQLite/PostgreSQL النهائية على نفس commit. لا يوجد تشغيل على الإنتاج.
+**Phase 01 IN_PROGRESS** على فرع `feature/phase-01-laravel-project` وPR #2 (أحدث SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`). أضيف Laravel skeleton وComposer lock، واجتاز Composer Lock Bootstrap #18 حل الاعتماديات والتحقق الصارم والتثبيت النظيف. صُحح اختبار الطرق المشتركة، وأنشئ ملف env فارغ للاختبارات فقط، وجُعلت migrations الأساسية آمنة للجداول القديمة مع اختبار يحمي بيانات users/cache/jobs. Docker #207 نجح على SHA أقدم: Docker image + SQLite 13 tests / 92 assertions + PostgreSQL 16 (3 tests / 72 assertions). Docker #210 قيد التنفيذ على أحدث SHA الذي يضيف migrations آمنة واختبار الحفاظ على بيانات موجودة؛ لا تغلق المرحلة حتى ينجح هذا التشغيل على SHA موحد. لا يوجد تشغيل على الإنتاج.
 
 
 **Phase 00 COMPLETE** على مستوى الجرد المصدري الثابت. تم جرد 34 ملف Backend متتبعًا و17 مجلدًا و10 workflows على baseline SHA، وربط مصادر Laravel client الرئيسية في Android، وتوثيق العقود والبيانات وأسماء المتغيرات والميزات والمخاطر. تفاصيل الحدود (قاعدة الإنتاج، أسرار، Google الحقيقي، البريد، staging) مثبتة في تقرير الإغلاق، ولم يتم اختراق حدود السلامة.
