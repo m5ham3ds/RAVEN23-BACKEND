@@ -38,7 +38,7 @@
 |---|---|
 | FrankenPHP production image build | PENDING CI |
 | PHP syntax / Composer validation | PENDING latest CI |
-| SQLite feature tests including explicit PostgreSQL connection-refusal RuntimeHealthTest | PENDING latest CI; latest test is in #236 |
+| SQLite feature tests including PostgreSQL refused connection with DB-backed sessions | #244 exposed session middleware access during tests; latest fix tested by #249 |
 | PostgreSQL 16 migrations + auth lifecycle | PENDING latest CI |
 | Actual HTTP liveness/readiness | FAIL on #220 due to wrong Caddyfile path; fix pushed and latest CI pending |
 | Non-root runtime user verification | PENDING latest CI (HTTP server could not start on correct unprivileged port in #220) |
@@ -58,7 +58,7 @@
 
 ## 5. الخطوات التالية
 
-1. فحص Docker #244 ثم #245 بعد استثناء session middleware عن `/ready`؛ إثبات أن `/ready` يرجع 503 وJSON `database=unavailable` عندما `SESSION_DRIVER=database` وقاعدة PostgreSQL غير متاحة.
+1. فحص Docker #249 على أحدث SHA؛ يجب أن تنجح Feature suite مع `SESSION_DRIVER=database`، وأن يرجع `/ready` HTTP 503 وJSON `database=unavailable` عند PostgreSQL غير متاح.
 2. اجتياز PostgreSQL 16 migrations/auth lifecycle، one-off migration على CI فقط، live readiness على قاعدة جاهزة، non-root، وPHP upload blocking على SHA واحد.
 2. عند أي فشل، استخراج السبب من logs وإصلاحه على نفس الفرع.
 3. اجتياز SQLite feature suite، ثم PostgreSQL 16 lifecycle.
