@@ -246,11 +246,14 @@ class AuthController extends Controller
         ]);
 
         $this->markStage($request, 'login.find_account');
-        $user = User::query()
-            ->where('email', Str::lower(trim($data['email'])))
-            ->where('is_guest', false)
+        $normalizedEmail = Str::lower(trim($data['email']));
+        $emailRow = User::query()
+            ->where('email', $normalizedEmail)
             ->first();
 
+        // Older production schemas may contain NULL for is_guest. Treat that
+        // legacy value as a normal account; actual guest accounts are TRUE.
+        $user = $emailRow && !$emailRow->is_guest ? $emailRow : null;
         $passwordMatches = $user !== null && Hash::check($data['password'], $user->password);
         if (!$user || !$passwordMatches) {
             // Safe diagnostic only: never log the email, submitted password,
@@ -258,9 +261,10 @@ class AuthController extends Controller
             Log::warning('RAVEN23 login credentials rejected', [
                 'request_id' => (string) Str::uuid(),
                 'account_found' => $user !== null,
+                'email_row_found' => $emailRow !== null,
+                'stored_is_guest' => $emailRow ? $emailRow->is_guest : null,
                 'password_hash_matches' => $passwordMatches,
-                'is_guest' => $user ? (bool) $user->is_guest : null,
-                'provider' => $user ? (string) $user->provider : null,
+                'stored_provider' => $emailRow ? (string) $emailRow->provider : null,
             ]);
 
             return response()->json([
