@@ -295,7 +295,19 @@ class AuthController extends Controller
         $passwordMatches = $user !== null && Hash::check($data['password'], $user->password);
         if (!$user || !$passwordMatches) {
             // Safe diagnostic only: never log the email, submitted password,
-            // stored hash, SQL or bearer token.
+            // stored hash, SQL or bearer token. PostgreSQL identity functions
+            // are deliberately skipped for SQLite feature tests.
+            $loginConnection = DB::connection((string) config('database.default'));
+            $loginDatabaseName = null;
+            $loginSchemaName = null;
+            if ($loginConnection->getDriverName() === 'pgsql') {
+                $loginIdentity = $loginConnection->selectOne(
+                    'SELECT current_database() AS database_name, current_schema() AS schema_name'
+                );
+                $loginDatabaseName = $loginIdentity->database_name ?? null;
+                $loginSchemaName = $loginIdentity->schema_name ?? null;
+            }
+
             Log::warning('RAVEN23 login credentials rejected', [
                 'request_id' => (string) Str::uuid(),
                 'account_found' => $user !== null,
@@ -303,9 +315,10 @@ class AuthController extends Controller
                 'stored_is_guest' => $emailRow ? $emailRow->is_guest : null,
                 'password_hash_matches' => $passwordMatches,
                 'stored_provider' => $emailRow ? (string) $emailRow->provider : null,
-                'database_name' => DB::connection((string) config('database.default'))->selectOne('SELECT current_database() AS name')->name ?? null,
-                'schema_name' => DB::connection((string) config('database.default'))->selectOne('SELECT current_schema() AS name')->name ?? null,
-                'transaction_level' => DB::connection((string) config('database.default'))->transactionLevel(),
+                'database_driver' => $loginConnection->getDriverName(),
+                'database_name' => $loginDatabaseName,
+                'schema_name' => $loginSchemaName,
+                'transaction_level' => $loginConnection->transactionLevel(),
             ]);
 
             return response()->json([
