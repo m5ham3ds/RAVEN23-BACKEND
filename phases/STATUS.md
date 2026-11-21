@@ -14,7 +14,7 @@
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
-| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime أضيفت؛ أول CI فشل في صياغة HEALTHCHECK وأصلح، run #220 يبني الآن |
+| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime مضافة. #220/#227 كشفا مسار Caddy قديمًا وأُصلح. #229/#234 بنيا الصورة واجتازا SQLite لكن /ready أعاد 500 بدل 503 عند DB غير متاح؛ #236 يعمل على أحدث SHA `e7db3d5` مع اختبار PDO refused وإظهار response/logs |
 | 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
@@ -55,6 +55,7 @@
 - النطاق: استبدال PHP built-in server ببيئة HTTP إنتاجية محمولة، إزالة اعتماد startup على Render/Neon، وفصل migration task عن تشغيل web container.
 - الخيار قيد التنفيذ: FrankenPHP/Caddy على PHP 8.4؛ القرار النهائي يتطلب نجاح Docker وHTTP/health/readiness/non-root checks.
 - فرع التنفيذ: `feature/phase-02-portable-runtime`، وPR منفصل يستهدف فرع Phase 01 المكتمل.
+- CI #229/#234: Docker image + SQLite + PostgreSQL image build اجتازت؛ فشل no-DB readiness بسبب HTTP 500. CI #236 IN_PROGRESS على SHA `e7db3d547c2852ddcf255bbbddce55cadff77b0d`، ويشمل DB_HOST=127.0.0.1/DB_PORT=1 مع body/log diagnostics واختبار Feature لاتصال PDO المرفوض.
 - لا نشر، ولا اتصالات بقاعدة الإنتاج، ولا migrations تلقائية على بيئة غير معروفة.
 
 
