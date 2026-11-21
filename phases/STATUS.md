@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 21 نوفمبر 2026  
+**آخر تحديث:** 21 نوفمبر 2026 — تحديث تنفيذ Phase 01  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -13,7 +13,7 @@
 | المرحلة | الحالة | السبب / الاعتماد |
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
-| 01 — Laravel مستقل | NOT_STARTED | جاهزة للبدء؛ تحافظ على المصادقة الحالية وتضيف Composer manifests/lock |
+| 01 — Laravel مستقل | IN_PROGRESS | PR #2 مفتوح كمسودة؛ الهيكل وComposer lock أضيفا، ونتائج Docker/SQLite/PostgreSQL النهائية ما زالت مطلوبة |
 | 02 — Runtime محمول | NOT_STARTED | تنتظر 01 |
 | 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
@@ -35,6 +35,17 @@
 - Roadmap PR validation #183: SUCCESS على commit إعداد الوثائق الأولي.
 
 هذه نتائج الاختبارات الموجودة فقط، ولا تثبت التكاملات الخارجية غير المختبرة.
+
+## تقدم Phase 01 — 21 نوفمبر 2026
+
+- فرع التنفيذ: `feature/phase-01-laravel-project`
+- PR: [#2](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2), draft/open, not merged.
+- SHA عند تحديث هذا السجل: `5a077cba5f75753cb83ec47f660c51eeb1212634`.
+- أضيفت بنية Laravel 13 الأساسية وComposer manifest/lock وPHPUnit وملفات بيئة آمنة.
+- CI: Composer lock workflow #18 SUCCESS؛ نجح `composer update` و`composer validate --strict` والتثبيت النظيف. أزيل workflow التوليد المؤقت بعد إنشاء lock.
+- Docker Validation #198: IN_PROGRESS في آخر فحص. Docker Validation #187 فشل قبل الاختبارات بسبب غياب `composer.lock` في SHA أقدم، قبل توليد lock.
+- لم يتم الاتصال بقاعدة الإنتاج أو تنفيذ migrations عليها أو تشغيل startup probe. ولم تُقرأ قيم الأسرار.
+- المرحلة غير مكتملة حتى مرور Docker وSQLite وPostgreSQL على نفس SHA.
 
 ## مخرجات Phase 00
 
