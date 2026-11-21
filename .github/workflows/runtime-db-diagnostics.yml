@@ -49,7 +49,7 @@ jobs:
         run: docker build --pull -t raven23-backend:diagnostics .
 
       - name: Diagnose pooled application connection
-        if: inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
+        if: github.event_name == 'push' || inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
         env:
           NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
         run: |
@@ -67,7 +67,7 @@ jobs:
             /diagnostics/runtime-db-diagnostics.php
 
       - name: Diagnose direct migration connection
-        if: inputs.run_mode == 'both' || inputs.run_mode == 'direct'
+        if: github.event_name == 'push' || inputs.run_mode == 'both' || inputs.run_mode == 'direct'
         env:
           NEON_DB_MIGRATION_URL: ${{ secrets.NEON_DB_MIGRATION_URL }}
         run: |
@@ -85,7 +85,7 @@ jobs:
             /diagnostics/runtime-db-diagnostics.php
 
       - name: Verify production HTTP process retains Neon environment
-        if: inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
+        if: github.event_name == 'push' || inputs.run_mode == 'both' || inputs.run_mode == 'pooled'
         env:
           NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
         run: |
