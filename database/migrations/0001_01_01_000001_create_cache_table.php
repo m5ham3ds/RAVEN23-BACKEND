@@ -7,29 +7,33 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Add Laravel cache tables only when missing.
+     *
+     * Earlier generated Laravel skeletons may already have created these
+     * tables. Never replace an existing cache table when registering the
+     * stable migration ID in this repository.
      */
     public function up(): void
     {
-        Schema::create('cache', function (Blueprint $table) {
-            $table->string('key')->primary();
-            $table->mediumText('value');
-            $table->bigInteger('expiration')->index();
-        });
+        if (!Schema::hasTable('cache')) {
+            Schema::create('cache', function (Blueprint $table): void {
+                $table->string('key')->primary();
+                $table->mediumText('value');
+                $table->bigInteger('expiration')->index();
+            });
+        }
 
-        Schema::create('cache_locks', function (Blueprint $table) {
-            $table->string('key')->primary();
-            $table->string('owner');
-            $table->bigInteger('expiration')->index();
-        });
+        if (!Schema::hasTable('cache_locks')) {
+            Schema::create('cache_locks', function (Blueprint $table): void {
+                $table->string('key')->primary();
+                $table->string('owner');
+                $table->bigInteger('expiration')->index();
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('cache');
-        Schema::dropIfExists('cache_locks');
+        // Preserve tables that may predate this stable migration.
     }
 };
