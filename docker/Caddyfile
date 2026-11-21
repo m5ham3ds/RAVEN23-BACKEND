@@ -22,7 +22,7 @@ http://:{$PORT} {
     # Never execute PHP files uploaded into the public assets tree.
     # Laravel's sole executable front controller remains public/index.php.
     @blockedPhpFiles {
-        path_regexp blockedPhp \.php(?:/|$)
+        path_regexp blockedPhp \.php(/|$)
         not path /index.php
     }
     respond @blockedPhpFiles 404
