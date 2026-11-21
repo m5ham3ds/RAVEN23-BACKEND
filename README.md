@@ -2,99 +2,73 @@
 
 Laravel 13 API for the RAVEN23 Android application.
 
-## Reproducible project setup
+## Project and dependencies
 
-The repository is a self-contained Laravel application. Dependency versions are defined in `composer.json` and pinned by the committed `composer.lock`; Docker installs from those files and does not run `composer create-project`.
+This repository is the source of the Laravel application itself. It includes the framework bootstrap, Artisan entrypoint, routes, configuration, migrations, tests and Composer dependency manifest. Docker builds this checked-in project; it must not generate a fresh Laravel skeleton at image-build time.
 
-### Requirements
+- Framework: Laravel 13
+- PHP support: 8.3 or newer; CI and Docker use PHP 8.4
+- Database: PostgreSQL in deployed environments
+- Local feature/migration tests: isolated SQLite
+- Authentication: Laravel Sanctum and Google ID-token verification
 
-- PHP 8.3 or newer (CI and Docker images use PHP 8.4).
-- Composer 2.
-- PostgreSQL for local integration testing; SQLite is used only for isolated feature and migration tests.
+Dependencies are defined in \`composer.json\` and installed from the checked-in \`composer.lock\`. Never run \`composer update\` in production builds; dependency updates are reviewed and lock-file changes are committed separately.
 
-### Local development
+## Local development
 
-```sh
+Requirements: PHP 8.3+, Composer 2, and the required PHP extensions (including cURL, DOM, Fileinfo, Mbstring, PDO, OpenSSL and XML).
+
+\`\`\`sh
 composer validate --strict
 composer install
 cp .env.example .env
 php artisan key:generate
 php artisan route:list --path=api/v1
 php artisan test tests/Feature
-```
+\`\`\`
 
-Set `DB_CONNECTION=pgsql` and a local disposable PostgreSQL `DB_URL` before running the integration suite. Never point integration tests at production. The test suite is split into:
-- `tests/Feature`: isolated SQLite authentication and Laravel bootstrap/migration tests.
-- `tests/Integration`: PostgreSQL auth lifecycle tests, run only with a disposable CI or staging database.
+Feature tests use an in-memory SQLite database and do not require Neon credentials. For PostgreSQL integration tests, use a new disposable local/staging database only. Set \`DB_CONNECTION=pgsql\` and \`DB_URL\` to that disposable database, apply migrations there, then run:
 
-### Docker validation
+\`\`\`sh
+php artisan test tests/Integration/PostgresAuthLifecycleTest.php
+\`\`\`
 
-```sh
+Never point integration tests at a production database.
+
+## Docker validation
+
+\`\`\`sh
 docker build -t raven23-backend:local .
 docker build --target postgres-test -t raven23-backend:postgres-test .
-```
+\`\`\`
 
-The default image build validates Composer, checks required PHP extensions, syntax-checks PHP files, executes a clean SQLite migration, runs the Feature tests and verifies required API routes. The `postgres-test` target is executed by GitHub Actions against its ephemeral PostgreSQL 16 service only.
+The default Docker build validates Composer, checks required PHP extensions, syntax-checks PHP files, runs a clean SQLite migration, runs the Feature suite, and checks required API routes. The PostgreSQL target is intended for GitHub Actions with its isolated PostgreSQL 16 service.
 
-## Runtime
-- Laravel 13 / PHP 8.3+
-- PostgreSQL
-- Laravel Sanctum bearer tokens
-- Google ID-token verification
+## Existing deployment configuration
 
-# RAVEN23 Backend
+The existing container startup contract remains unchanged: production expects \`APP_KEY\`, \`DB_URL\` (pooled request connection), and \`DB_MIGRATION_URL\` (direct migration connection), validates that both URIs target the same PostgreSQL database/schema, applies pending migrations, performs the existing auth-schema verification probe, then starts the PHP router on \`PORT\` (default 10000).
 
-Laravel 13 API for the RAVEN23 Android application.
-
-## Runtime
-- Laravel 13 / PHP 8.3+
-- PostgreSQL (Neon)
-- Laravel Sanctum bearer tokens
-- Google ID-token verification
-
-## Render deployment
-Create a Docker Web Service from this repository. Use the repository root as the Docker build context and leave the Root Directory empty. Render detects the root \`Dockerfile\`.
-
-Set these environment variables in Render (never commit secrets):
-- \`APP_ENV=production\`
-- \`APP_DEBUG=false\`
-- \`APP_KEY\` — generate a Laravel key and keep it stable
-- \`APP_URL=https://YOUR-SERVICE.onrender.com\`
-- \`LOG_CHANNEL=stderr\`
-- \`DB_CONNECTION=pgsql\`
-- \`DB_URL\` — pooled Neon PostgreSQL connection URI for app requests, with \`sslmode=require\`
-- \`DB_MIGRATION_URL\` — direct (non-pooled) Neon PostgreSQL URI for startup migrations, with \`sslmode=require\`
-- \`GOOGLE_CLIENT_ID\` — optional override for the matching RAVEN23 Web OAuth client ID (the public client ID is bundled as the default)
-
-The pooled and direct Neon URLs must point to the same project, branch, database and schema. Startup validates this relationship before running migrations. It applies migrations through \`DB_MIGRATION_URL\`, then verifies the account and Sanctum schema through the runtime \`DB_URL\`. The service refuses to start if the two connections do not expose the same completed schema.
-
-The account-schema reconciliation is idempotent. It adds missing RAVEN23 account fields, backfills missing/invalid usernames for existing users without deleting accounts, and ensures the Sanctum \`personal_access_tokens\` table exists. Existing valid usernames and token records are preserved. The device-session migration adds nullable installation metadata to Sanctum tokens; it does not delete existing token rows.
-
-The server listens on Render's \`PORT\` (default 10000). Production starts PHP's built-in HTTP server directly with \`docker/router.php\`; do not replace this with \`php artisan serve\`. Laravel's development ServeCommand filters child-process environment variables when a \`.env\` file exists, which can remove Render secrets such as \`DB_URL\` and \`GOOGLE_CLIENT_ID\` from HTTP requests even though startup commands can read them.
+The startup probe creates and removes a uniquely generated temporary user and Sanctum token to verify write access. It must only run against an intentionally configured deployment database. This Phase 01 code change does not deploy the image or invoke that startup process against production.
 
 ## API base URL
-The Flutter app expects a base URL ending in \`/api/v1/\`.
 
-Health: \`GET /up\` and \`GET /api/v1/health\`. The API health route verifies the PostgreSQL connection and the required \`users\` / \`personal_access_tokens\` columns, including device identity metadata, returning \`database=connected\` and \`schema=ready\` only when they are usable.
+The Flutter application expects the Laravel API base URL to end in \`/api/v1/\`.
 
-## Implemented account endpoints
-- \`POST /api/v1/auth/register\` — creates an email account and Sanctum session atomically (HTTP 201).
-- \`POST /api/v1/auth/login\` — verifies the password, issues a session and optionally consumes a guest token.
-- \`POST /api/v1/auth/google\` — verifies the Google ID-token signature/audience/expiry, requires a verified email, and creates or reuses the matching Google account.
-- \`POST /api/v1/auth/guest\` — creates a server-side guest identity and Sanctum token.
-- \`POST /api/v1/auth/logout\` — revokes only the presented token.
-- \`GET /api/v1/user/profile\` — validates the current bearer session.
-- \`PUT /api/v1/user/profile\`
-- \`POST /api/v1/user/change-email\`
-- \`POST /api/v1/user/change-password\` — revokes every active token after password change.
-- \`DELETE /api/v1/user/account\` — revokes all Sanctum tokens before deleting the account.
+Health routes: \`GET /up\` and \`GET /api/v1/health\`.
+
+Implemented account endpoints:
+- \`POST /api/v1/auth/register\`, \`/login\`, \`/google\`, \`/guest\`
+- \`POST /api/v1/auth/forgot-password\`, \`/reset-password\` (currently unavailable until email delivery is configured)
 - \`GET /api/v1/users/check-username\`
+- Authenticated: \`POST /api/v1/auth/logout\`
+- Authenticated: \`GET/PUT /api/v1/user/profile\`
+- Authenticated: \`POST /api/v1/user/change-email\`, \`/change-password\`
+- Authenticated: \`DELETE /api/v1/user/account\`
 
-A valid \`guest_token\` upgrades the existing guest database row during email or Google registration, preserving its account ID and revoking the old anonymous token. When a guest signs into an already-existing account, the guest row and its tokens are removed after the credentials/Google identity are verified. Device metadata (\`device_id\`, \`device_name\`, \`platform\`) is stored with the Sanctum token; signing in again from the same installation replaces that installation's earlier token. A supplied \`replace_device_id\` is scoped to the authenticated account and cannot revoke another user's session.
+A valid \`guest_token\` upgrades the existing guest row during email or Google registration, preserving its account ID and revoking the old anonymous token. Device metadata (\`device_id\`, \`device_name\`, \`platform\`) is stored with Sanctum tokens, and re-authentication on the same installation replaces that installation's earlier token.
 
-Google sign-in does not silently link to an existing password-only account. It returns a conflict so the user signs in with the existing password first. A real Google ID token must come from the Android Google Sign-In flow; a mocked-token test is not proof of a working device OAuth configuration.
+Google sign-in requires a verified Google identity token. A synthetic token accepted by a test double is not proof of a working Android OAuth configuration.
 
-## Tests and current limitations
-The Docker build runs the authentication feature suite against an isolated in-memory SQLite database and validates the production routes. GitHub Actions then runs the PostgreSQL lifecycle suite against a fresh, temporary PostgreSQL 16 service container: it applies the repository migrations and exercises registration, guest sessions, device-token replacement and logout through the same Laravel bootstrap used by Render. These tests never connect to Neon and do not require a `NEON_DB_URL` secret, so CI cannot create or remove records in a deployment database. Neon endpoint connectivity is checked separately by the manually triggered runtime database diagnostics workflow. The post-deployment smoke workflow is deliberately GET-only: it checks live health, schema readiness, commit identity and route matching without registering users, issuing tokens, or changing production data.
+## Current limitations
 
-Password-reset email delivery remains unavailable until an outbound email provider is configured. The current code does not yet enforce a plan-based maximum number of simultaneous devices or expose a full active-device listing endpoint; it does persist installation IDs and supports revoking a selected token ID on that same user's account. Do not treat the backend as production-ready until Google sign-in is verified with a real Android device, email verification/reset delivery is implemented, and abuse controls/backups/monitoring are completed.
+Password-reset email delivery remains unavailable until an outbound provider is configured. Plan-based maximum device limits and an active-device listing endpoint are not implemented. Do not consider the backend production-ready until real-device Google sign-in, email verification/reset delivery, abuse controls, backups and monitoring are completed.
