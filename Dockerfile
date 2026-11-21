@@ -37,6 +37,7 @@ RUN composer validate --strict \
 
 # PHP syntax, boot, route registration and isolated SQLite schema migration checks.
 RUN set -eu; \
+    touch .env; \
     find app bootstrap config database docker public routes tests -type f -name '*.php' -print0 \
       | xargs -0 -r -n1 php -l; \
     php artisan --version; \
