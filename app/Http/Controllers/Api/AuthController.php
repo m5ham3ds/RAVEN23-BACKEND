@@ -50,10 +50,13 @@ class AuthController extends Controller
         // stale transaction state from the previous write cannot leak into the
         // independent token write (notably with pooled PostgreSQL connections).
         $connectionName = (string) ($user->getConnectionName() ?: config('database.default', 'pgsql'));
-        $this->markStage($request, 'session.reset_database_connection');
-        DB::purge($connectionName);
-        DB::connection($connectionName)->selectOne('select 1');
-        $user->setConnection($connectionName);
+        $connectionDriver = DB::connection($connectionName)->getDriverName();
+        if ($connectionDriver === 'pgsql') {
+            $this->markStage($request, 'session.reset_database_connection');
+            DB::purge($connectionName);
+            DB::connection($connectionName)->selectOne('select 1');
+            $user->setConnection($connectionName);
+        }
 
         // Issue and persist the replacement session before revoking older
         // device credentials. Each statement commits independently, so a
