@@ -56,7 +56,7 @@ jobs:
           git add composer.lock
           if ! git diff --cached --quiet; then
             git commit -m "build: add reproducible Composer lock"
-            git fetch origin "$TARGET_BRANCH"
-            git rebase "origin/$TARGET_BRANCH"
+            git fetch origin "+refs/heads/$TARGET_BRANCH:refs/remotes/origin/$TARGET_BRANCH"
+            git rebase "refs/remotes/origin/$TARGET_BRANCH"
             git push origin "HEAD:$TARGET_BRANCH"
           fi
