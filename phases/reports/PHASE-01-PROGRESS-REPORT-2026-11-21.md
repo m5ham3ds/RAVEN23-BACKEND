@@ -2,57 +2,42 @@
 
 **الحالة:** IN_PROGRESS  
 **تاريخ البدء:** 21 نوفمبر 2026  
-**SHA الأساس:** `9f29fa55afa21c0445be82d4590a4a532bb1747c`  
-**فرع التنفيذ:** `feature/phase-01-laravel-project`  
+**SHA الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
+**فرع التنفيذ:** feature/phase-01-laravel-project  
 **PR:** [#2 — Reproducible Laravel project](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2)  
-**آخر SHA معروف عند إعداد هذا التقرير:** `5a077cba5f75753cb83ec47f660c51eeb1212634`
+**أحدث SHA:** 519c3f1039f05818b413d466fbc31793ee6daeb6
 
 ## 1. ما نُفّذ
 
-1. أضيفت نقطة تشغيل Laravel `artisan` وملفات bootstrap/providers وpublic index ومزود التطبيق ومتحكم الأساس ومسارات web/console.
-2. أضيفت ملفات إعداد Laravel 13 الأساسية وملفات migrations الافتراضية للجداول الأساسية وPHPUnit.
-3. أضيف `composer.json` مع PHP `^8.3` وLaravel `^13.17` وSanctum وGoogle API Client، وأُنشئ `composer.lock` وثُبت في فرع التنفيذ.
-4. عُدّل Dockerfile ليستخدم المشروع الفعلي من جذر المستودع ويثبت الاعتماديات من Composer lock بدل `composer create-project`.
+1. أضيفت نقطة تشغيل Laravel artisan وملفات bootstrap/providers وpublic index ومزود التطبيق ومتحكم الأساس ومسارات web/console.
+2. أضيفت ملفات إعداد Laravel 13 الأساسية وملفات migrations الافتراضية وPHPUnit.
+3. أضيف composer.json مع PHP ^8.3 وLaravel ^13.17 وSanctum وGoogle API Client، وأُنشئ composer.lock وثُبت في فرع التنفيذ.
+4. عُدّل Dockerfile ليستخدم المشروع الفعلي من جذر المستودع ويثبت الاعتماديات من Composer lock بدل composer create-project.
 5. عُدلت إعدادات قاعدة البيانات ليكون PostgreSQL هو الافتراضي مع السماح باستخدام SQLite في الاختبارات المعزولة فقط.
-6. عُدلت مسارات تسوية مخطط المصادقة لاجتياز SQLite في الاختبار، مع إبقاء قواعد PostgreSQL الإنتاجية مثل default/not-null حيث تدعمها القاعدة.
-7. أضيف اختبار Laravel Foundation للتحقق من تشغيل التطبيق والمسارات وإجراء migrations على قاعدة SQLite فارغة.
-8. أضيف `.env.example` بقيم placeholders فقط، وحدث `.gitignore` و`.dockerignore`.
-9. أُعيد تنظيم README لتوثيق التثبيت والاختبار وقيود التشغيل الحالية.
-10. أزيل workflow المؤقت الذي أنشأ Composer lock بعد نجاح توليده وتثبيته.
+6. عُدلت مسارات تسوية مخطط المصادقة لتقبل SQLite في الاختبار، مع إبقاء قواعد PostgreSQL الإنتاجية حيث تدعمها القاعدة.
+7. أضيف اختبار Foundation للتحقق من تشغيل Laravel، ووجود API route URIs وطرقها، وmigrations على SQLite فارغة.
+8. أضيف اختبار regression يحاكي قاعدة قديمة تحتوي جدول users وصف مستخدم، وcache entry، وjob؛ ويتأكد من بقاء الصفوف بعد migrations الأساسية مع إضافة الجداول المفقودة فقط.
+9. أُنشئت migrations Laravel الأساسية بأسلوب hasTable لتجنب إعادة إنشاء users/cache/jobs الموجودة، كما أصبحت عمليات down لها غير مدمرة لحماية بيانات قديمة.
+10. أضيف .env.example بقيم placeholders فقط، وحدث .gitignore و.dockerignore، ويُنشأ ملف .env فارغ في مرحلة اختبار Docker فقط لتجنب تحذيرات dotenv.
+11. أُعيد تنظيم README لتوثيق التثبيت والاختبار وقيود التشغيل الحالية.
+12. أزيل workflow المؤقت الذي أنشأ Composer lock بعد نجاح توليده وتثبيته.
 
-## 2. ما لم يكتمل
-
-- لم تُثبت بعد نتيجة Docker build وSQLite Feature suite على SHA النهائي بعد إضافة Composer lock وإزالة workflow المؤقت.
-- لم تُثبت بعد نتيجة PostgreSQL 16 integration suite على SHA النهائي.
-- لم يُنفذ فحص تشغيل على بيئة staging أو جهاز Android؛ هذه ليست ضمن الاختبارات التي أثبتتها هذه الجولة.
-- لم يُنفذ نشر أو تغيير على Render/Neon أو قاعدة الإنتاج.
-
-## 3. الاختبارات والأدلة
+## 2. الاختبارات والأدلة
 
 | الاختبار | النتيجة | الدليل / ملاحظة |
 |---|---|---|
-| Composer dependency resolution | PASS | Composer Lock Bootstrap run #18 |
-| `composer validate --strict` | PASS | خطوة التحقق في run #18 |
-| حذف vendor ثم `composer install` من lock | PASS | خطوة clean install في run #18 |
-| Docker Validation #187 | FAIL — stale commit | فشل عند فحص وجود `composer.lock`؛ بدأ قبل إضافة lock، ولم يصل إلى اختبارات SQLite أو PostgreSQL |
-| Docker Validation #198 | FAIL — test assertion | [Run #198](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949217022)؛ PHP lint وSQLite migrations نجحت، لكن assertion `route:list --path=api/v1` لم يجد المسار بسبب مرشح CLI المستخدم في الاختبار |
-| Docker Validation #199 | IN_PROGRESS على SHA أقدم | [Run #199](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949468629)؛ يتضمن assertion السابق ولم يُحسم عند التحديث |\n| Docker Validation #204 | PENDING على SHA التصحيح | [Run #204](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949794240)؛ يشمل قراءة route URI/method مباشرة وإظهار تفاصيل التحذيرات |\n| PostgreSQL migration/lifecycle suite | NOT YET VALIDATED | لم تصل بوابة PostgreSQL إلى نتيجة على أحدث SHA |
-| Production smoke / live DB | NOT RUN | حفاظًا على حدود السلامة؛ لم يتم الاتصال بالإنتاج |
+| Composer dependency resolution | PASS | Composer Lock Bootstrap #18 |
+| composer validate --strict | PASS | خطوة التحقق في run #18 |
+| حذف vendor ثم composer install من lock | PASS | خطوة clean install في run #18 |
+| Docker Validation #187 | FAIL — stale commit | شُغل قبل وجود composer.lock، وفشل عند فحص الملف |
+| Docker Validation #198 | FAIL — assertion | PHP lint وSQLite migrations نجحت؛ route-list assertion كان ضيقًا ولم يعرض المسار |
+| Docker Validation #204 | FAIL — assertion | route URI موجود، لكن test map استبدل GET عند ظهور PUT لنفس URI؛ كما ظهرت تحذيرات متكررة لعدم وجود .env |
+| Docker Validation #207 | IN_PROGRESS | [Run #207](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951589124) على SHA 3f4ead...؛ يحتوي إصلاح جمع الطرق وإنشاء .env للاختبارات |
+| Docker Validation #210 | PENDING | [Run #210](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951684707) على أحدث SHA 519c3f...؛ يشمل migrations الآمنة واختبار حفظ البيانات |
+| PostgreSQL 16 integration suite | NOT YET VALIDATED on latest SHA | لم تصل بوابة PostgreSQL في #210 إلى نتيجة |
+| Production smoke / live DB | NOT RUN | لم يتم الاتصال بالإنتاج أو تشغيل migrations عليه |
 
-## 4. الملفات والمناطق المتأثرة
-
-تشمل التغييرات بنية Laravel الجديدة، Composer manifests، Dockerfile، إعدادات قاعدة البيانات، migrations، اختبار Foundation، ملفات بيئة وموانع إدراج الملفات الحساسة، وREADME. كما بقيت ملفات المصادقة الأصلية وواجهات API محفوظة دون إعادة كتابة منطقها.
-
-## 5. حماية البيانات والأمن
-
-- لا توجد اتصالات بقاعدة الإنتاج ولا تغييرات على Render/Neon.
-- لم تُقرأ قيم أي أسرار؛ `.env.example` يحتوي أسماء ومتغيرات placeholder فقط.
-- لا توجد عمليات إنشاء أو حذف حسابات أو tokens إنتاجية.
-- اختبارات PostgreSQL مصممة لتعمل على خدمة PostgreSQL مؤقتة في GitHub Actions.
-- لا توجد موارد AWS أو تكاليف جديدة.
-- لم يُدمج PR #2 في `main`.
-
-## 6. معايير القبول الحالية
+## 3. معايير القبول الحالية
 
 | المعيار | الحالة |
 |---|---|
@@ -60,28 +45,39 @@
 | Composer manifest valid | PASS — CI |
 | Composer lock committed | PASS — verified in branch |
 | Clean locked Composer install | PASS — CI |
-| Artisan boot / route:list | PENDING Docker validation |
-| Fresh SQLite migrations | PENDING Docker validation |
-| Existing auth Feature tests | PENDING Docker validation |
-| PostgreSQL migration and lifecycle suite | PENDING Docker validation |
-| Docker build uses repository project (no create-project) | PASS — Dockerfile source changed; build validation pending |
+| PHP syntax | PASS on earlier Docker runs; latest run pending |
+| Artisan boot / API route registration | PENDING latest CI |
+| Fresh SQLite migrations | PASS on earlier SHA; must confirm latest |
+| Existing auth Feature tests | PENDING latest CI |
+| Existing-data migration preservation regression | PENDING latest CI |
+| PostgreSQL 16 migration and lifecycle suite | PENDING latest CI |
+| Docker build uses repository project (no create-project) | PENDING latest complete build |
 | No secrets in committed environment template | PASS — source inspection |
 | Same-final-SHA CI gate | NOT YET MET |
 
-## 7. العيوب والعوائق
+## 4. العيوب التي عولجت
 
-- فشل Docker #187 بُني على commit أقدم قبل وجود `composer.lock`. Docker #198 شغّل PHP lint وSQLite migrations بنجاح ثم فشل في اختبارنا الذي استخدم مرشح route:list ضيقًا؛ عُدّل الاختبار، ويجري التحقق على #204 من SHA التصحيح.
-- أول تشغيل لتوليد lock فشل عند checkout بسبب escape في اسم الفرع؛ أُصلح.
-- تشغيل تالٍ حل الاعتماديات ونجح في التحقق والتثبيت، لكن دفع lock رُفض بسبب تقدم الفرع بالتزامن؛ أُصلح workflow بإعادة جلب الفرع وإعادة base/rebase دون force-push، ثم نجح Composer Lock Bootstrap run #18.
-- أزيل workflow المؤقت بعد تثبيت lock لتجنب تحديثات dependencies التلقائية مستقبلًا.
+- فشل #198 بسبب استخدام مرشح route:list --path في الاختبار؛ تم نقل التحقق إلى route registry.
+- فشل #204 بسبب أن الاختبار خزّن الطرق على أساس URI دون دمجها؛ الآن تُجمع كل الطرق للمسارات المشتركة (مثل GET وPUT للملف الشخصي).
+- تحذيرات PHPUnit بسبب عدم وجود ملف .env في Docker context؛ ينشأ ملف فارغ في خطوة الاختبار فقط، دون أسرار.
+- اكتُشف خطر migration على قاعدة قديمة: ملفات Laravel base migrations كانت ستحاول إنشاء users/cache/jobs رغم احتمال وجودها. أصبحت migrations مشروطة، وrollback الخاص بها لا يحذف الجداول الموجودة، وأضيف اختبار regression لحفظ الصفوف السابقة.
 
-## 8. الخطوات التالية دون تكرار
+## 5. حماية البيانات والأمن
 
-1. التحقق من أن Docker Validation على أحدث PR head يشتمل على `composer.lock`.
-2. عند أي فشل، استخراج أول error من step الفاشل ثم إصلاح سببه وإعادة CI على commit جديد.
-3. تثبيت نجاح SQLite migrations وFeature tests.
-4. تثبيت نجاح PostgreSQL migrations وauth lifecycle tests على PostgreSQL 16 المؤقت.
-5. إجراء review للفرق والتأكد من بقاء contract المصادقة متوافقًا.
-6. تحديث هذا التقرير بتقرير إغلاق مستقل فقط بعد نجاح جميع البوابات على SHA واحد.
+- لا توجد اتصالات بقاعدة الإنتاج ولا تغييرات على Render/Neon.
+- لم تُقرأ قيم أي أسرار؛ .env.example يحتوي أسماء ومتغيرات placeholder فقط.
+- لا توجد عمليات إنشاء أو حذف حسابات أو tokens إنتاجية.
+- PostgreSQL suite تستخدم خدمة PostgreSQL مؤقتة في GitHub Actions فقط.
+- لا توجد موارد AWS أو تكاليف جديدة.
+- لم يُدمج PR #2 في main.
 
-**المرحلة التالية غير مصرح ببدئها الآن:** Phase 02 تنتظر اكتمال Phase 01.
+## 6. الخطوات التالية دون تكرار
+
+1. إنهاء Docker #207 والتحقق من سبب أي فشل من السجل.
+2. تشغيل Docker #210 على أحدث SHA حتى ينجح بناء الصورة واختبارات PHP/SQLite.
+3. انتظار خطوة PostgreSQL 16 والتأكد من migrations وauth lifecycle tests.
+4. إذا فشل أي اختبار، إصلاح السبب وإعادة التحقق على أحدث SHA.
+5. إغلاق Phase 01 فقط بعد نجاح كل البوابات على commit واحد.
+6. بعد ذلك فقط يمكن بدء Phase 02 — Portable Production Runtime وفق مواصفته.
+
+**Phase 02 لم تبدأ؛ تنتظر إغلاق Phase 01.**
