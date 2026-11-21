@@ -66,21 +66,12 @@ RUN set -eu; \
     php artisan route:list --path=api/v1 --except-vendor > /tmp/raven23-routes.txt; \
     for route in 'api/v1/auth/register' 'api/v1/auth/login' 'api/v1/auth/guest' 'api/v1/user/profile'; do grep -Fq "$route" /tmp/raven23-routes.txt || { echo "Missing API route: $route" >&2; exit 1; }; done
 
-FROM php:8.4-cli-bookworm AS postgres-test
+# Run this image against an ephemeral PostgreSQL service supplied by CI.
+# Tests must never write to the Neon deployment database.
+FROM build AS postgres-test
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      libpq-dev libxml2-dev libonig-dev libcurl4-openssl-dev \
-    && docker-php-ext-install pdo_pgsql mbstring xml curl opcache \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /opt/raven/app /var/www/html
-WORKDIR /var/www/html
-
-RUN --mount=type=secret,id=neon_db_url \
-    set -eu; \
-    test -s /run/secrets/neon_db_url || { echo "NEON_DB_URL is required for PostgreSQL integration tests." >&2; exit 1; }; \
-    export NEON_DB_URL="$(cat /run/secrets/neon_db_url)"; \
-    APP_ENV=testing DB_CONNECTION=pgsql DB_URL="$NEON_DB_URL" php artisan test tests/Integration/PostgresAuthLifecycleTest.php
+WORKDIR /opt/raven/app
+CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"]
 
 FROM php:8.4-cli-bookworm AS runtime
 
