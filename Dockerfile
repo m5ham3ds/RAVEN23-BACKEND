@@ -26,6 +26,8 @@ RUN set -eu; \
       database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php \
       database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
       database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php \
+      database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
+      database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
       docker/check-database-target.php docker/verify-auth-schema.php docker/router.php docker/start.sh; do \
         test -s "/opt/raven-source/$file" || { echo "Required source file missing or empty: $file" >&2; exit 1; }; \
     done; \
@@ -44,6 +46,7 @@ RUN set -eu; \
     cp /opt/raven-source/database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php; \
     cp /opt/raven-source/database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php; \
     cp /opt/raven-source/database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php; \
+    cp /opt/raven-source/database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php; \
     cp /opt/raven-source/docker/check-database-target.php /usr/local/bin/raven23-check-database-target.php; \
     cp /opt/raven-source/docker/verify-auth-schema.php /usr/local/bin/raven23-verify-auth-schema.php; \
     cp /opt/raven-source/docker/router.php /usr/local/bin/raven23-router.php; \
