@@ -79,4 +79,93 @@ class LaravelFoundationTest extends TestCase
             );
         }
     }
+    public function test_baseline_migrations_preserve_preexisting_framework_tables_and_rows(): void
+    {
+        config([
+            'database.default' => 'sqlite',
+            'database.connections.sqlite' => [
+                'driver' => 'sqlite',
+                'url' => null,
+                'database' => ':memory:',
+                'prefix' => '',
+                'foreign_key_constraints' => true,
+            ],
+        ]);
+
+        DB::purge('sqlite');
+
+        // Model a legacy deployment where Laravel generated these tables
+        // before stable migration files were committed to this repository.
+        Schema::create('users', static function ($table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('password');
+        });
+        DB::table('users')->insert([
+            'id' => 77,
+            'name' => 'Existing Raven Account',
+            'email' => 'existing-raven@example.test',
+            'password' => 'already-hashed',
+        ]);
+
+        Schema::create('cache', static function ($table): void {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->bigInteger('expiration');
+        });
+        DB::table('cache')->insert([
+            'key' => 'legacy-cache-entry',
+            'value' => 'preserve-me',
+            'expiration' => 2000000000,
+        ]);
+
+        Schema::create('jobs', static function ($table): void {
+            $table->id();
+            $table->string('queue');
+        });
+        DB::table('jobs')->insert([
+            'id' => 19,
+            'queue' => 'legacy-queue',
+        ]);
+
+        $migrationPaths = [
+            'database/migrations/0001_01_01_000000_create_users_table.php',
+            'database/migrations/0001_01_01_000001_create_cache_table.php',
+            'database/migrations/0001_01_01_000002_create_jobs_table.php',
+        ];
+
+        foreach ($migrationPaths as $path) {
+            $migration = require base_path($path);
+            $migration->up();
+        }
+
+        $this->assertDatabaseHas('users', [
+            'id' => 77,
+            'email' => 'existing-raven@example.test',
+            'password' => 'already-hashed',
+        ]);
+        $this->assertDatabaseHas('cache', [
+            'key' => 'legacy-cache-entry',
+            'value' => 'preserve-me',
+        ]);
+        $this->assertDatabaseHas('jobs', [
+            'id' => 19,
+            'queue' => 'legacy-queue',
+        ]);
+
+        foreach ([
+            'password_reset_tokens',
+            'sessions',
+            'cache_locks',
+            'job_batches',
+            'failed_jobs',
+        ] as $missingTable) {
+            $this->assertTrue(
+                Schema::hasTable($missingTable),
+                "Expected missing framework table [{$missingTable}] to be added.",
+            );
+        }
+    }
+
 }
