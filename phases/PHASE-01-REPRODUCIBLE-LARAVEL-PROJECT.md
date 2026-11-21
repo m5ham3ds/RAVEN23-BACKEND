@@ -7,15 +7,15 @@
 
 - فرع التنفيذ: `feature/phase-01-laravel-project`
 - Pull Request: [#2](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2) — مفتوح كمسودة، غير مدمج.
-- آخر SHA موثق عند تحديث هذا السجل: `5a077cba5f75753cb83ec47f660c51eeb1212634`.
+- آخر SHA موثق عند تحديث هذا السجل: `519c3f1039f05818b413d466fbc31793ee6daeb6`.
 - أضيف `composer.json` و`composer.lock`؛ أظهر GitHub Actions نجاح حل الاعتماديات، `composer validate --strict`، والتثبيت النظيف.
 - أضيف هيكل Laravel 13 الأساسي وإعداد PHPUnit وملفات البيئة النموذجية، وأُبقي منطق المصادقة الحالي.
 - عُدلت مسارات اختبار المخطط لدعم SQLite المعزول، مع الإبقاء على PostgreSQL الافتراضي وقيود الإنتاج.
 - Dockerfile أصبح يستخدم ملفات المشروع الموجودة في المستودع بدل `composer create-project`.
 - أزيل workflow المؤقت الذي أنشأ lock بعد تثبيت الملف.
-- Docker Validation #198 فشل عند assertion إضافي استخدم `route:list --path=api/v1`؛ migrations SQLite اكتملت، وفحص PHP syntax اكتمل. عُدّل الاختبار ليقرأ URI/method المسجلين مباشرة. Docker Validation #199 ما زال قيد التنفيذ على SHA أقدم قبل هذا التصحيح، و#204 PENDING على SHA التصحيح الحالي. لا يوجد نجاح نهائي بعد. Docker run #187 فشل على SHA أقدم لغياب composer.lock.
+- Docker Validation #198 و#204 فشلا في اختبار المسارات بسبب طريقة تصفية CLI ثم بسبب استبدال طرق HTTP عند وجود URI له GET/PUT. جُمعت الطرق بدل استبدالها، كما أُنشئ ملف `.env` فارغ داخل مرحلة الاختبار لتجنب تحذيرات dotenv المتكررة. Docker #207 قيد التنفيذ على commit `3f4ead...`، و#210 في الانتظار على آخر SHA `519c3f...` الذي يضيف حماية migrations واختبار بقاء البيانات. لا يوجد نجاح نهائي بعد.
 
-**الحكم الحالي:** IN_PROGRESS. لا تسجل المرحلة COMPLETE حتى ينجح Docker build واختبارات SQLite وPostgreSQL على SHA نهائي واحد، وتُراجع النتائج المتبقية.
+**الحكم الحالي:** IN_PROGRESS. أضيفت أيضًا حماية للمigrations الأساسية كي لا تعيد إنشاء جداول users/cache/jobs التي قد تكون موجودة في قاعدة قديمة، وأضيف اختبار يثبت بقاء بيانات مستخدم وcache وqueue قائمة قبل migration. لا تسجل المرحلة COMPLETE حتى ينجح Docker build واختبارات SQLite وPostgreSQL على SHA نهائي واحد، وتُراجع النتائج المتبقية.
 
 ## الهدف
 إزالة الاعتماد على إنشاء تطبيق Laravel جديد أثناء Docker build، وجعل المستودع يحتوي تطبيق Laravel كاملًا باعتماديات ثابتة وقابلة لإعادة البناء.
