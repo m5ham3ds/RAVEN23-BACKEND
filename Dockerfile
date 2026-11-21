@@ -65,7 +65,7 @@ CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"
 
 # Production runtime: pinned FrankenPHP/PHP 8.4 image, Caddy HTTP server,
 # PHP production settings, and no Render/Neon-specific startup behaviour.
-FROM dunglas/frankenphp:1-php8.4-bookworm@sha256:81ba601edfb650d1df63f54dafdedc021d9d1fb37517850a4e93278ab19cced1 AS runtime
+FROM dunglas/frankenphp:php8.4-bookworm@sha256:81ba601edfb650d1df63f54dafdedc021d9d1fb37517850a4e93278ab19cced1 AS runtime
 
 ARG RAVEN23_SOURCE_COMMIT=unknown
 ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}
