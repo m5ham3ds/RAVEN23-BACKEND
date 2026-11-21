@@ -23,6 +23,23 @@ class HealthController extends Controller
             'device_id', 'device_name', 'platform',
             'created_at', 'updated_at',
         ],
+        'cache' => ['key', 'value', 'expiration'],
+        'cache_locks' => ['key', 'owner', 'expiration'],
+        'sessions' => [
+            'id', 'user_id', 'ip_address', 'user_agent',
+            'payload', 'last_activity',
+        ],
+        'jobs' => [
+            'id', 'queue', 'payload', 'attempts',
+            'reserved_at', 'available_at', 'created_at',
+        ],
+        'job_batches' => [
+            'id', 'name', 'total_jobs', 'pending_jobs', 'failed_jobs',
+            'failed_job_ids', 'options', 'cancelled_at', 'created_at', 'finished_at',
+        ],
+        'failed_jobs' => [
+            'id', 'uuid', 'connection', 'queue', 'payload', 'exception', 'failed_at',
+        ],
     ];
 
     /**
