@@ -26,8 +26,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 |---|---|---|
 | 00 | جرد المستودع وعقود API وخط الأساس | لا شيء |
 | 01 | مشروع Laravel مستقل وقابل لإعادة البناء — COMPLETE (Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72) | 00 |
-| 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — IN_PROGRESS (PR #3، FrankenPHP/health/readiness قيد التحقق) | 01 |
-| 03 | الأمن والرصد والتشغيل الأساسي | 01–02 |
+| 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — COMPLETE (Docker #249 SUCCESS؛ SQLite 20/138، PostgreSQL 3/72، HTTP/non-root/readiness/PHP asset block PASS) | 01 |
+| 03 | الأمن والرصد والتشغيل الأساسي — IN_PROGRESS | 01–02 COMPLETE |
 | 04 | إكمال المصادقة والحسابات والأجهزة | 01–03 |
 | 05 | أساس بيانات المستخدم وعقود الحساب | 00–04 |
 | 06 | المفضلة والقوائم وسجل المشاهدة والتقدم | 05 |
@@ -118,8 +118,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 **Phase 01 COMPLETE.** الفرع `feature/phase-01-laravel-project` وPR #2 مفتوح كمسودة وغير مدمج. SHA التطبيق الذي اجتاز جميع البوابات `519c3f1039f05818b413d466fbc31793ee6daeb6`; Docker Validation #210 SUCCESS، SQLite 14 tests / 100 assertions، PostgreSQL 16 3 tests / 72 assertions، وComposer Lock Bootstrap #18 اجتاز dependency resolution و`composer validate --strict` وclean locked install. تقرير الإغلاق: `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
 
-**Phase 02 IN_PROGRESS.** الفرع `feature/phase-02-portable-runtime` وPR #3 Draft/Open/Unmerged يستهدف Phase 01. تم بناء صورة FrankenPHP/Caddy، إضافة liveness/readiness، تشغيل non-root، إيقاف migrations/probe writes من web startup، وفصل migrations إلى release task. اختبارات البناء وSQLite نجحت في #229/#234/#236؛ #236 اجتاز أيضًا بناء PostgreSQL test image، لكنه فشل في no-DB readiness: `/up` أعاد 200 بينما `/ready` أعاد HTTP 500 بدل 503. استبدلنا تسجيل Laravel داخل catch بـPHP native error log محدود الحقول، وشددنا تحقق JSON. أحدث SHA في PR #3 هو `358fa2511355acb9166d5b4b1cec397c61d12fc9`; تشغيل #240 يختبر إصلاح readiness، و#241 بانتظار التنفيذ على أحدث SHA. لا تسجل Phase 02 COMPLETE قبل نجاح Docker + SQLite + PostgreSQL + no-DB readiness + live PostgreSQL readiness + non-root + PHP asset blocking على SHA موحد.
+**Phase 02 COMPLETE.** الفرع `feature/phase-02-portable-runtime` وPR #3 Draft/Open/Unmerged يستهدف Phase 01. اجتاز Docker Validation #249 على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`: FrankenPHP/Caddy image، Composer/PHP lint/Artisan/routes، SQLite 20 tests / 138 assertions، PostgreSQL 16 3 tests / 72 assertions، web startup بدون DB، `/up` liveness، `/ready` HTTP 503 عند DB unavailable وlive readiness عند DB جاهزة، one-off migration على قاعدة CI المؤقتة، non-root `raven:raven`، ورفض تنفيذ PHP asset حقيقي. تقرير الإغلاق `phases/reports/PHASE-02-COMPLETION-REPORT-2026-11-22.md`.
 
-لم يتم الاتصال بقاعدة الإنتاج أو Render/Neon أو قراءة الأسرار أو إنشاء موارد AWS أو تنفيذ نشر. لا تدمج PR #1/#2/#3 دون موافقة صريحة.
+لم يتم الاتصال بقاعدة الإنتاج أو Render/Neon أو قراءة الأسرار أو إنشاء موارد AWS أو تنفيذ نشر. PR #1/#2/#3 تظل مفتوحة وغير مدمجة.
 
-**المرحلة التالية المخططة: Phase 03 — الأمن والتشغيل والرصد الأساسي.** تعتمد على إغلاق Phase 02؛ لا تبدأ قبل ذلك. نطاقها وقيودها في `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`.
+**Phase 03 IN_PROGRESS.** بدأ العمل الأمني بعد اكتمال الاعتماديات 01 و02، على فرع مستقل يستهدف Phase02 SHA أعلاه. النطاق في `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`.
