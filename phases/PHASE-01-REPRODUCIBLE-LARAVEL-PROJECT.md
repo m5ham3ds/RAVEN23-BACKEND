@@ -1,7 +1,21 @@
 # المرحلة 01 — تحويل المستودع إلى مشروع Laravel مستقل قابل لإعادة البناء
 
-**الحالة:** NOT_STARTED  
+**الحالة:** IN_PROGRESS  
 **الاعتماديات:** المرحلة 00 COMPLETE
+
+## سجل التنفيذ — 21 نوفمبر 2026
+
+- فرع التنفيذ: `feature/phase-01-laravel-project`
+- Pull Request: [#2](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/2) — مفتوح كمسودة، غير مدمج.
+- آخر SHA موثق عند تحديث هذا السجل: `5a077cba5f75753cb83ec47f660c51eeb1212634`.
+- أضيف `composer.json` و`composer.lock`؛ أظهر GitHub Actions نجاح حل الاعتماديات، `composer validate --strict`، والتثبيت النظيف.
+- أضيف هيكل Laravel 13 الأساسي وإعداد PHPUnit وملفات البيئة النموذجية، وأُبقي منطق المصادقة الحالي.
+- عُدلت مسارات اختبار المخطط لدعم SQLite المعزول، مع الإبقاء على PostgreSQL الافتراضي وقيود الإنتاج.
+- Dockerfile أصبح يستخدم ملفات المشروع الموجودة في المستودع بدل `composer create-project`.
+- أزيل workflow المؤقت الذي أنشأ lock بعد تثبيت الملف.
+- Docker Validation #198 كان قيد التنفيذ عند آخر فحص؛ لا يوجد اعتماد نجاح نهائي بعد. Docker run #187 أُطلق قبل lock وفشل لأن `composer.lock` لم يكن موجودًا في commit الذي بُني؛ لا يُعد اختبارًا للكود بعد إنشاء lock.
+
+**الحكم الحالي:** IN_PROGRESS. لا تسجل المرحلة COMPLETE حتى ينجح Docker build واختبارات SQLite وPostgreSQL على SHA نهائي واحد، وتُراجع النتائج المتبقية.
 
 ## الهدف
 إزالة الاعتماد على إنشاء تطبيق Laravel جديد أثناء Docker build، وجعل المستودع يحتوي تطبيق Laravel كاملًا باعتماديات ثابتة وقابلة لإعادة البناء.
