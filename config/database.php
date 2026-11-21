@@ -38,7 +38,7 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            // SQLite is reserved for isolated tests only; never inherit the Neon DB_URL.
+            // SQLite is reserved for isolated tests; never inherit a PostgreSQL connection URL.
             'url' => null,
             'database' => env('DB_DATABASE', database_path('database.sqlite')),
             'prefix' => '',
@@ -91,8 +91,8 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            // Match the resolved fallback used by the production PHP process;
-            // relying on env() alone can drop DB_URL in long-running requests.
+            // Support either a standard PostgreSQL URI (DB_URL) or discrete
+            // DB_HOST/DB_PORT/DB_DATABASE/DB_USERNAME/DB_PASSWORD variables.
             'url' => $dbUrl,
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
