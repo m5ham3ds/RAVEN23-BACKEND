@@ -13,13 +13,19 @@ class LaravelFoundationTest extends TestCase
     {
         $this->assertStringStartsWith('13.', app()->version());
 
-        $exitCode = Artisan::call('route:list', [
-            '--path' => 'api/v1',
-        ]);
+        // Inspect registered route URIs and methods directly. CLI path filters
+        // can vary with framework formatting and are not the API contract.
+        $routes = app('router')->getRoutes();
+        $registered = [];
 
-        $this->assertSame(0, $exitCode, Artisan::output());
-        $this->assertStringContainsString('api/v1/auth/register', Artisan::output());
-        $this->assertStringContainsString('api/v1/user/profile', Artisan::output());
+        foreach ($routes as $route) {
+            $registered[$route->uri()] = array_values($route->methods());
+        }
+
+        $this->assertArrayHasKey('api/v1/auth/register', $registered);
+        $this->assertContains('POST', $registered['api/v1/auth/register']);
+        $this->assertArrayHasKey('api/v1/user/profile', $registered);
+        $this->assertContains('GET', $registered['api/v1/user/profile']);
     }
 
     public function test_all_repository_migrations_run_against_a_fresh_sqlite_database(): void
