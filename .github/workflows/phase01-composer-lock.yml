@@ -24,7 +24,7 @@ jobs:
       - name: Check out the phase branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.head_ref || github.ref_name }}
+          ref: feature/phase-01-laravel-project
           persist-credentials: true
 
       - name: Set up PHP 8.4 and Composer 2
@@ -48,7 +48,7 @@ jobs:
 
       - name: Commit the generated lock file to this phase branch
         env:
-          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+          TARGET_BRANCH: feature/phase-01-laravel-project
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
