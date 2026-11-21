@@ -1,7 +1,25 @@
 # المرحلة 02 — بيئة تشغيل إنتاجية مستقلة عن مزود الاستضافة
 
-**الحالة:** NOT_STARTED  
+**الحالة:** IN_PROGRESS  
 **الاعتماديات:** المرحلة 01 COMPLETE
+
+## سجل التنفيذ — 22 نوفمبر 2026
+
+- فرع التنفيذ: `feature/phase-02-portable-runtime`
+- PR: [#3 — Portable production runtime](https://github.com/m5ham3ds/RAVEN23-BACKEND/pull/3)، Draft/Open، غير مدمج.
+- Phase01 dependency: `feature/phase-01-laravel-project`، Phase01 code validation SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`.
+- القرار الأولي: FrankenPHP + Caddy على PHP 8.4، من دون FrankenPHP worker mode إلى أن يثبت اختبار دورة حياة الذاكرة.
+- أضيف `HealthController`؛ `/up` liveness مستقل عن DB، و`/ready` و`/api/v1/health` readiness لفحص PostgreSQL والمخطط.
+- أزيلت ملفات startup القديمة التي كانت تفرض Neon pooled/direct URLs، وتشغل migrations تلقائيًا، وتكتب مستخدمًا ورمز Sanctum مؤقتين مع كل بدء.
+- أصبح تشغيل migrations مهمة release منفصلة ومقصودة. Entrypoint الخاص بالويب لا يجري اتصالًا أو كتابة إلى قاعدة البيانات.
+- صورة الإنتاج الجديدة non-root على port 10000، مع PHP production ini، Caddy JSON logs، SIGTERM، trusted proxy allowlist، وحدود request-body timeout.
+- الافتراضات الدائمة: database cache/session/queue. لا يُعامل القرص المحلي كخزن دائم.
+- حُولت auth HTTP smoke إلى workflow_dispatch يدوي read-only، وأزيلت Neon diagnostics workflow التي كانت تقرأ/تفحص endpoint provider محدد.
+- أضيفت اختبارات Feature لـliveness/readiness وتعطل DB ومنع تسريب بيانات الاتصال.
+- Docker Validation #218 كشف خطأ صياغة Dockerfile في `HEALTHCHECK` (`CMD-SHELL` غير صالح داخل Dockerfile). تم إصلاحه إلى exec-form `CMD`.
+- Docker Validation #220 بدأ على commit `017a4c13cdd117e8db03e8f393c40765f881e6e6`، وكانت خطوة بناء صورة FrankenPHP/SQLite قيد التنفيذ عند آخر فحص. PostgreSQL وHTTP smoke لم يبدآ بعد.
+
+**الحالة:** IN_PROGRESS. لا تعتبر المرحلة مكتملة حتى ينجح بناء صورة FrankenPHP واختبارات SQLite وPostgreSQL واختبار HTTP الحقيقي، بما فيه non-root readiness ورفض تنفيذ PHP assets، على SHA واحد.
 
 ## الهدف
 بناء صورة تشغيل موحدة تعمل على Render وAWS وأي Linux/Docker host متوافق، دون افتراضات خاصة بمزود بعينه.
