@@ -120,7 +120,7 @@ try {
         }
 
         foreach ($requestedIds as $userId) {
-            $inspection = Illuminate\\Support\\Facades\\DB::connection('pgsql')->selectOne(
+            $inspection = Illuminate\Support\Facades\DB::connection('pgsql')->selectOne(
                 'SELECT
                     EXISTS(SELECT 1 FROM users WHERE id = ?) AS user_exists,
                     (SELECT COUNT(*) FROM personal_access_tokens WHERE tokenable_type = ? AND tokenable_id = ?) AS user_token_rows,
@@ -128,7 +128,7 @@ try {
                     (SELECT provider FROM users WHERE id = ?) AS provider',
                 [
                     $userId,
-                    App\\Models\\User::class,
+                    App\Models\User::class,
                     $userId,
                     $userId,
                     $userId,
