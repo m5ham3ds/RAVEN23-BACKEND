@@ -39,7 +39,14 @@
 
 ## D-006 — استخدام FrankenPHP/Caddy كخادم HTTP محمول
 - **التاريخ:** 22 نوفمبر 2026
-- **الحالة:** اختيار تنفيذي أولي ضمن Phase 02؛ الإغلاق مشروط بنجاح CI
+- **الحالة:** مُثبت بعد نجاح Phase 02 في Docker Validation #249
 - **القرار:** استبدال PHP built-in server بصورة FrankenPHP/Caddy على PHP 8.4، مع non-root runtime على port أعلى من 1024، وعدم تفعيل worker mode في هذه المرحلة.
 - **السبب:** خادم HTTP إنتاجي واحد مع Caddy وPHP يقلل مكونات الحاوية، ويزيل الاعتماد على خادم PHP التطويري. worker mode مؤجل حتى تتوفر اختبارات lifecycle تثبت عدم تسرب state عبر الطلبات.
-- **الأثر:** يلزم التحقق من صورة الإنتاج نفسها عبر PostgreSQL المؤقت وHTTP/liveness/readiness/non-root في CI. لا يُسمح بالنشر أو تغيير وجهة الإنتاج ضمن هذا القرار.
+- **الأثر:** تم التحقق من الصورة نفسها في Docker Validation #249 على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`: SQLite 20/138، PostgreSQL 3/72، liveness/readiness عند DB unavailable/available، non-root، وPHP asset blocking. لا يسمح هذا القرار بالنشر أو تغيير وجهة الإنتاج.
+
+## D-007 — جعل readiness مستقلة عن middleware الجلسات
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** معتمد ومختبر في Phase 02
+- **القرار:** GET `/ready` read-only endpoint يتجاوز فقط `StartSession` و`ShareErrorsFromSession` وLaravel 13 `PreventRequestForgery`، لأن هذه middleware تقرأ session أو تصدر CSRF cookie. بقية المسارات تحتفظ بحماياتها.
+- **السبب:** يجب أن تظل readiness قادرة على الإبلاغ عن قاعدة بيانات غير متاحة دون أن يحاول middleware جلسة قاعدة البيانات أولًا ويحول HTTP 503 إلى 500.
+- **الأثر:** Feature test يفرض `SESSION_DRIVER=database` مع PostgreSQL connection refused؛ CI #249 يثبت 503 وJSON المتفق عليه، مع live readiness ناجحة عند وجود PostgreSQL.
