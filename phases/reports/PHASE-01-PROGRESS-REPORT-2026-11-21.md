@@ -35,8 +35,8 @@
 | `composer validate --strict` | PASS | خطوة التحقق في run #18 |
 | حذف vendor ثم `composer install` من lock | PASS | خطوة clean install في run #18 |
 | Docker Validation #187 | FAIL — stale commit | فشل عند فحص وجود `composer.lock`؛ بدأ قبل إضافة lock، ولم يصل إلى اختبارات SQLite أو PostgreSQL |
-| Docker Validation #198 | IN_PROGRESS عند آخر فحص | [Run #198](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949217022)؛ لم تكن نتيجة نهائية متاحة عند إعداد التقرير |
-| PostgreSQL migration/lifecycle suite | NOT TESTED على SHA نهائي | خطوة لاحقة في Docker Validation #198 لم تكن قد بدأت عند آخر فحص |
+| Docker Validation #198 | FAIL — test assertion | [Run #198](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949217022)؛ PHP lint وSQLite migrations نجحت، لكن assertion `route:list --path=api/v1` لم يجد المسار بسبب مرشح CLI المستخدم في الاختبار |
+| Docker Validation #199 | IN_PROGRESS على SHA أقدم | [Run #199](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949468629)؛ يتضمن assertion السابق ولم يُحسم عند التحديث |\n| Docker Validation #204 | PENDING على SHA التصحيح | [Run #204](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44949794240)؛ يشمل قراءة route URI/method مباشرة وإظهار تفاصيل التحذيرات |\n| PostgreSQL migration/lifecycle suite | NOT YET VALIDATED | لم تصل بوابة PostgreSQL إلى نتيجة على أحدث SHA |
 | Production smoke / live DB | NOT RUN | حفاظًا على حدود السلامة؛ لم يتم الاتصال بالإنتاج |
 
 ## 4. الملفات والمناطق المتأثرة
@@ -70,7 +70,7 @@
 
 ## 7. العيوب والعوائق
 
-- فشل Docker #187 سببه أن run بُني على commit أقدم قبل وجود `composer.lock`. لا ينبغي اعتباره فشلًا للكود الحالي؛ يلزم run جديد على أحدث SHA.
+- فشل Docker #187 بُني على commit أقدم قبل وجود `composer.lock`. Docker #198 شغّل PHP lint وSQLite migrations بنجاح ثم فشل في اختبارنا الذي استخدم مرشح route:list ضيقًا؛ عُدّل الاختبار، ويجري التحقق على #204 من SHA التصحيح.
 - أول تشغيل لتوليد lock فشل عند checkout بسبب escape في اسم الفرع؛ أُصلح.
 - تشغيل تالٍ حل الاعتماديات ونجح في التحقق والتثبيت، لكن دفع lock رُفض بسبب تقدم الفرع بالتزامن؛ أُصلح workflow بإعادة جلب الفرع وإعادة base/rebase دون force-push، ثم نجح Composer Lock Bootstrap run #18.
 - أزيل workflow المؤقت بعد تثبيت lock لتجنب تحديثات dependencies التلقائية مستقبلًا.
