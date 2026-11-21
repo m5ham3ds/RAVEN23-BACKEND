@@ -44,7 +44,7 @@
 | Non-root runtime user verification | PENDING latest CI (HTTP server could not start on correct unprivileged port in #220) |
 | Direct uploaded PHP execution blocked | PENDING latest CI; real temporary PHP fixture added to smoke test, RE2 matcher moved to site scope and executed before php_server |
 | SIGTERM graceful process exit | Implementation added; dedicated runtime assertion pending |
-| Runtime startup does not connect/write/migrate DB | Code path removed; test/CI confirmation pending |
+| Runtime startup does not connect/write/migrate DB | Web entrypoint contains no DB operation; no-DB liveness/readiness CI is pending after session middleware exclusion |
 | No Render/Neon required for build/test | Portable CI workflow added; confirm after full workflow |
 
 ## 4. السلامة
@@ -58,7 +58,8 @@
 
 ## 5. الخطوات التالية
 
-1. فحص Docker #236: يجب أن يمر اختبار connection-refused في SQLite Feature suite، ثم no-DB HTTP readiness ويجب أن يعيد 503؛ عند الفشل استخدم body/container logs لتحديد السبب الدقيق. ثم اجتياز PostgreSQL وruntime HTTP/non-root/PHP asset fixture على SHA واحد.
+1. فحص Docker #244 ثم #245 بعد استثناء session middleware عن `/ready`؛ إثبات أن `/ready` يرجع 503 وJSON `database=unavailable` عندما `SESSION_DRIVER=database` وقاعدة PostgreSQL غير متاحة.
+2. اجتياز PostgreSQL 16 migrations/auth lifecycle، one-off migration على CI فقط، live readiness على قاعدة جاهزة، non-root، وPHP upload blocking على SHA واحد.
 2. عند أي فشل، استخراج السبب من logs وإصلاحه على نفس الفرع.
 3. اجتياز SQLite feature suite، ثم PostgreSQL 16 lifecycle.
 4. اجتياز HTTP smoke على صورة FrankenPHP الحقيقية، مع liveness/readiness وnon-root وPHP asset blocking.
