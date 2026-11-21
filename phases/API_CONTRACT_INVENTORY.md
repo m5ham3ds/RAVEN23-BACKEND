@@ -108,9 +108,88 @@
 - Flutter migration plan: https://github.com/m5ham3ds/RAVEN23/blob/main/docs/flutter_laravel_migration_phases.md
 - Firebase migration PRD: https://github.com/m5ham3ds/RAVEN23/blob/main/docs/migration_prd_firebase_to_laravel.md
 
-## 7. ما يزال يحتاج تحققًا قبل إغلاق الجرد
+## 7. تحقق ثابت تم — اختبارات التكامل مؤجلة إلى staging
 
-- مراجعة كل dynamic request paths في بقية خدمات العميل وربطها بالـfeature gate الذي يشغلها.
-- توثيق body/response schemas كاملة لكل endpoint، وليس أسماء المسارات فقط.
-- مطابقة النسخة الفعلية التي يستخدمها build production مع SHA التطبيق المذكور.
-- اختبار contract end-to-end على disposable staging عندما يصبح backend مكتملًا؛ لم يُجرَ أي طلب إلى قاعدة الإنتاج أثناء هذا الجرد.
+تم حصر ملفات Laravel repositories في Flutter ومصادر sync/network المعروفة، وفصل Scraper/TMDB عن Laravel. التوثيق يغطي الاستدعاءات الثابتة والـpaths الديناميكية التي ظهرت في repositories.
+
+الأمور التالية ليست نواقص في جرد source، وإنما اختبارات تشغيل لاحقة:
+- تشغيل العقد end-to-end على disposable staging بعد تنفيذ routes المطلوبة؛ لا توجد staging URL مثبتة حاليًا.
+- Google OAuth الحقيقي على Android، وإرسال verification/reset email؛ هذه تتبع المرحلة 04.
+- Push/OneSignal وObject Storage واختبار الملفات؛ هذه تتبع المرحلة 08 بعد اختيار مزود.
+- Billing provider/webhooks؛ تتبع المرحلة 09 بعد اعتماد قواعد المنتج والمزود.
+- مقارنة client build production الفعلي مع SHA الإصدار قبل النشر.
+- عدم الوصول إلى قاعدة Neon الإنتاجية أو قراءة بياناتها كان مقصودًا وفق قواعد حماية البيانات؛ جرد المخطط الموجود هنا source-level فقط.
+
+## 8. تفاصيل payloads التي أمكن استخلاصها من Flutter contract
+
+هذه الحقول متوقعة من كود العميل و/أو وثيقة هجرة Flutter؛ لا تعني أن Backend الحالي ينفذها.
+
+### المصادقة والحساب
+
+- Register: name, email, username, password, profile_id (افتراضي 0)، photo_url في model العميل، guest_token عند ترقية guest. يضيف AuthRepository أيضًا device_id, device_name, platform وreplace_device_id عند الحاجة.
+- Login: email, password, guest_token اختياري، وبيانات الجهاز.
+- Google: id_token وguest_token اختياري، وبيانات الجهاز.
+- Profile update: name, username, profile_id, photo_url.
+- Change email: current_password, email.
+- Change password: current_password, password.
+- Session response: success, token, user؛ profile response: success, user.
+- العميل يتوقع أن device-limit failure يمكن أن يحمل قائمة أجهزة/اختيار replace_device_id، لكن Backend الحالي لا يعرض signed-in devices ولا يفرض plan-based limit.
+
+### Bookmarks
+
+وثيقة migration PRD وعقد Flutter يذكران POST sync/bookmarks مع movies[], tvShows[] وdeleted_media[]. العميل يتوقع استجابة مدمجة تشمل movies وtvShows. حذف عنصر منفرد يتم عبر DELETE sync/bookmarks/{type}/{id}. يجب تثبيت مخطط العناصر والـnaming النهائي قبل بناء controller.
+
+### Recently watched / playback progress
+
+- POST sync/recently-watched.
+- العميل يرسل since_revision وmovies[] وepisodes[]؛ SyncTransport يضيف client_time_utc تلقائيًا.
+- صف movie/episode يحمل بيانات content identity، elapsed، remaining، updated_at_utc، ويمكن أن يحمل deleted_at_utc للتombstone.
+- الاستجابة المتوقعة server_revision, server_time_utc, movies[], episodes[] وقد يظهر requires_full_sync.
+- العميل يعالج HTTP 422 clock_skew_detected مع server_time_utc، ويصحح timestamps المستقبلية ثم يعيد المحاولة مرة واحدة.
+- العميل يجبر full pull عند فقد checkpoint أو عندما يصبح قديمًا؛ قاعدة البيانات لا يمكنها الاعتماد على clock الجهاز وحده.
+
+### Wellness
+
+- POST sync/wellness مع sessions[] وdaily[] وclient_time_utc.
+- العميل يرسل مجموعات upload من 450 record قبل بدء paginated snapshot، ثم يقرأ مع since_revision/limit/cursor.
+- الرد المتوقع يتضمن sessions[], daily[], server_revision, server_time_utc, has_more, next_cursor.
+- client session يتضمن على الأقل id UUID، device_id، media_type، content_id، title، started_at_utc، ended_at_utc، timezone_offset_minutes، watched_ms، duration_ms، progress_end_ms، updated_at_utc.
+- daily summary يستخدم local_day وsession_count وwatched_ms وupdated_at_utc.
+- العميل ينفذ uploads قبل pagination؛ تكرار cursor أو فقدانه يعد خطأ format.
+
+### Playlists
+
+- POST sync/playlists مع operations[]، since_revision، until_revision، cursor؛ الحد الأقصى للعملية الواحدة 500.
+- الرد المتوقع: server_revision، full، results[]، playlists[]، items[]، next_cursor.
+- playlist imports: start preview ثم commit create/append.
+- sharing: PUT playlists/{id}/sharing مع public، والقراءة العامة GET shared-lists/{code}.
+
+### Device/push, config, ads, billing
+
+- devices/register: fcm_token أو fcmToken، platform، app_version/appVersion.
+- push/subscriptions: subscription_id عند OneSignal؛ DELETE push/subscriptions/{id}.
+- config/bootstrap: JSON envelope success/data مع ETag/If-None-Match؛ يحتوي features وbranding وupdates وnetwork وads وbanners وoccasional_theme بحسب smoke test.
+- ads: GET ads يعيد ads[]؛ impression/click أحداث POST منفصلة وتستخدم client-side noStore queue.
+- Billing topup: amount_cents، idempotency_key، activate_plus اختياري وterms_version. الدفع يرسل pay_currency وemail_receipt. هذه عقود عميل فقط حتى تنفيذ domain والبوابة المالية.
+- Billing reads: billing/plans، user/entitlements، wallet، wallet/transactions مع cursor، billing/coins. Wallet renewal يستخدم PUT/PATCH billing/subscription/wallet، والقسائم POST billing/coupons/redeem.
+
+## 9. فروقات دقيقة بين payload العميل وBackend الحالي
+
+- Register model في Flutter يحتوي photo_url، لكن Backend register validation لا يقبل photo_url ضمن بيانات التسجيل ولا يحفظه في مسار إنشاء الحساب أو ترقية guest. يمكن تحديث photo_url لاحقًا عبر PUT user/profile.
+- Flutter يضيف device_id وdevice_name وplatform لطلبات تسجيل/دخول email وGoogle. Backend يستقبلها داخل session() عبر deviceMetadata. أما createGuest في AuthRepository فلا يضيف deviceFields حاليًا؛ لذلك قد لا تُسجل هوية جهاز جلسة guest من هذا المسار.
+- replace_device_id متاح في login وGoogle من العميل، وBackend يقيده بعلاقة tokens للمستخدم نفسه. لا يوجد API يعرض device list حتى يتمكن المستخدم من اختيار الجهاز من القائمة.
+- Forgot password client payload: email. Reset payload: email وtoken وpassword وpassword_confirmation. Backend الحالي يعيد 503 من الطريقتين ولا يقرأ هذه الحقول.
+- Delete account client قد يرسل acknowledge_wallet_credit=true ويتوقع 409 مع code wallet_credit_remaining عند وجود رصيد. Backend الحالي يتحقق من أن الحقل boolean فقط، ثم يلغي tokens ويحذف الحساب؛ لا يوجد wallet balance check. هذا اختلاف مهم يجب حله قبل تفعيل wallet/account deletion في الإنتاج.
+- Change email في Backend يغير email_verified_at إلى NULL وis_verified إلى false، لكن لا يرسل verification email حاليًا.
+- التسجيل بالبريد يضبط is_verified=false وis_account_verified=false. Google يضبط is_verified=true مع email_verified_at عند نجاح تحقق token من Google.
+
+## 10. قيد المزامنة المشترك
+
+SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب من الخادم server_revision وserver_time_utc. عند HTTP 422 مع error=clock_skew_detected، يسجل وقت الخادم ويصحح timestamps المستقبلية ثم يعيد المحاولة مرة واحدة. لذلك أي Backend sync implementation يجب أن يثبت:
+- client/server timestamp units (milliseconds UTC في كود العميل).
+- حدود clock skew ومعنى 422.
+- revision monotonicity وfull-sync behavior.
+- idempotency وowner isolation.
+- no-store وعدم إعادة إرسال POST تلقائيًا بصورة قد تكرر كتابة المستخدم.
+
+هذه متطلبات contract مستخرجة من مصدر العميل وليست capabilities موجودة في Backend الحالي.
