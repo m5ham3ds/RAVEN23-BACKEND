@@ -25,8 +25,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | المرحلة | الاسم والنتيجة المطلوبة | الاعتماديات |
 |---|---|---|
 | 00 | جرد المستودع وعقود API وخط الأساس | لا شيء |
-| 01 | مشروع Laravel مستقل وقابل لإعادة البناء — IN_PROGRESS (PR #2، lock مثبت، migrations أساسية غير مدمرة؛ بانتظار Docker/SQLite/PostgreSQL على SHA موحد) | 00 |
-| 02 | بيئة تشغيل إنتاجية مستقلة عن المزود | 01 |
+| 01 | مشروع Laravel مستقل وقابل لإعادة البناء — COMPLETE (Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72) | 00 |
+| 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — IN_PROGRESS | 01 |
 | 03 | الأمن والرصد والتشغيل الأساسي | 01–02 |
 | 04 | إكمال المصادقة والحسابات والأجهزة | 01–03 |
 | 05 | أساس بيانات المستخدم وعقود الحساب | 00–04 |
@@ -114,7 +114,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 ## 10. الحالة الراهنة
 
-**Phase 01 IN_PROGRESS** على فرع `feature/phase-01-laravel-project` وPR #2 (أحدث SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`). أضيف Laravel skeleton وComposer lock، واجتاز Composer Lock Bootstrap #18 حل الاعتماديات والتحقق الصارم والتثبيت النظيف. صُحح اختبار الطرق المشتركة، وأنشئ ملف env فارغ للاختبارات فقط، وجُعلت migrations الأساسية آمنة للجداول القديمة مع اختبار يحمي بيانات users/cache/jobs. Docker #207 نجح على SHA أقدم: Docker image + SQLite 13 tests / 92 assertions + PostgreSQL 16 (3 tests / 72 assertions). Docker #210 قيد التنفيذ على أحدث SHA الذي يضيف migrations آمنة واختبار الحفاظ على بيانات موجودة؛ لا تغلق المرحلة حتى ينجح هذا التشغيل على SHA موحد. لا يوجد تشغيل على الإنتاج.
+**Phase 01 IN_PROGRESS** على فرع `feature/phase-01-laravel-project` وPR #2 (أحدث SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`). أضيف Laravel skeleton وComposer lock، واجتاز Composer Lock Bootstrap #18 حل الاعتماديات والتحقق الصارم والتثبيت النظيف. صُحح اختبار الطرق المشتركة، وأنشئ ملف env فارغ للاختبارات فقط، وجُعلت migrations الأساسية آمنة للجداول القديمة مع اختبار يحمي بيانات users/cache/jobs. Docker #210 نجح على SHA موحد `519c3f1039f05818b413d466fbc31793ee6daeb6`: Docker image + PHP lint/Artisan/routes + SQLite 14 tests / 100 assertions (يتضمن اختبار الحفاظ على صفوف users/cache/jobs الموجودة) + PostgreSQL 16 integration 3 tests / 72 assertions. Phase 01 COMPLETE؛ PR #2 يبقى مفتوحًا كمسودة وغير مدمج. تم بدء Phase 02 على فرع مستقل لتطوير runtime محمول. لا يوجد تشغيل على الإنتاج.
 
 
 **Phase 00 COMPLETE** على مستوى الجرد المصدري الثابت. تم جرد 34 ملف Backend متتبعًا و17 مجلدًا و10 workflows على baseline SHA، وربط مصادر Laravel client الرئيسية في Android، وتوثيق العقود والبيانات وأسماء المتغيرات والميزات والمخاطر. تفاصيل الحدود (قاعدة الإنتاج، أسرار، Google الحقيقي، البريد، staging) مثبتة في تقرير الإغلاق، ولم يتم اختراق حدود السلامة.
