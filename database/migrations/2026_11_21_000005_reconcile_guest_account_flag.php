@@ -15,31 +15,47 @@ return new class extends Migration
             });
         }
 
-        $column = DB::selectOne("
-            SELECT data_type
-            FROM information_schema.columns
-            WHERE table_schema = current_schema()
-              AND table_name = 'users'
-              AND column_name = 'is_guest'
-        ");
+        $driver = DB::connection()->getDriverName();
 
-        if ($column && $column->data_type !== 'boolean') {
-            DB::statement("
-                ALTER TABLE users
-                ALTER COLUMN is_guest TYPE BOOLEAN
-                USING CASE
-                    WHEN is_guest IS NULL THEN FALSE
-                    WHEN LOWER(TRIM(is_guest::text)) IN ('1', 'true', 't', 'yes', 'y') THEN TRUE
-                    ELSE FALSE
-                END
+        if ($driver === 'pgsql') {
+            $column = DB::selectOne("
+                SELECT data_type
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = 'users'
+                  AND column_name = 'is_guest'
             ");
+
+            if ($column && $column->data_type !== 'boolean') {
+                DB::statement("
+                    ALTER TABLE users
+                    ALTER COLUMN is_guest TYPE BOOLEAN
+                    USING CASE
+                        WHEN is_guest IS NULL THEN FALSE
+                        WHEN LOWER(TRIM(is_guest::text)) IN ('1', 'true', 't', 'yes', 'y') THEN TRUE
+                        ELSE FALSE
+                    END
+                ");
+            }
+
+            // Preserve actual guests (TRUE) and classify legacy NULL accounts
+            // as normal accounts. This is the same PostgreSQL production rule.
+            DB::table('users')->whereNull('is_guest')->update(['is_guest' => false]);
+            DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET DEFAULT FALSE');
+            DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL');
+
+            return;
         }
 
-        // NULL was never a guest state in RAVEN23. Preserve actual guests (TRUE)
-        // and normalize legacy regular accounts to an explicit FALSE value.
-        DB::statement('UPDATE users SET is_guest = FALSE WHERE is_guest IS NULL');
-        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET DEFAULT FALSE');
-        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL');
+        if ($driver === 'sqlite') {
+            // SQLite is used by disposable CI tests only. Retain the boolean
+            // default and normalize NULL values without PostgreSQL-only SQL.
+            DB::table('users')->whereNull('is_guest')->update(['is_guest' => false]);
+
+            return;
+        }
+
+        throw new RuntimeException('RAVEN23 guest-account reconciliation supports PostgreSQL and SQLite.');
     }
 
     public function down(): void
