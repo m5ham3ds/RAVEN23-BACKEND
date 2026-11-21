@@ -112,11 +112,14 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - إضافة نظام دفع أو اشتراكات بأسعار أو قواعد غير معتمدة.
 - استكشاف مستودعات أو أرشيفات غير مرتبطة بالمشروع دون طلب مباشر.
 
-## 10. الحالة الراهنة
+## 10. الحالة الراهنة — 22 نوفمبر 2026
 
-**Phase 01 IN_PROGRESS** على فرع `feature/phase-01-laravel-project` وPR #2 (أحدث SHA `519c3f1039f05818b413d466fbc31793ee6daeb6`). أضيف Laravel skeleton وComposer lock، واجتاز Composer Lock Bootstrap #18 حل الاعتماديات والتحقق الصارم والتثبيت النظيف. صُحح اختبار الطرق المشتركة، وأنشئ ملف env فارغ للاختبارات فقط، وجُعلت migrations الأساسية آمنة للجداول القديمة مع اختبار يحمي بيانات users/cache/jobs. Docker #210 نجح على SHA موحد `519c3f1039f05818b413d466fbc31793ee6daeb6`: Docker image + PHP lint/Artisan/routes + SQLite 14 tests / 100 assertions (يتضمن اختبار الحفاظ على صفوف users/cache/jobs الموجودة) + PostgreSQL 16 integration 3 tests / 72 assertions. Phase 01 COMPLETE؛ PR #2 يبقى مفتوحًا كمسودة وغير مدمج. تم بدء Phase 02 على فرع مستقل لتطوير runtime محمول. لا يوجد تشغيل على الإنتاج.
+**Phase 00 COMPLETE.** اكتمل جرد المستودع وعقود Flutter وبيانات المخطط والبيئة والميزات وسير العمل على SHA الأساس `9f29fa55afa21c0445be82d4590a4a532bb1747c`. تقرير الإغلاق محفوظ ضمن `phases/reports/PHASE-00-REPORT-2026-11-21.md`.
 
+**Phase 01 COMPLETE.** الفرع `feature/phase-01-laravel-project` وPR #2 مفتوح كمسودة وغير مدمج. SHA التطبيق الذي اجتاز جميع البوابات `519c3f1039f05818b413d466fbc31793ee6daeb6`; Docker Validation #210 SUCCESS، SQLite 14 tests / 100 assertions، PostgreSQL 16 3 tests / 72 assertions، وComposer Lock Bootstrap #18 اجتاز dependency resolution و`composer validate --strict` وclean locked install. تقرير الإغلاق: `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
 
-**Phase 00 COMPLETE** على مستوى الجرد المصدري الثابت. تم جرد 34 ملف Backend متتبعًا و17 مجلدًا و10 workflows على baseline SHA، وربط مصادر Laravel client الرئيسية في Android، وتوثيق العقود والبيانات وأسماء المتغيرات والميزات والمخاطر. تفاصيل الحدود (قاعدة الإنتاج، أسرار، Google الحقيقي، البريد، staging) مثبتة في تقرير الإغلاق، ولم يتم اختراق حدود السلامة.
+**Phase 02 IN_PROGRESS.** الفرع `feature/phase-02-portable-runtime` وPR #3 Draft/Open/Unmerged يستهدف Phase 01. تم بناء صورة FrankenPHP/Caddy، إضافة liveness/readiness، تشغيل non-root، إيقاف migrations/probe writes من web startup، وفصل migrations إلى release task. اختبارات البناء وSQLite نجحت في #229/#234/#236؛ #236 اجتاز أيضًا بناء PostgreSQL test image، لكنه فشل في no-DB readiness: `/up` أعاد 200 بينما `/ready` أعاد HTTP 500 بدل 503. استبدلنا تسجيل Laravel داخل catch بـPHP native error log محدود الحقول، وشددنا تحقق JSON. أحدث SHA في PR #3 هو `358fa2511355acb9166d5b4b1cec397c61d12fc9`; تشغيل #240 يختبر إصلاح readiness، و#241 بانتظار التنفيذ على أحدث SHA. لا تسجل Phase 02 COMPLETE قبل نجاح Docker + SQLite + PostgreSQL + no-DB readiness + live PostgreSQL readiness + non-root + PHP asset blocking على SHA موحد.
 
-**العمل الجاري: Phase 01 — مشروع Laravel مستقل وقابل لإعادة البناء.** لا تبدأ Phase 02 قبل إغلاق معايير Phase 01. لا تبدأ AWS أو ترحيل بيانات الإنتاج ضمن Phase 01.
+لم يتم الاتصال بقاعدة الإنتاج أو Render/Neon أو قراءة الأسرار أو إنشاء موارد AWS أو تنفيذ نشر. لا تدمج PR #1/#2/#3 دون موافقة صريحة.
+
+**المرحلة التالية المخططة: Phase 03 — الأمن والتشغيل والرصد الأساسي.** تعتمد على إغلاق Phase 02؛ لا تبدأ قبل ذلك. نطاقها وقيودها في `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`.
