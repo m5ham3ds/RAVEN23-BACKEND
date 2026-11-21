@@ -17,7 +17,10 @@
 - حُولت auth HTTP smoke إلى workflow_dispatch يدوي read-only، وأزيلت Neon diagnostics workflow التي كانت تقرأ/تفحص endpoint provider محدد.
 - أضيفت اختبارات Feature لـliveness/readiness وتعطل DB ومنع تسريب بيانات الاتصال.
 - Docker Validation #218 كشف خطأ صياغة Dockerfile في `HEALTHCHECK` (`CMD-SHELL` غير صالح داخل Dockerfile). تم إصلاحه إلى exec-form `CMD`.
-- Docker Validation #220 بدأ على commit `017a4c13cdd117e8db03e8f393c40765f881e6e6`، وكانت خطوة بناء صورة FrankenPHP/SQLite قيد التنفيذ عند آخر فحص. PostgreSQL وHTTP smoke لم يبدآ بعد.
+- Docker #220: Docker image/SQLite، PostgreSQL lifecycle، وexplicit migration passed؛ HTTP failed because the Caddyfile was copied to the wrong path and image default attempted a privileged port. #227 repeated the same issue in no-DB liveness.
+- The wrong Caddyfile path was corrected to `/etc/frankenphp/Caddyfile`, with explicit `http://:{$PORT}` listener. Caddy PHP asset matcher was made RE2-compatible and moved to site scope before the ordered `route`; HTTP smoke now creates a real PHP file inside the disposable container to prove it is rejected without execution.
+- Docker #229 and #234: image build, PHP/SQLite tests and PostgreSQL image build passed, but the no-DB readiness assertion got HTTP 500 instead of 503 after `/up` succeeded. The exact exception remained unobservable because earlier smoke discarded the body/logs.
+- Latest SHA `e7db3d547c2852ddcf255bbbddce55cadff77b0d`: adds an isolated Feature test with an actual refused PostgreSQL TCP connection on port 1, and adjusts no-DB HTTP CI to point at port 1, print the response body and container logs on failure. Docker #236 is currently IN_PROGRESS; no readiness pass has been recorded.
 
 **الحالة:** IN_PROGRESS. لا تعتبر المرحلة مكتملة حتى ينجح بناء صورة FrankenPHP واختبارات SQLite وPostgreSQL واختبار HTTP الحقيقي، بما فيه non-root readiness ورفض تنفيذ PHP assets، على SHA واحد.
 
