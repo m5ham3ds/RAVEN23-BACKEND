@@ -21,6 +21,11 @@ final class Raven23AuthSchema
             throw new RuntimeException('The Laravel users table is missing.');
         }
 
+        $driver = DB::connection()->getDriverName();
+        if (!in_array($driver, ['pgsql', 'sqlite'], true)) {
+            throw new RuntimeException('RAVEN23 account schema supports PostgreSQL and SQLite test databases.');
+        }
+
         $existing = Schema::getColumnListing('users');
 
         Schema::table('users', static function (Blueprint $table) use ($existing): void {
@@ -50,11 +55,17 @@ final class Raven23AuthSchema
             }
         });
 
-        // Reconcile legacy installations that already had a nullable is_guest
-        // column. NULL is a normal account state, never proof of a guest session.
-        DB::statement('UPDATE users SET is_guest = FALSE WHERE is_guest IS NULL');
-        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET DEFAULT FALSE');
-        DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL');
+        // NULL was never a guest state in RAVEN23. Normalize legacy regular
+        // accounts on both supported database drivers without dropping rows.
+        DB::table('users')->whereNull('is_guest')->update(['is_guest' => false]);
+
+        // PostgreSQL supports these in-place column constraints. SQLite is
+        // used only by the isolated migration/feature test suite and keeps the
+        // compatible default plus data invariant without a table rebuild.
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET DEFAULT FALSE');
+            DB::statement('ALTER TABLE users ALTER COLUMN is_guest SET NOT NULL');
+        }
 
         // Preserve valid existing usernames and backfill only missing,
         // malformed or duplicate values. No account rows are removed.
@@ -66,7 +77,7 @@ final class Raven23AuthSchema
         foreach ($users as $user) {
             $original = (string) ($user->username ?? '');
             $candidate = strtolower(trim($original));
-            $valid = preg_match('/\A[a-z0-9_]{5,30}\z/', $candidate) === 1;
+            $valid = preg_match('/\\A[a-z0-9_]{5,30}\\z/', $candidate) === 1;
             $duplicate = $valid && DB::table('users')
                 ->where('username', $candidate)
                 ->where('id', '<>', $user->id)
@@ -83,11 +94,12 @@ final class Raven23AuthSchema
             }
         }
 
-        if (DB::connection()->getDriverName() !== 'pgsql') {
-            throw new RuntimeException('RAVEN23 account schema requires PostgreSQL.');
+        if ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE users ALTER COLUMN username SET NOT NULL');
         }
 
-        DB::statement('ALTER TABLE users ALTER COLUMN username SET NOT NULL');
+        // IF NOT EXISTS is supported by PostgreSQL and SQLite. Keeping these
+        // indexes idempotent avoids duplicate-index errors on reconciled DBs.
         DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS users_username_unique ON users (username)');
         DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS users_google_id_unique ON users (google_id)');
         DB::statement('CREATE INDEX IF NOT EXISTS users_is_guest_index ON users (is_guest)');
