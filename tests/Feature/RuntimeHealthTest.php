@@ -65,6 +65,9 @@ class RuntimeHealthTest extends TestCase
             'database.connections.pgsql.database' => 'raven23_unavailable_test',
             'database.connections.pgsql.username' => 'raven23_unavailable_test',
             'database.connections.pgsql.password' => 'unavailable',
+            'session.driver' => 'database',
+            'session.connection' => 'pgsql',
+            'session.table' => 'sessions',
             'logging.default' => 'stderr',
         ]);
 
