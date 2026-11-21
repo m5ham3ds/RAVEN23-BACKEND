@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — إغلاق Phase 01 وبدء Phase 02  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 مغلقة وPhase 02 قيد التنفيذ  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -14,7 +14,7 @@
 |---|---|---|
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
-| 02 — Runtime محمول | IN_PROGRESS | بدأ بعد اكتمال Phase 01؛ فرع مستقل وPR منفصل، واختيار FrankenPHP موثق مبدئيًا |
+| 02 — Runtime محمول | IN_PROGRESS | PR #3؛ FrankenPHP/Caddy وliveness/readiness وnon-root runtime أضيفت؛ أول CI فشل في صياغة HEALTHCHECK وأصلح، run #220 يبني الآن |
 | 03 — الأمن والرصد | NOT_STARTED | تنتظر 01 و02 |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
