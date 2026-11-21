@@ -77,12 +77,15 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 COPY --from=build /opt/raven /var/www/html
+COPY docker/start.sh /usr/local/bin/raven23-start
+COPY docker/check-database-target.php /usr/local/bin/raven23-check-database-target.php
+COPY docker/verify-auth-schema.php /usr/local/bin/raven23-verify-auth-schema.php
+COPY docker/router.php /usr/local/bin/raven23-router.php
 
 RUN composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader \
-    && chmod +x artisan \
-    && chmod +x docker/start.sh \
+    && chmod +x artisan /usr/local/bin/raven23-start \
     && chown -R www-data:www-data storage bootstrap/cache
 
 ENV PORT=10000 DB_CONNECTION=pgsql
 EXPOSE 10000
-CMD ["./docker/start.sh"]
+CMD ["/usr/local/bin/raven23-start"]
