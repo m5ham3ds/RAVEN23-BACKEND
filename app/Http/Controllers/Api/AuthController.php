@@ -54,8 +54,48 @@ class AuthController extends Controller
         $connectionDriver = DB::connection($connectionName)->getDriverName();
         if ($connectionDriver === 'pgsql') {
             $this->markStage($request, 'session.reset_database_connection');
+            $beforeConnection = DB::connection($connectionName);
+            $beforeIdentity = $beforeConnection->selectOne("
+                SELECT current_database() AS database_name,
+                       current_schema() AS schema_name,
+                       current_setting('search_path') AS search_path
+            ");
+            $beforeVisible = User::on($connectionName)->whereKey($user->getKey())->exists();
+            Log::info('RAVEN23 registration persistence probe', [
+                'stage' => 'before_connection_reset',
+                'user_id' => (int) $user->getKey(),
+                'row_visible' => $beforeVisible,
+                'transaction_level' => $beforeConnection->transactionLevel(),
+                'database_name' => $beforeIdentity->database_name ?? null,
+                'schema_name' => $beforeIdentity->schema_name ?? null,
+                'search_path' => $beforeIdentity->search_path ?? null,
+                'response_email_matches_model' => is_string($user->email)
+                    && hash_equals(Str::lower(trim((string) $user->email)), Str::lower(trim((string) $user->email))),
+            ]);
+
             DB::purge($connectionName);
-            DB::connection($connectionName)->selectOne('select 1');
+            $afterConnection = DB::connection($connectionName);
+            $afterConnection->selectOne('select 1');
+            $afterIdentity = $afterConnection->selectOne("
+                SELECT current_database() AS database_name,
+                       current_schema() AS schema_name,
+                       current_setting('search_path') AS search_path
+            ");
+            $persistedUser = User::on($connectionName)->find($user->getKey());
+            Log::info('RAVEN23 registration persistence probe', [
+                'stage' => 'after_connection_reset',
+                'user_id' => (int) $user->getKey(),
+                'row_visible' => $persistedUser !== null,
+                'stored_is_guest' => $persistedUser?->is_guest,
+                'stored_provider' => $persistedUser ? (string) $persistedUser->provider : null,
+                'transaction_level' => $afterConnection->transactionLevel(),
+                'database_name' => $afterIdentity->database_name ?? null,
+                'schema_name' => $afterIdentity->schema_name ?? null,
+                'search_path' => $afterIdentity->search_path ?? null,
+            ]);
+            if ($persistedUser !== null) {
+                $user = $persistedUser;
+            }
             $user->setConnection($connectionName);
         }
 
@@ -265,6 +305,9 @@ class AuthController extends Controller
                 'stored_is_guest' => $emailRow ? $emailRow->is_guest : null,
                 'password_hash_matches' => $passwordMatches,
                 'stored_provider' => $emailRow ? (string) $emailRow->provider : null,
+                'database_name' => DB::connection($connectionName = (string) config('database.default'))->selectOne('SELECT current_database() AS name')->name ?? null,
+                'schema_name' => DB::connection($connectionName)->selectOne('SELECT current_schema() AS name')->name ?? null,
+                'transaction_level' => DB::connection($connectionName)->transactionLevel(),
             ]);
 
             return response()->json([
