@@ -32,8 +32,8 @@
 | Docker Validation #187 | FAIL — stale commit | شُغل قبل وجود composer.lock، وفشل عند فحص الملف |
 | Docker Validation #198 | FAIL — assertion | PHP lint وSQLite migrations نجحت؛ route-list assertion كان ضيقًا ولم يعرض المسار |
 | Docker Validation #204 | FAIL — assertion | route URI موجود، لكن test map استبدل GET عند ظهور PUT لنفس URI؛ كما ظهرت تحذيرات متكررة لعدم وجود .env |
-| Docker Validation #207 | IN_PROGRESS | [Run #207](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951589124) على SHA 3f4ead...؛ يحتوي إصلاح جمع الطرق وإنشاء .env للاختبارات |
-| Docker Validation #210 | PENDING | [Run #210](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951684707) على أحدث SHA 519c3f...؛ يشمل migrations الآمنة واختبار حفظ البيانات |
+| Docker Validation #207 | PASS | [Run #207](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951589124) — Docker build، SQLite Feature 13 tests / 92 assertions، PostgreSQL 16 Integration 3 tests / 72 assertions |
+| Docker Validation #210 | IN_PROGRESS | [Run #210](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/44951684707) على أحدث SHA 519c3f...؛ يشمل migrations الآمنة واختبار حفظ البيانات |
 | PostgreSQL 16 integration suite | NOT YET VALIDATED on latest SHA | لم تصل بوابة PostgreSQL في #210 إلى نتيجة |
 | Production smoke / live DB | NOT RUN | لم يتم الاتصال بالإنتاج أو تشغيل migrations عليه |
 
@@ -45,13 +45,13 @@
 | Composer manifest valid | PASS — CI |
 | Composer lock committed | PASS — verified in branch |
 | Clean locked Composer install | PASS — CI |
-| PHP syntax | PASS on earlier Docker runs; latest run pending |
-| Artisan boot / API route registration | PENDING latest CI |
-| Fresh SQLite migrations | PASS on earlier SHA; must confirm latest |
-| Existing auth Feature tests | PENDING latest CI |
+| PHP syntax | PASS — Docker #207 |
+| Artisan boot / API route registration | PASS — Docker #207 |
+| Fresh SQLite migrations | PASS — Docker #207; latest SHA recheck pending |
+| Existing auth Feature tests | PASS — Docker #207 (13 tests / 92 assertions) |
 | Existing-data migration preservation regression | PENDING latest CI |
-| PostgreSQL 16 migration and lifecycle suite | PENDING latest CI |
-| Docker build uses repository project (no create-project) | PENDING latest complete build |
+| PostgreSQL 16 migration and lifecycle suite | PASS — Docker #207 (3 tests / 72 assertions); latest SHA recheck pending |
+| Docker build uses repository project (no create-project) | PASS — Docker #207; latest SHA recheck pending |
 | No secrets in committed environment template | PASS — source inspection |
 | Same-final-SHA CI gate | NOT YET MET |
 
