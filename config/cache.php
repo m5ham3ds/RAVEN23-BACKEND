@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('APP_ENV') === 'testing' ? 'array' : 'file',
+    'default' => env('CACHE_STORE', env('APP_ENV') === 'testing' ? 'array' : 'database'),
 
     /*
     |--------------------------------------------------------------------------
