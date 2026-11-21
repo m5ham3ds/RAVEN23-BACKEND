@@ -43,7 +43,8 @@ class AuthLifecycleTest extends TestCase
             $table->string('google_id')->nullable()->unique();
             $table->boolean('is_verified')->default(false);
             $table->boolean('is_account_verified')->default(false);
-            $table->boolean('is_guest')->default(false);
+            // Legacy production may already have this field without a default.
+            $table->boolean('is_guest')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
