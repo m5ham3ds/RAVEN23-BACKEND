@@ -54,6 +54,31 @@ class RuntimeHealthTest extends TestCase
             ->assertJsonPath('schema', 'ready');
     }
 
+    public function test_readiness_returns_503_when_postgresql_connection_is_refused(): void
+    {
+        config([
+            'database.default' => 'pgsql',
+            'database.connections.pgsql.driver' => 'pgsql',
+            'database.connections.pgsql.url' => null,
+            'database.connections.pgsql.host' => '127.0.0.1',
+            'database.connections.pgsql.port' => '1',
+            'database.connections.pgsql.database' => 'raven23_unavailable_test',
+            'database.connections.pgsql.username' => 'raven23_unavailable_test',
+            'database.connections.pgsql.password' => 'unavailable',
+            'logging.default' => 'stderr',
+        ]);
+
+        DB::purge('pgsql');
+
+        $this->getJson('/ready')
+            ->assertStatus(503)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('status', 'not_ready')
+            ->assertJsonPath('checks.application', 'ok')
+            ->assertJsonPath('checks.database', 'unavailable')
+            ->assertJsonPath('checks.schema', 'unknown');
+    }
+
     public function test_readiness_returns_503_when_persistent_runtime_schema_is_incomplete(): void
     {
         $this->prepareReadyDatabase();
