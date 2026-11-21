@@ -105,6 +105,55 @@ try {
     out('PDO_QUERY', 'SUCCESS');
     out('CONNECTED_DATABASE', (string) $row->database_name);
     out('CONNECTED_USER', (string) $row->database_user);
+
+    // Optional read-only inspection of specific synthetic account IDs from
+    // earlier production smoke attempts. Never select or print email, name,
+    // password hash, token hash, or any bearer credential.
+    $inspectRaw = trim((string) (getenv('RAVEN_DIAG_INSPECT_USER_IDS') ?: ''));
+    if ($inspectRaw !== '') {
+        $requestedIds = array_values(array_unique(array_filter(
+            array_map('intval', explode(',', $inspectRaw)),
+            static fn (int $id): bool => $id > 0
+        )));
+        if (count($requestedIds) > 20) {
+            throw new RuntimeException('Too many user IDs requested for read-only diagnostics.');
+        }
+
+        foreach ($requestedIds as $userId) {
+            $inspection = Illuminate\\Support\\Facades\\DB::connection('pgsql')->selectOne(
+                'SELECT
+                    EXISTS(SELECT 1 FROM users WHERE id = ?) AS user_exists,
+                    (SELECT COUNT(*) FROM personal_access_tokens WHERE tokenable_type = ? AND tokenable_id = ?) AS user_token_rows,
+                    (SELECT is_guest FROM users WHERE id = ?) AS is_guest,
+                    (SELECT provider FROM users WHERE id = ?) AS provider',
+                [
+                    $userId,
+                    App\\Models\\User::class,
+                    $userId,
+                    $userId,
+                    $userId,
+                ]
+            );
+
+            $userExists = in_array($inspection->user_exists, [true, 1, '1', 't', 'true'], true);
+            $rawGuest = $inspection->is_guest;
+            $guestValue = $rawGuest === null
+                ? 'null'
+                : (in_array($rawGuest, [true, 1, '1', 't', 'true'], true) ? 'true' : 'false');
+            $provider = $inspection->provider === null
+                ? 'absent'
+                : preg_replace('/[^a-z0-9_-]/i', '', (string) $inspection->provider);
+
+            out(
+                'USER_ID_' . $userId,
+                'exists=' . ($userExists ? 'yes' : 'no')
+                . ';token_rows=' . (string) $inspection->user_token_rows
+                . ';is_guest=' . $guestValue
+                . ';provider=' . $provider
+            );
+        }
+    }
+
     out('RESULT', 'PASS');
 } catch (Throwable $e) {
     out('PDO_QUERY', 'FAILED');
