@@ -13,7 +13,7 @@
 - عُدلت مسارات اختبار المخطط لدعم SQLite المعزول، مع الإبقاء على PostgreSQL الافتراضي وقيود الإنتاج.
 - Dockerfile أصبح يستخدم ملفات المشروع الموجودة في المستودع بدل `composer create-project`.
 - أزيل workflow المؤقت الذي أنشأ lock بعد تثبيت الملف.
-- Docker Validation #198 كان قيد التنفيذ عند آخر فحص؛ لا يوجد اعتماد نجاح نهائي بعد. Docker run #187 أُطلق قبل lock وفشل لأن `composer.lock` لم يكن موجودًا في commit الذي بُني؛ لا يُعد اختبارًا للكود بعد إنشاء lock.
+- Docker Validation #198 فشل عند assertion إضافي استخدم `route:list --path=api/v1`؛ migrations SQLite اكتملت، وفحص PHP syntax اكتمل. عُدّل الاختبار ليقرأ URI/method المسجلين مباشرة. Docker Validation #199 ما زال قيد التنفيذ على SHA أقدم قبل هذا التصحيح، و#204 PENDING على SHA التصحيح الحالي. لا يوجد نجاح نهائي بعد. Docker run #187 فشل على SHA أقدم لغياب composer.lock.
 
 **الحكم الحالي:** IN_PROGRESS. لا تسجل المرحلة COMPLETE حتى ينجح Docker build واختبارات SQLite وPostgreSQL على SHA نهائي واحد، وتُراجع النتائج المتبقية.
 
