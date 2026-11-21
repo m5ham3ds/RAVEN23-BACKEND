@@ -106,6 +106,6 @@ EXPOSE 10000
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD-SHELL php -r '$headers = @get_headers("http://127.0.0.1:" . getenv("PORT") . "/up"); exit(is_array($headers) && str_contains($headers[0] ?? "", " 200 ") ? 0 : 1);'
+  CMD ["php", "-r", "$headers = @get_headers('http://127.0.0.1:' . (getenv('PORT') ?: '10000') . '/up'); exit(is_array($headers) && str_contains($headers[0] ?? '', ' 200 ') ? 0 : 1);"]
 
 ENTRYPOINT ["/usr/local/bin/raven23-entrypoint"]
