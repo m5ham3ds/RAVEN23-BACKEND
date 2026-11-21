@@ -19,13 +19,15 @@ http://:{$PORT} {
         format json
     }
 
+    # Named matchers are declared at site scope, then consumed by route.
+    @blockedPhpFiles {
+        path_regexp blockedPhp \.php(/|$)
+        not path /index.php
+    }
+
     # Keep the blocking response ahead of php_server: direct PHP files
     # under public assets must never be routed to the PHP interpreter.
     route {
-        @blockedPhpFiles {
-            path_regexp blockedPhp \.php(/|$)
-            not path /index.php
-        }
         respond @blockedPhpFiles 404
 
         php_server {
