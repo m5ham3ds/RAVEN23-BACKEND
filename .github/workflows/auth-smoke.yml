@@ -7,13 +7,14 @@ on:
       - "README.md"
       - "docs/**"
       - ".github/workflows/docker-build.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
   group: raven23-live-auth-smoke
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   live-auth-smoke:
