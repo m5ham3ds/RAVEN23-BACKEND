@@ -189,6 +189,7 @@ return new class extends Migration
                             'updated_at' => now(),
                             '_latest_token_created_at' => $createdAt,
                         ];
+
                         continue;
                     }
 
