@@ -15,8 +15,8 @@
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
-| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مفتوح كمسودة؛ أساسه اجتاز Docker #282/Pint #20/Security #23 على `096ad1d…`. أضيف فصل DB app/migrator وحراسة TLS البعيد واختبارات تنقيح logs على `8932cb…`؛ Docker #285/Security #25/Pint #23 قيد التحقق، راجع أحدث تقرير. سياسة retention/backup موثقة وقيمها وإعداد المزود تنتظر اعتمادًا وفحصًا قبل الإنتاج |
-| 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
+| 03 — الأمن والرصد | COMPLETE (code/CI) | PR #4 مفتوح كمسودة؛ Phase 03 اجتازت على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`: Docker #291 (SQLite 34/210 وPostgreSQL 3/72)، Pint #27، Security #29. فصل DB app/migrator، TLS remote guard، log redaction، FrankenPHP/readiness PASS. إعدادات مزود الإنتاج وTLS/proxy/log retention/backup-restore وRPO/RTO تظل شروطًا قبل الإنتاج، لا ادعاء نجاح مزود فعلي |
+| 04 — إكمال المصادقة | IN_PROGRESS | PR #5 draft/open فوق فرع Phase 03؛ email verification/password reset/device APIs قيد التنفيذ والاختبار. البريد الحقيقي وGoogle Android الحقيقي ينتظران إعداد مزود/حساب staging وجهازًا فعليًا |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
 | 07 — المزامنة | NOT_STARTED | تنتظر 05 و06 |
@@ -104,3 +104,22 @@
 ## العمل التالي المسموح
 
 استمر من رأس فرع Phase 03 الحالي وPR #4 دون إعادة Phase 00–02. أكمل Security #23 على SHA `096ad1d…`، ثم راجع نتائج Trivy المتبقية وسجّل خطة المعالجة/القبول. بعد ذلك عالج ما يمكن إثباته داخل CI من least-privilege لمستخدم التطبيق، وأكمل توثيق متطلبات retention والنسخ الاحتياطية. لا تغلق Phase 03 ولا تبدأ Phase 04 قبل توثيق هذه المتطلبات وحدود ما لا يمكن اختباره دون صلاحية وموافقة إنتاجية. لا تبدأ AWS أو production data migration أو نشرًا أو تغييرات على Render/Neon.
+
+
+## إغلاق Phase 03 — 22 نوفمبر 2026
+
+- الفرع: `feature/phase-03-security-observability`، PR #4 مفتوح كمسودة وغير مدمج.
+- SHA النهائي الذي اجتاز بوابات CI: `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`.
+- Docker Validation #291: SUCCESS؛ SQLite **34 tests / 210 assertions**، PostgreSQL 16 **3 tests / 72 assertions**، PostgreSQL application role لا يملك SUPERUSER/CREATEDB/CREATEROLE أو CREATE على schema، ونجحت اختبارات registration/login/profile/session على هذا الدور.
+- Pint #27: SUCCESS.
+- Security Scans #29: SUCCESS؛ Gitleaks وTrivy filesystem/image وبوابة HIGH/CRITICAL القابلة للإصلاح PASS. تقرير الفحص محفوظ كـartifact لدى تشغيل Security #29.
+- انضمت workflow triggers الخاصة بـDocker/Pint/Security إلى PRs التي يكون أساسها Phase 03 حتى تستمر البوابات في Phase 04.
+- تقرير الإغلاق: `reports/PHASE-03-COMPLETION-REPORT-2026-11-22.md`.
+
+**حدود غير مختبرة على الإنتاج:** لا اتصال إلى Neon/Render أو قراءة secrets أو تغييرات إنتاجية. يلزم قبل النشر ضبط دور DB الحقيقي وDB_MIGRATION_URL منفصلًا، وفحص TLS/proxy الفعلي، واعتماد log retention وbackup/PITR وRPO/RTO وإثبات restore rehearsal. هذه القيود لا تمنع استمرار تطوير Phase 04 في staging/CI.
+
+## بدء Phase 04 — 22 نوفمبر 2026
+
+- الفرع: `feature/phase-04-authentication-completion`
+- PR #5: draft/open، يستهدف `feature/phase-03-security-observability`.
+- حالة التنفيذ: IN_PROGRESS. راجع `reports/PHASE-04-PROGRESS-REPORT-2026-11-22.md` لمعرفة SHA ونتائج CI.

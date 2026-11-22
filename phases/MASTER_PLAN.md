@@ -27,8 +27,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 00 | جرد المستودع وعقود API وخط الأساس | لا شيء |
 | 01 | مشروع Laravel مستقل وقابل لإعادة البناء — COMPLETE (Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72) | 00 |
 | 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — COMPLETE (Docker #249 SUCCESS؛ SQLite 20/138، PostgreSQL 3/72، HTTP/non-root/readiness/PHP asset block PASS) | 01 |
-| 03 | الأمن والرصد والتشغيل الأساسي — IN_PROGRESS | 01–02 COMPLETE |
-| 04 | إكمال المصادقة والحسابات والأجهزة | 01–03 |
+| 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
+| 04 | إكمال المصادقة والحسابات والأجهزة — IN_PROGRESS (PR #5 draft/open، `feature/phase-04-authentication-completion`) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب | 00–04 |
 | 06 | المفضلة والقوائم وسجل المشاهدة والتقدم | 05 |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
@@ -123,3 +123,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 لم يتم الاتصال بقاعدة الإنتاج أو Render/Neon أو قراءة الأسرار أو إنشاء موارد AWS أو تنفيذ نشر. PR #1/#2/#3 تظل مفتوحة وغير مدمجة.
 
 **Phase 03 IN_PROGRESS.** بدأ العمل الأمني بعد اكتمال الاعتماديات 01 و02، على فرع مستقل يستهدف Phase02 SHA أعلاه. النطاق في `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`.
+
+
+## 11. حالة الانتقال بعد Phase 03 — 22 نوفمبر 2026
+
+**Phase 03 COMPLETE على مستوى الكود وCI.** اجتاز SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748` Docker Validation #291 (34 Feature tests / 210 assertions، 3 PostgreSQL integration tests / 72 assertions)، Pint #27، وSecurity Scans #29. يشمل الإثبات أدوار PostgreSQL منفصلة للتطبيق والترحيل، حراسة TLS للاتصال البعيد، سجل API منقح، وثبات FrankenPHP runtime وreadiness.
+
+لا تعني هذه النتيجة أن إعدادات مزود الإنتاج قد اختبرت. تظل مراجعة حساب DB الفعلي، TLS الطرفي/proxy الفعلي، log retention، backup/PITR وrestore rehearsal وRPO/RTO متطلبات ما قبل الإنتاج كما في `SECURITY-OPERATIONS-POLICY.md`.
+
+**Phase 04 IN_PROGRESS.** PR #5 مفتوح كمسودة فوق فرع Phase 03. بدأ تنفيذ verification/reset/device APIs مع إبقاء البريد معطلاً افتراضيًا حتى يختار المستخدم مزودًا ويحدد رابط التطبيق؛ ولا يثبت mock email أو Google verifier اختبار تكامل Android حقيقي.

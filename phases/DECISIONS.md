@@ -65,3 +65,18 @@
 - **القرار:** لا نخمن مدة الاحتفاظ أو RPO/RTO أو cadence النسخ الاحتياطي. نوثق المتطلبات الأمنية الآن، ولا نعتبر backup فعالًا أو log retention مهيأً قبل فحص إعداد المزود ونجاح restore rehearsal.
 - **السبب:** مدة الاحتفاظ وتكلفة PITR والنسخ المستقلة تؤثر في الخصوصية والتكلفة والقدرة على التعافي.
 - **الأثر:** `phases/SECURITY-OPERATIONS-POLICY.md` يحدد الضوابط والعناصر الواجب اعتمادها قبل الإنتاج؛ لم يتم الاتصال بقاعدة الإنتاج أو تغيير إعدادات المزود.
+
+
+## D-010 — Phase 03 code/CI complete; provider production controls remain a pre-release gate
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** معتمد بعد نجاح Phase 03 CI
+- **القرار:** تعتبر Phase 03 مكتملة على مستوى الكود والاختبارات المؤقتة عندما تجتاز Docker Validation وPint وSecurity Scans على SHA موحد. لا يعني ذلك أن DB roles أو TLS/proxy أو log retention أو backups/restore قد تم التحقق منها على مزود الإنتاج.
+- **السبب:** لا يجوز خلط إثبات سلوك التطبيق في CI مع إعدادات حساب خارجي لم تتم مراجعته.
+- **الأثر:** يمكن بدء Phase 04، بينما تظل متطلبات `SECURITY-OPERATIONS-POLICY.md` بوابة إلزامية قبل staging/prod rollout وPhase 11/12.
+
+## D-011 — Email verification and password recovery require explicit mail-provider enablement
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** معتمد ضمن Phase 04
+- **القرار:** تظل `RAVEN23_AUTH_MAIL_ENABLED=false` افتراضيًا. لا ترسل رسائل التحقق/إعادة التعيين إلا بعد ضبط مزود حقيقي ورابط `RAVEN23_AUTH_ACTION_URL` عبر بيئة runtime آمنة؛ لا يُختار مزود ولا نطاق أو deep link بالافتراض.
+- **السبب:** منع إرسال روابط حساسة إلى عنوان أو قناة غير صحيحة، وعدم اعتبار Mail log/array تسليمًا حقيقيًا في الإنتاج.
+- **الأثر:** اختبارات CI تستخدم notification fake/array فقط؛ يجب اختبار وصول الرسائل والروابط في staging قبل التفعيل.

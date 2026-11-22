@@ -24,11 +24,11 @@
 13. DECISIONS.md — سجل القرارات المعمارية والمنتج.
 14. SECURITY-OPERATIONS-POLICY.md — ضوابط PostgreSQL وTLS والسجلات والنسخ الاحتياطية.
 15. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
-15. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
+16. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
 
 ## الحالة الحالية
 
-Phase 00 و01 و02 COMPLETE وفق تقارير الإغلاق المعتمدة. Phase 03 IN_PROGRESS على الفرع feature/phase-03-security-observability وPR #4؛ لا تبدأ Phase 04 حتى إغلاق Phase 03 بدليل CI على SHA موحد. راجع STATUS.md وآخر تقرير في reports/ للحالة الحالية.
+Phase 00 و01 و02 و03 COMPLETE وفق تقارير الإغلاق المعتمدة. Phase 03 اجتازت Docker #291/Pint #27/Security #29 على SHA موحد، مع بقاء تكوين مزود الإنتاج واختبار backup/restore ضمن متطلبات ما قبل الإنتاج. Phase 04 IN_PROGRESS على الفرع feature/phase-04-authentication-completion وPR #5. راجع STATUS.md وآخر تقرير في reports/ للحالة الحالية.
 
 ## قواعد هذا المجلد
 
