@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feature/phase-01-laravel-project]
+    branches: [main, feature/phase-01-laravel-project, feature/phase-02-portable-runtime]
 
 permissions:
   contents: read
@@ -47,6 +47,18 @@ jobs:
 
       - name: Build reusable PostgreSQL integration-test image
         run: docker build --pull --target postgres-test -t raven23-backend:postgres-test .
+
+      - name: Verify production refuses APP_DEBUG=true
+        run: |
+          set -eu
+          if docker run --rm --entrypoint /usr/local/bin/raven23-entrypoint \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e APP_ENV=production -e APP_DEBUG=true \
+            raven23-backend:ci php -v; then
+            echo "::error::Production entrypoint accepted APP_DEBUG=true."
+            exit 1
+          fi
+          echo "PASS: production entrypoint rejects APP_DEBUG=true."
 
       - name: Prove web startup and liveness do not require a database
         run: |
@@ -161,9 +173,22 @@ jobs:
             http://127.0.0.1:10000/ready \
             | jq -e '.success == true and .status == "ready" and .checks.database == "ok" and .checks.schema == "ready"' >/dev/null
 
+          health_body_file="$(mktemp)"
           curl --silent --show-error --fail --max-time 5 \
-            http://127.0.0.1:10000/api/v1/health \
-            | jq -e '.success == true and .database == "connected" and .schema == "ready" and .runtime_target.source_commit == env.GITHUB_SHA' >/dev/null
+            --output "$health_body_file" http://127.0.0.1:10000/api/v1/health
+          jq -e '.success == true and .database == "connected" and .schema == "ready" and (has("runtime_target") | not) and (has("google_auth") | not) and (has("source_commit") | not)' "$health_body_file" >/dev/null
+          rm -f "$health_body_file"
+
+          headers_file="$(mktemp)"
+          curl --silent --show-error --dump-header "$headers_file" --output /dev/null --max-time 5 \
+            http://127.0.0.1:10000/api/v1/health
+          grep -Eiq '^X-Request-ID: [0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}' "$headers_file"
+          grep -Eiq '^X-Content-Type-Options: nosniff' "$headers_file"
+          grep -Eiq '^X-Frame-Options: DENY' "$headers_file"
+          grep -Eiq '^Referrer-Policy: strict-origin-when-cross-origin' "$headers_file"
+          grep -Eiq '^Permissions-Policy:' "$headers_file"
+          grep -Eiq '^Content-Security-Policy:' "$headers_file"
+          rm -f "$headers_file"
 
           runtime_user="$(docker inspect --format '{{.Config.User}}' "$container_name")"
           test "$runtime_user" = "raven:raven" || {
