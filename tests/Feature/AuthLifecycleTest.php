@@ -87,10 +87,9 @@ class AuthLifecycleTest extends TestCase
 
     private function useGoogleClaims(array $claims): void
     {
-        $fake = new class($claims) extends GoogleIdTokenVerifier {
-            public function __construct(private readonly array $claims)
-            {
-            }
+        $fake = new class($claims) extends GoogleIdTokenVerifier
+        {
+            public function __construct(private readonly array $claims) {}
 
             public function verify(string $idToken): ?array
             {
