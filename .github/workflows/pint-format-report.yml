@@ -2,7 +2,7 @@ name: RAVEN23 Pint Format Report
 
 on:
   pull_request:
-    branches: [feature/phase-02-portable-runtime, feature/phase-03-security-observability]
+    branches: [feature/phase-02-portable-runtime, feature/phase-03-security-observability, feature/phase-04-authentication-completion]
   workflow_dispatch:
 
 permissions:
