@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: raven23-pint-format-${{ github.ref }}
+  group: raven23-pint-format-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:

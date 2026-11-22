@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: raven23-backend-validation-${{ github.ref }}
+  group: raven23-backend-validation-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
