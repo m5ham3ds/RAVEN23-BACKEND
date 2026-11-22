@@ -30,6 +30,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          base_ref="${GITHUB_BASE_REF:-main}"
           git fetch origin "$base_ref"
           mapfile -t changed_php < <(
             git diff --name-only "origin/$base_ref...HEAD" -- '*.php'
