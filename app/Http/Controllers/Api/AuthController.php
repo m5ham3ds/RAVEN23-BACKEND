@@ -37,6 +37,54 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Ensure normalized account data exists before issuing a session or
+     * serving account-data endpoints. insertOrIgnore/upsert make repeated
+     * sign-ins safe under concurrent requests.
+     */
+    private function ensureAccountData(User $user, array $device = []): void
+    {
+        $connectionName = (string) ($user->getConnectionName() ?: config('database.default', 'pgsql'));
+        $connection = DB::connection($connectionName);
+        $now = now();
+
+        $connection->transaction(function () use ($connection, $user, $device, $now): void {
+            $connection->table('user_profiles')->insertOrIgnore([
+                'user_id' => $user->getKey(),
+                'profile_id' => (int) ($user->profile_id ?? 0),
+                'photo_url' => $user->photo_url,
+                'created_at' => $user->created_at ?? $now,
+                'updated_at' => $user->updated_at ?? $now,
+            ]);
+
+            $connection->table('user_preferences')->insertOrIgnore([
+                'user_id' => $user->getKey(),
+                'locale' => null,
+                'timezone' => 'UTC',
+                'created_at' => $user->created_at ?? $now,
+                'updated_at' => $user->updated_at ?? $now,
+            ]);
+
+            $deviceId = $device['device_id'] ?? null;
+            if (is_string($deviceId) && $deviceId !== '') {
+                $connection->table('user_devices')->upsert(
+                    [[
+                        'user_id' => $user->getKey(),
+                        'device_id' => $deviceId,
+                        'device_name' => $device['device_name'] ?? null,
+                        'platform' => $device['platform'] ?? null,
+                        'first_seen_at' => $now,
+                        'last_seen_at' => $now,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]],
+                    ['user_id', 'device_id'],
+                    ['device_name', 'platform', 'last_seen_at', 'updated_at'],
+                );
+            }
+        });
+    }
+
     private function authMailReady(): bool
     {
         if (! (bool) config('services.raven23_auth.mail_enabled', false)) {
@@ -105,6 +153,12 @@ class AuthController extends Controller
         $device = $this->deviceMetadata($request);
         $deviceId = $device['device_id'] ?? null;
         $platform = $device['platform'] ?? 'client';
+
+        // Seed normalized profile/preferences and record the stable install ID
+        // before issuing a token. Existing sessions and legacy profile columns
+        // remain authoritative for the current API contract.
+        $this->markStage($request, 'session.ensure_account_data');
+        $this->ensureAccountData($user, $device);
 
         // Registration persists the account in its own transaction. Recreate
         // the PDO connection before issuing Sanctum credentials so a failed or
@@ -551,9 +605,129 @@ class AuthController extends Controller
             'profile_id' => ['sometimes', 'integer', 'min:0', 'max:143'],
             'photo_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
         ]);
-        $user->update($data);
+        $connectionName = (string) ($user->getConnectionName() ?: config('database.default', 'pgsql'));
+        DB::connection($connectionName)->transaction(function () use ($user, $data, $connectionName): void {
+            $user->update($data);
+
+            // Mirror only the legacy avatar fields. Name/username and auth
+            // identity remain on users to preserve existing Android clients.
+            $profileFields = array_intersect_key($data, array_flip(['profile_id', 'photo_url']));
+            if ($profileFields !== []) {
+                DB::connection($connectionName)->table('user_profiles')->updateOrInsert(
+                    ['user_id' => $user->getKey()],
+                    [...$profileFields, 'updated_at' => now()],
+                );
+            }
+        });
 
         return response()->json(['success' => true, 'user' => $user->fresh()->toRavenArray()]);
+    }
+
+    public function preferences(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->ensureAccountData($user);
+        $preferences = $user->preferences()->firstOrFail();
+
+        return response()->json([
+            'success' => true,
+            'preferences' => [
+                'locale' => $preferences->locale,
+                'timezone' => $preferences->timezone,
+                'updated_at' => optional($preferences->updated_at)->toISOString(),
+            ],
+        ]);
+    }
+
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        if (! $request->exists('locale') && ! $request->exists('timezone')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'At least one preference field must be supplied.',
+                'errors' => ['preferences' => ['Supply locale or timezone.']],
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'locale' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:2',
+                'max:16',
+                'regex:/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/',
+            ],
+            'timezone' => ['sometimes', 'required', 'string', 'max:64', 'timezone'],
+        ]);
+
+        $user = $request->user();
+        $this->ensureAccountData($user);
+        $preferences = $user->preferences()->firstOrFail();
+        $preferences->fill($data)->save();
+
+        return response()->json([
+            'success' => true,
+            'preferences' => [
+                'locale' => $preferences->locale,
+                'timezone' => $preferences->timezone,
+                'updated_at' => optional($preferences->fresh()->updated_at)->toISOString(),
+            ],
+        ]);
+    }
+
+    /**
+     * Export the authenticated account's server-held data only. Credentials,
+     * token hashes, bearer tokens and recovery/verification secrets are never
+     * part of this response.
+     */
+    public function exportUserData(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $this->ensureAccountData($user);
+        $profile = $user->profile()->firstOrFail();
+        $preferences = $user->preferences()->firstOrFail();
+        $devices = $user->devices()
+            ->orderBy('first_seen_at')
+            ->get(['device_id', 'device_name', 'platform', 'first_seen_at', 'last_seen_at'])
+            ->map(static fn ($device): array => [
+                'device_id' => $device->device_id,
+                'device_name' => $device->device_name,
+                'platform' => $device->platform,
+                'first_seen_at' => optional($device->first_seen_at)->toISOString(),
+                'last_seen_at' => optional($device->last_seen_at)->toISOString(),
+            ])
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'format_version' => 1,
+                'exported_at' => now()->utc()->toISOString(),
+                'account' => [
+                    'id' => (int) $user->getKey(),
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'username' => $user->username,
+                    'provider' => $user->provider ?? 'email',
+                    'is_guest' => (bool) $user->is_guest,
+                    'is_verified' => (bool) $user->is_verified,
+                    'is_account_verified' => (bool) $user->is_account_verified,
+                    'email_verified_at' => optional($user->email_verified_at)->toISOString(),
+                    'created_at' => optional($user->created_at)->toISOString(),
+                ],
+                'profile' => [
+                    'profile_id' => (int) $profile->profile_id,
+                    'photo_url' => $profile->photo_url,
+                ],
+                'preferences' => [
+                    'locale' => $preferences->locale,
+                    'timezone' => $preferences->timezone,
+                    'updated_at' => optional($preferences->updated_at)->toISOString(),
+                ],
+                'devices' => $devices,
+            ],
+        ]);
     }
 
     public function changeEmail(Request $request): JsonResponse
