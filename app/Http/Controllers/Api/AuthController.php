@@ -121,6 +121,7 @@ class AuthController extends Controller
         }
 
         $this->markStage($request, 'session.serialize_user_response');
+
         return response()->json([
             'success' => true,
             'token' => $issued->plainTextToken,
@@ -256,6 +257,7 @@ class AuthController extends Controller
         // retry does not get misreported as a failed user-row transaction.
         $this->markStage($request, 'register.reload_user');
         $user = $payload['user'];
+
         return $this->session($user, $request, $payload['response_status']);
     }
 
@@ -302,6 +304,7 @@ class AuthController extends Controller
         }
 
         $this->markStage($request, 'login.issue_session');
+
         return $this->session($user, $request);
     }
 
@@ -437,6 +440,7 @@ class AuthController extends Controller
 
         // Keep token issuance outside the account/linking transaction so an
         // isolated session failure cannot poison the account transaction.
+
         return $this->session($user, $request);
     }
 
@@ -455,6 +459,7 @@ class AuthController extends Controller
         ])->save();
 
         $this->markStage($request, 'guest.issue_session');
+
         return $this->session($user, $request);
     }
 
