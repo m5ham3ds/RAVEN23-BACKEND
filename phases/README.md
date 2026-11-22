@@ -28,7 +28,7 @@
 
 ## الحالة الحالية
 
-Phase 00–03 اجتازت معايير الكود وCI وفق أدلة كل مرحلة؛ تبقى متطلبات التشغيل الخارجي لـPhase 03 قبل الإنتاج. Phase 04 اجتازت Docker #321/Pint #53/Security #55 على SHA `3d302f8e5a24d4ed762d15f8e1b9f34c346eab70`، بينما real Google Android وmail delivery ينتظران إعداد staging. Phase 05 قيد التنفيذ على `feature/phase-05-user-data-foundation` ومبنية على رأس Phase 04 المتحقق. راجع STATUS.md وآخر تقرير في reports/.
+Phase 00–03 اجتازت معايير الكود وCI وفق أدلة كل مرحلة؛ تبقى متطلبات التشغيل الخارجي لـPhase 03 قبل الإنتاج. Phase 04 اجتازت code/CI على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f: Docker #320 وPint #52 وSecurity #54 — SUCCESS. PR #4 وPR #5 ما زالا Draft/Open؛ Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا، لذا Phase 04 PARTIAL على مستوى المنتج/الحوكمة. Phase 05 IN_PROGRESS على feature/phase-05-user-data-foundation؛ لم تظهر نتائج CI لها بعد. راجع STATUS.md وMASTER_PLAN.md وآخر تقرير في reports/.
 
 ## قواعد هذا المجلد
 
