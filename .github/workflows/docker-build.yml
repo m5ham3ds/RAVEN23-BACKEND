@@ -194,8 +194,8 @@ jobs:
           runtime_privileges="$(docker run --rm --network host \
             -e PGPASSWORD=raven23_app_test postgres:16-alpine \
             psql -h 127.0.0.1 -U raven23_app_test -d raven23_test -Atc \
-              "SELECT r.rolsuper::text || ':' || r.rolcreatedb::text || ':' || r.rolcreaterole::text || ':' || has_database_privilege(current_user, current_database(), 'CREATE')::text || ':' || has_schema_privilege(current_user, 'public', 'CREATE')::text || ':' || has_schema_privilege(current_user, 'public', 'USAGE')::text || ':' || has_table_privilege(current_user, 'public.users', 'SELECT')::text || ':' || has_sequence_privilege(current_user, 'public.users_id_seq', 'USAGE')::text FROM pg_roles r WHERE r.rolname = current_user")"
-          test "$runtime_privileges" = "f:f:f:f:f:t:t:t" || {
+              "SELECT CASE WHEN r.rolsuper THEN '1' ELSE '0' END || ':' || CASE WHEN r.rolcreatedb THEN '1' ELSE '0' END || ':' || CASE WHEN r.rolcreaterole THEN '1' ELSE '0' END || ':' || CASE WHEN has_database_privilege(current_user, current_database(), 'CREATE') THEN '1' ELSE '0' END || ':' || CASE WHEN has_schema_privilege(current_user, 'public', 'CREATE') THEN '1' ELSE '0' END || ':' || CASE WHEN has_schema_privilege(current_user, 'public', 'USAGE') THEN '1' ELSE '0' END || ':' || CASE WHEN has_table_privilege(current_user, 'public.users', 'SELECT') THEN '1' ELSE '0' END || ':' || CASE WHEN has_sequence_privilege(current_user, 'public.users_id_seq', 'USAGE') THEN '1' ELSE '0' END FROM pg_roles r WHERE r.rolname = current_user")"
+          test "$runtime_privileges" = "0:0:0:0:0:1:1:1" || {
             echo "::error::Unexpected PostgreSQL application-role privileges: $runtime_privileges"
             exit 1
           }

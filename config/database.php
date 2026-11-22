@@ -14,7 +14,8 @@ if (is_array($dbUrlParts)) {
 }
 
 $appEnvironment = (string) env('APP_ENV', 'local');
-$dbHost = (string) (($dbUrlParts['host'] ?? null) ?: env('DB_HOST', '127.0.0.1'));
+$dbUrlHost = is_array($dbUrlParts) ? ($dbUrlParts['host'] ?? null) : null;
+$dbHost = (string) ($dbUrlHost ?: env('DB_HOST', '127.0.0.1'));
 $dbSslmode = (string) ($dbUrlOptions['sslmode'] ?? env(
     'DB_SSLMODE',
     $appEnvironment === 'production' ? 'require' : 'prefer',
