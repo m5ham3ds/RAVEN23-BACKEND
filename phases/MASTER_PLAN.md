@@ -29,8 +29,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — COMPLETE (Docker #249 SUCCESS؛ SQLite 20/138، PostgreSQL 3/72، HTTP/non-root/readiness/PHP asset block PASS) | 01 |
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
-| 05 | أساس بيانات المستخدم وعقود الحساب — IN_PROGRESS (schema/API في CI معزول؛ لا CI result بعد) | 00–04؛ استثناء غير مانع لنطاق schema/API مستقل عن Google/mail الحي |
-| 06 | المفضلة والقوائم وسجل المشاهدة والتقدم | 05 |
+| 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
+| 06 | المفضلة والقوائم وسجل المشاهدة والتقدم — IN_PROGRESS | 05 COMPLETE؛ عقود Flutter تمت مراجعتها وتحديد payloads/revisions/idempotency |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
@@ -144,3 +144,12 @@ PR #4 وPR #5 ما زالا Draft/Open وغير مدمجين. لم يتم اخت
 **استثناء اعتماد غير مانع لـPhase 05:** يجوز متابعة schema/API work على PostgreSQL وSQLite المؤقتتين، لأنها لا تعتمد على mail delivery أو Google OAuth الحي. لا يسمح الاستثناء بدمج PRs أو النشر أو migration إنتاجية، ولا يرفع Phase 04 إلى COMPLETE. يجب إغلاق بوابات الحوكمة والتكاملات الخارجية قبل rollout.
 
 **Phase 05 IN_PROGRESS** على feature/phase-05-user-data-foundation. لم تظهر نتائج CI لهذه المرحلة بعد؛ لا تسجل PASS حتى تنجح Docker وPint وSecurity على SHA واحد بعد فتح PR #6 إلى فرع Phase 04.
+
+## 13. الحالة التنفيذية بعد Phase 05 — 22 نوفمبر 2026
+
+- تم دمج roadmap وPhase01–05 إلى main. PR #5 أُغلق دون دمج مستقل بعد ثبوت أن فروقه workflow-only وقد غطاها إعداد main الأحدث.
+- Phase05 COMPLETE على مستوى schema/API/code/CI. اختُبر SHA `3c056ed983dbd7025e2f1bc65806cfcaae3af885` ثم اختُبر merge SHA `9c8374e591c11b845dac82d625fb81ed306d939c` بعد الدمج.
+- Docker #340 / Pint #69 / Security #71 كلها SUCCESS على main SHA. Docker سجل SQLite 50/369 وPostgreSQL 5/140.
+- لم يتم اتصال بقاعدة الإنتاج أو قراءة secrets أو نشر أو إنشاء موارد AWS.
+- Phase04 PARTIAL على مستوى تكاملات Google Android والبريد الحقيقي في staging.
+- Phase06 IN_PROGRESS؛ يبدأ من المواصفات وعقود Flutter في `PHASE-06-MEDIA-LIBRARY-AND-PLAYBACK.md`.

@@ -1,0 +1,118 @@
+name: RAVEN23 USERS Authentication Tests
+
+on:
+  push:
+    branches: [RAVEN23-BACKEND-USERS]
+  pull_request:
+    branches: [RAVEN23-BACKEND-USERS]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-users-auth-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  users-auth:
+    name: Email, password, Google verifier and guest authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: raven23_users_test
+          POSTGRES_USER: raven23_users_test
+          POSTGRES_PASSWORD: raven23_users_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U raven23_users_test -d raven23_users_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, dom, mbstring, pdo_pgsql, pdo_sqlite, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Install locked dependencies
+        run: |
+          touch .env
+          composer validate --strict
+          composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Test email/password, Google verifier and guest lifecycle on SQLite
+        env:
+          APP_ENV: testing
+          APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          DB_URL: ''
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: array
+        run: php artisan test tests/Feature/AuthLifecycleTest.php --display-warnings
+
+      - name: Create restricted PostgreSQL app and migration roles
+        env:
+          PGPASSWORD: raven23_users_test
+        run: |
+          set -eu
+          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
+            psql -h 127.0.0.1 -U raven23_users_test -d raven23_users_test -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE raven23_users_migrator LOGIN PASSWORD 'raven23_users_migrator'
+              NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          CREATE ROLE raven23_users_app LOGIN PASSWORD 'raven23_users_app'
+              NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          GRANT CONNECT ON DATABASE raven23_users_test TO raven23_users_migrator, raven23_users_app;
+          GRANT USAGE, CREATE ON SCHEMA public TO raven23_users_migrator;
+          GRANT USAGE ON SCHEMA public TO raven23_users_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE raven23_users_migrator IN SCHEMA public
+              GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO raven23_users_app;
+          ALTER DEFAULT PRIVILEGES FOR ROLE raven23_users_migrator IN SCHEMA public
+              GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO raven23_users_app;
+          SQL
+
+      - name: Apply schema with one-off migration role
+        env:
+          APP_ENV: testing
+          APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+          DB_CONNECTION: pgsql
+          DB_SSLMODE: disable
+          DB_URL: 'postgresql://raven23_users_migrator:raven23_users_migrator@127.0.0.1:5432/raven23_users_test?sslmode=disable'
+        run: php artisan migrate --force
+
+      - name: Test PostgreSQL registration, verification, login, guest and session lifecycle
+        env:
+          APP_ENV: testing
+          APP_KEY: 'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='
+          DB_CONNECTION: pgsql
+          DB_SSLMODE: disable
+          DB_URL: 'postgresql://raven23_users_app:raven23_users_app@127.0.0.1:5432/raven23_users_test?sslmode=disable'
+          NEON_DB_URL: 'postgresql://raven23_users_app:raven23_users_app@127.0.0.1:5432/raven23_users_test?sslmode=disable'
+          CACHE_STORE: array
+          SESSION_DRIVER: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: array
+        run: php artisan test tests/Integration/PostgresAuthLifecycleTest.php
+
+      - name: Ensure USERS branch contains tests only
+        run: |
+          git diff --name-only origin/main...HEAD > /tmp/users-branch-files.txt
+          if grep -E '^(app/|database/migrations/|routes/|config/|Dockerfile$)' /tmp/users-branch-files.txt; then
+            echo "::error::RAVEN23-BACKEND-USERS may contain test and workflow changes only."
+            exit 1
+          fi
+          echo "PASS: USERS branch contains no application runtime or migration changes."

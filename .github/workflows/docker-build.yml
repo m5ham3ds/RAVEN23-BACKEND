@@ -2,9 +2,9 @@ name: RAVEN23 Backend Docker Validation
 
 on:
   push:
-    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+    branches: [main, RAVEN23-BACKEND-TEST]
   pull_request:
-    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+    branches: [main, RAVEN23-BACKEND-TEST]
 
 permissions:
   contents: read
@@ -74,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base_ref="${GITHUB_BASE_REF:-feature/phase-02-portable-runtime}"
+          base_ref="${GITHUB_BASE_REF:-main}"
           git fetch origin "$base_ref"
           mapfile -t changed_php < <(git diff --name-only "origin/$base_ref...HEAD" -- '*.php')
           if [ "${#changed_php[@]}" -eq 0 ]; then

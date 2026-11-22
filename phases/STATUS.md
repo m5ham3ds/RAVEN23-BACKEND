@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — Phase 00–03 اجتازت code/CI؛ Phase 04 PARTIAL بعد نجاح CI مع بقاء Google/mail والحوكمة؛ Phase 05 IN_PROGRESS  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 00–05 اجتازت بوابات الكود وCI؛ Phase 04 PARTIAL على مستوى التكاملات الخارجية؛ Phase 06 IN_PROGRESS.  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -15,10 +15,10 @@
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
-| 03 — الأمن والرصد | COMPLETE (code/CI) | PR #4 مفتوح كمسودة؛ Phase 03 اجتازت على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`: Docker #291 (SQLite 34/210 وPostgreSQL 3/72)، Pint #27، Security #29. فصل DB app/migrator، TLS remote guard، log redaction، FrankenPHP/readiness PASS. إعدادات مزود الإنتاج وTLS/proxy/log retention/backup-restore وRPO/RTO تظل شروطًا قبل الإنتاج، لا ادعاء نجاح مزود فعلي |
-| 04 — إكمال المصادقة | PARTIAL (CODE/CI PASS) | Docker #320 وPint #52 وSecurity #54 نجحت على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f؛ SQLite 40/269 وPostgreSQL 4/99. PR #4 و#5 ما زالا Draft/Open؛ Google Android الحقيقي والبريد الحقيقي وإعداد مزود الإنتاج تنتظر. |
-| 05 — أساس بيانات المستخدم | IN_PROGRESS | فرع feature/phase-05-user-data-foundation؛ النماذج وmigration وpreferences/export واختبارات Feature/PostgreSQL مكتوبة؛ لا توجد نتائج CI بعد. يسمح استثناء غير مانع بعمل schema/API المعزول فقط. |
-| 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
+| 03 — الأمن والرصد | COMPLETE (code/CI) | PR #4 مدمج في main؛ Docker #291 وPint #27 وSecurity #29 نجحت على Phase03 head. إعدادات مزود الإنتاج وTLS/proxy/log retention/backup-restore وRPO/RTO تظل شروطًا قبل الإنتاج |
+| 04 — إكمال المصادقة | PARTIAL (CODE/CI PASS) | email/password وGoogle verifier وGuest وverification/reset/device اجتازت ضمن CI المدمج؛ Google OAuth الحقيقي على Android وتسليم البريد في staging لم يثبتا. PR #5 أُغلق كطلب مكرر؛ كوده الوظيفي محفوظ في main عبر Phase05 |
+| 05 — أساس بيانات المستخدم | COMPLETE (schema/API/code/CI) | Docker #339 وPint #68 وSecurity #70 على SHA `3c056ed`; وبعد الدمج Docker #340 وPint #69 وSecurity #71 على main SHA `9c8374e` — جميعها SUCCESS. SQLite 50/369 وPostgreSQL 5/140. لا production migration أو deploy |
+| 06 — المكتبة وسجل المشاهدة | IN_PROGRESS | Phase05 COMPLETE؛ تمت مراجعة عقود Flutter المصدر للمفضلة والتقدم والقوائم قبل التنفيذ |
 | 07 — المزامنة | NOT_STARTED | تنتظر 05 و06 |
 | 08 — التخزين والإشعارات والمهام | NOT_STARTED | تنتظر 02–05 وقرار مزود الخدمات |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تنتظر قواعد المنتج وموافقة اختيار مزود/طريقة الدفع |
@@ -147,3 +147,13 @@
 - migration additive/forward-only وتعمل backfill من users وpersonal_access_tokens، وتتحقق من owner FK cascade وunique keys في أي جداول موجودة.
 - أضيفت اختبارات Feature وmigration وPostgreSQL؛ **لم تظهر نتائج CI على هذا الفرع بعد**.
 - لا يوجد اتصال إنتاجي أو secrets read أو migration إنتاجية أو deploy أو تغيير إعدادات مزود.
+
+## الحالة الموحدة بعد Phase 05 — 22 نوفمبر 2026
+
+- Default branch: `main`; merge SHA الحالي قبل هذا التحديث: `9c8374e591c11b845dac82d625fb81ed306d939c`.
+- PRs #1–#4 و#6 مدمجة في main. PR #5 أُغلق دون دمج مستقل بعد التأكد أن الفروق الوحيدة فيه ثلاث ملفات workflows قديمة، بينما كود Phase04 واختباراته موجودة في شجرة Phase05 المدمجة.
+- Phase05 CI على `3c056ed983dbd7025e2f1bc65806cfcaae3af885`: Docker #339، Pint #68، Security #70 — SUCCESS. Post-merge CI على `9c8374e591c11b845dac82d625fb81ed306d939c`: Docker #340، Pint #69، Security #71 — SUCCESS.
+- Docker post-merge: SQLite **50 tests / 369 assertions**، PostgreSQL **5 tests / 140 assertions**؛ فحوص DB roles وFrankenPHP readiness/non-root/PHP asset blocking نجحت.
+- Phase04 تبقى PARTIAL خارجياً إلى أن ينجح Google OAuth الحقيقي على Android وتسليم البريد الحقيقي في staging.
+- سياسة الفروع الثلاثة محفوظة في `BRANCH_POLICY.md`: main وRAVEN23-BACKEND-TEST وRAVEN23-BACKEND-USERS. الفروع القديمة لم تُحذف بعد؛ إغلاق PR لا يحذف Git ref.
+- Phase06 IN_PROGRESS على main بعد مراجعة عقد Flutter الفعلي.

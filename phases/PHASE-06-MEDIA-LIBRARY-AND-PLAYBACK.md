@@ -1,7 +1,7 @@
 # المرحلة 06 — المكتبة الشخصية وسجل المشاهدة وتقدم التشغيل
 
-**الحالة:** NOT_STARTED  
-**الاعتماديات:** المرحلة 05 COMPLETE
+**الحالة:** IN_PROGRESS — بدأ التنفيذ على main بعد إغلاق Phase05.  
+**الاعتماديات:** Phase05 COMPLETE؛ عقد Flutter المصدر تمت مراجعته على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`
 
 ## الهدف
 توفير API دائم لحفظ بيانات المستخدم الشخصية المرتبطة بالمحتوى، دون تخزين ملفات الفيديو أو بيانات المصدر العامة داخل قاعدة الحسابات.
@@ -30,3 +30,45 @@
 - لا تخزين أو استضافة ملفات الفيديو.
 - لا بناء محرك اكتشاف metadata أو تبديل مصادر البث ضمن هذه المرحلة.
 - لا تغيير UI Android غير المطلوب للتكامل الموثق.
+
+
+## عقد Flutter الفعلي — مراجعة 22 نوفمبر 2026
+
+**مصدر المراجعة:** مستودع `m5ham3ds/RAVEN23` على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`. تمت مراجعة repositories/sync engines/models/local stores/tests الخاصة بالمفضلة وسجل المشاهدة والقوائم.
+
+### Bookmarks / Favorites
+- `POST /api/v1/sync/bookmarks`: `movies[]`, `tvShows[]`, `deleted_media[]`؛ الهوية `(media_type, media_id)` مع `movie` أو `tv`.
+- `DELETE /api/v1/sync/bookmarks/{type}/{id}` حذف idempotent ومقيد بالمالك.
+- الاستجابة الكاملة: `success`, `movies[]`, `tvShows[]`. يحتفظ العميل بجرد known IDs وسجل tombstones حتى لا يعيد إنشاء عنصر محذوف.
+
+### Recently watched / Playback progress
+- `POST /api/v1/sync/recently-watched`: `since_revision`, `movies[]`, `episodes[]`, `client_time_utc` بوحدة UTC milliseconds.
+- Movie row: `movie_id,title,release_year,elapsed,remaining,date_watched,poster_path,backdrop_path,updated_at_utc,deleted_at_utc`.
+- Episode row: `episode_id,series_id,series_name,episode_name,episode_num,season_num,elapsed,remaining,date_added,poster_path,backdrop_path,updated_at_utc,deleted_at_utc`. حقل `is_anime` محلي ولا يرسله Laravel client.
+- Response: `server_revision,server_time_utc,movies[],episodes[],uploads.movies[],uploads.episodes[],full` مع دعم `requires_full_sync`.
+- أحدث `updated_at_utc` يفوز؛ tombstone أحدث يحذف القديم؛ progress محلي أحدث لا يستبدل بطلب قديم. لا يقر الخادم upload إلا للنسخة التي استلمها.
+- انحراف الساعة: HTTP 422 مع `error=clock_skew_detected` و`server_time_utc`؛ العميل يصحح ويعيد مرة واحدة. العميل يحتفظ محليًا بـtombstones حتى 90 يومًا؛ يلزم اعتماد retention server-side.
+
+### Playlists / Collections
+- `POST /api/v1/sync/playlists`: `operations[]`, `since_revision`, `until_revision`, `cursor`؛ max 500 operations/request.
+- كل operation: UUID `operation_id`, `action`, UUID `playlist_id`؛ actions: `playlist.create/update/delete/reorder` و`item.add/remove`.
+- update/reorder يحمل `base_version`؛ reorder يحمل `items[]` من `media_type/media_id`. Movie وTV منفصلان حتى لو تشابه ID.
+- حدود العميل: 200 قائمة/مستخدم، 2500 عنصر/قائمة، الاسم 80 حرفًا، الوصف 500 حرفًا. العمليات idempotent بواسطة `operation_id`؛ stale version يعاد كرفض موثق.
+- Response: `server_revision,full,results[],playlists[],items[],next_cursor`. pagination ثابتة ضمن `until_revision`؛ العميل يجلب كل الصفحات قبل تطبيقها.
+
+### ما لم يُحسم
+- Manga/Manhwa لا تظهر كـmedia types في كود bookmark/playlist المراجع؛ لا نضيفها قبل عقد عميل مثبت.
+- TMDB/IMDb playlist imports خارج sync core الأول وتحتاج قرارات مصدر البيانات وحدود الاستيراد.
+- مشاركة القوائم العامة تحتاج تثبيت host وvisibility policy؛ لا تفعّل قبل قرار موثق.
+- wellness sync منفصل عن Phase06.
+
+### خطة التنفيذ
+1. Migrations additive لملكية bookmarks/recent progress/playlists/operation log/revision state.
+2. Authenticated owner-scoped requests/services.
+3. Bookmarks full-union/delete idempotency.
+4. Recent LWW/tombstones/revisions/clock-skew/exact upload acknowledgements.
+5. Playlist operation log/idempotency/version conflicts/stable paginated snapshots.
+6. SQLite + PostgreSQL restricted-role tests: ownership, duplicate requests, conflicts, tombstone races, pagination, clock skew, batch limits.
+7. Contracts/Feature Matrix ثم Docker/Pint/Security على SHA موحد.
+
+**الحالة الدقيقة:** مراجعة العقد مكتملة؛ لم تُنشأ migrations أو endpoints Phase06 بعد.

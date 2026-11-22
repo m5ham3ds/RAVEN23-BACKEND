@@ -1,6 +1,6 @@
 # المرحلة 05 — أساس بيانات المستخدم وعقود الحساب
 
-**الحالة:** IN_PROGRESS — التنفيذ محفوظ على feature/phase-05-user-data-foundation؛ لا توجد نتيجة CI لهذه المرحلة بعد.  
+**الحالة:** COMPLETE (schema/API/code/CI) — تم الدمج إلى main عبر PR #6.  
 **الاعتماديات:** Phase 00–03 code/CI COMPLETE؛ Phase 04 code/CI PASS على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f، مع بقاء Google/mail وPR governance متطلبات خارجية غير مغلقة. يسمح باستكمال schema/API work المعزول دون وصف Phase 04 بأنها COMPLETE للإنتاج.
 
 ## الهدف
@@ -57,7 +57,7 @@
 - تم توحيد empty preferences payload مع Laravel validation response envelope.
 - تم إضافة backfill من users وpersonal_access_tokens، واختبارات رفض المخطط السابق غير الآمن.
 - أضيفت اختبارات SQLite Feature وsynthetic schema upgrade وPostgreSQL owner isolation/export.
-- CI Phase 05 لم يبدأ بعد؛ يجب فتح PR #6 إلى feature/phase-04-authentication-completion ثم التحقق من Docker/Pint/Security على SHA واحد.
+- CI Phase 05 اجتاز على SHA `3c056ed983dbd7025e2f1bc65806cfcaae3af885`: Docker #339 وPint #68 وSecurity #70 SUCCESS. وبعد الدمج إلى main اجتازت Docker #340 وPint #69 وSecurity #71 على merge SHA `9c8374e591c11b845dac82d625fb81ed306d939c`.
 
 ## 13. معايير القبول المضافة
 
@@ -66,4 +66,8 @@
 - PostgreSQL 16 integration tests تغطي owner-scoped preferences/export بدور التطبيق المقيد.
 - Docker/Pint/Security جميعها SUCCESS على SHA واحد.
 - لا production DB changes أو secrets أو provider edits أو deployment.
-- **الحالة الحالية:** implementation PARTIAL؛ الوثائق/ERD/contract/CI لم تُثبت بعد، لذا لا تسجل COMPLETE.
+- **الحالة النهائية:** COMPLETE ضمن schema/API/code/CI. لم يتم اختبار migration على قاعدة الإنتاج ولا يدّعي هذا التقرير ترحيل بيانات production أو جاهزية نشر.
+
+## 14. تقرير إغلاق Phase 05
+
+راجع `reports/PHASE-05-COMPLETION-REPORT-2026-11-22.md` لأدلة الاختبارات، إصلاح PostgreSQL Auth guard، إصلاح متغير Pint workflow، نتائج post-merge، وحدود عدم اختبار production.

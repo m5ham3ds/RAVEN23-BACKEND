@@ -3,7 +3,7 @@
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
 > Commit خط الأساس: 9f29fa55afa21c0445be82d4590a4a532bb1747c — 21 نوفمبر 2026  
-> الفرع الحالي للخطة والجرد: docs/backend-phased-roadmap
+> الفروع التشغيلية المسموحة: main / RAVEN23-BACKEND-TEST / RAVEN23-BACKEND-USERS
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
 
@@ -28,7 +28,7 @@
 
 ## الحالة الحالية
 
-Phase 00–03 اجتازت معايير الكود وCI وفق أدلة كل مرحلة؛ تبقى متطلبات التشغيل الخارجي لـPhase 03 قبل الإنتاج. Phase 04 اجتازت code/CI على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f: Docker #320 وPint #52 وSecurity #54 — SUCCESS. PR #4 وPR #5 ما زالا Draft/Open؛ Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا، لذا Phase 04 PARTIAL على مستوى المنتج/الحوكمة. Phase 05 IN_PROGRESS على feature/phase-05-user-data-foundation؛ لم تظهر نتائج CI لها بعد. راجع STATUS.md وMASTER_PLAN.md وآخر تقرير في reports/.
+Phase 00–05 اجتازت بوابات الكود وCI وفق الأدلة المحدثة في STATUS.md والتقارير. Phase04 PARTIAL على مستوى التكامل الخارجي لأن Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا. Phase05 COMPLETE ودمجت في main: Docker #339/#340 وPint #68/#69 وSecurity #70/#71 كلها SUCCESS. Phase06 IN_PROGRESS بعد مراجعة عقد Flutter المصدر. راجع STATUS.md وMASTER_PLAN.md وآخر تقرير في reports/
 
 ## قواعد هذا المجلد
 
