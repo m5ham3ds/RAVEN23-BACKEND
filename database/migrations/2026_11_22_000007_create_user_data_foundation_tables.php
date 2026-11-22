@@ -60,8 +60,41 @@ return new class extends Migration
             'first_seen_at', 'last_seen_at', 'created_at', 'updated_at',
         ]);
 
+        // Existing tables are accepted only when their owner relationship and
+        // one-row-per-owner keys are real database constraints, not conventions.
+        $this->assertOwnerConstraints('user_profiles', ['user_id']);
+        $this->assertOwnerConstraints('user_preferences', ['user_id']);
+        $this->assertOwnerConstraints('user_devices', ['user_id', 'device_id']);
+
         $this->backfillProfilesAndPreferences();
         $this->backfillKnownDevices();
+    }
+
+    private function assertOwnerConstraints(string $table, array $uniqueColumns): void
+    {
+        $hasUniqueOwnerKey = collect(Schema::getIndexes($table))->contains(
+            static fn (array $index): bool => ($index['unique'] || $index['primary'])
+                && $index['columns'] === $uniqueColumns,
+        );
+
+        if (! $hasUniqueOwnerKey) {
+            throw new RuntimeException(
+                sprintf('Existing %s table must enforce a unique key on (%s).', $table, implode(', ', $uniqueColumns))
+            );
+        }
+
+        $hasOwnerForeignKey = collect(Schema::getForeignKeys($table))->contains(
+            static fn (array $foreignKey): bool => $foreignKey['columns'] === ['user_id']
+                && $foreignKey['foreign_table'] === 'users'
+                && $foreignKey['foreign_columns'] === ['id']
+                && strtolower((string) ($foreignKey['on_delete'] ?? '')) === 'cascade',
+        );
+
+        if (! $hasOwnerForeignKey) {
+            throw new RuntimeException(
+                sprintf('Existing %s table must cascade its user_id foreign key to users.id.', $table)
+            );
+        }
     }
 
     private function assertColumns(string $table, array $required): void
