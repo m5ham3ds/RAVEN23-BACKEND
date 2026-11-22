@@ -3,12 +3,13 @@
 namespace Tests\Integration;
 
 use App\Models\User;
-use Tests\TestCase;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
+use Tests\TestCase;
 use Laravel\Sanctum\PersonalAccessToken;
 
 /**
@@ -17,7 +18,9 @@ use Laravel\Sanctum\PersonalAccessToken;
 class PostgresAuthLifecycleTest extends TestCase
 {
     private array $createdUsers = [];
+
     private array $createdTokens = [];
+
     private array $createdEmails = [];
 
     protected function setUp(): void
