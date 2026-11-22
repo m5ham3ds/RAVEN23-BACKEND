@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\UserPreference;
 use App\Models\UserProfile;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -77,12 +78,14 @@ class UserDataFoundationTest extends TestCase
             ->assertJsonPath('preferences.locale', 'ar')
             ->assertJsonPath('preferences.timezone', 'Africa/Khartoum');
 
+        Auth::forgetGuards();
         $this->withToken($second['token'])
             ->getJson('/api/v1/user/preferences')
             ->assertOk()
             ->assertJsonPath('preferences.locale', null)
             ->assertJsonPath('preferences.timezone', 'UTC');
 
+        Auth::forgetGuards();
         $this->withToken($first['token'])
             ->putJson('/api/v1/user/preferences', ['timezone' => 'Mars/Olympus_Mons'])
             ->assertUnprocessable();
@@ -203,6 +206,7 @@ class UserDataFoundationTest extends TestCase
         $this->assertStringNotContainsString($second['email'], $export->getContent());
         $this->assertStringNotContainsString($second['token'], $export->getContent());
 
+        Auth::forgetGuards();
         $this->withToken($second['token'])
             ->getJson('/api/v1/user/data-export')
             ->assertOk()
