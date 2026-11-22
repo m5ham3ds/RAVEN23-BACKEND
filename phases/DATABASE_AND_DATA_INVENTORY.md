@@ -1,6 +1,6 @@
 # جرد قاعدة البيانات والبيانات — RAVEN23
 
-**Backend SHA الحالي:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
+**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE على مستوى source inventory — مبني على جميع migrations/models/client data stores؛ لم يتم الاتصال بقاعدة الإنتاج وفق قواعد السلامة.
 
@@ -57,11 +57,11 @@ Sanctum bearer sessions:
 
 ### الجداول الأخرى
 
-على baseline 21 نوفمبر لم تكن توجد migrations لهذه المجالات. على main الحالي أضيفت bookmarks وrecent media؛ playlists لم تنفذ بعد:
+على baseline 21 نوفمبر لم تكن توجد migrations لهذه المجالات. على main الحالي أضيفت bookmarks وrecent media وplaylists:
 - bookmarks / user_bookmarks
 - recently_watched_movies / recently_watched_episodes
 - wellness_sessions / wellness_daily_summaries
-- playlists / playlist_entries / playlist_sync_operations
+- (historical baseline) playlists / playlist_entries / playlist_sync_operations
 - devices / push_subscriptions / messages
 - banners/ads / app_configurations
 - plans/subscriptions/entitlements/wallet/topups/transactions
@@ -151,6 +151,10 @@ Sanctum bearer sessions:
 - FK user_id cascade، unique (user_id, domain)، ويستخدم القفل داخل المعاملة لضبط revision.
 - migration additive وdown() forward-only.
 
-### ما لم ينشأ بعد
-- لا توجد جداول playlists أو playlist entries أو operation log؛ تظل مطلوبة ضمن Phase06.
-- لم يتم الاتصال بقاعدة Neon الإنتاجية أو تنفيذ migration عليها. هذا الجرد لا يثبت وجود أو حجم بيانات الإنتاج.
+### Playlists — migration 2026_11_23_000010
+- user_playlists: UUID primary key، owner user_id FK cascade، name/description/version، timestamps.
+- user_playlist_items: FK cascade to playlist؛ PK composite (playlist_id, media_type, media_id)، position وmetadata للعنوان وgenre IDs.
+- user_playlist_operations: owner FK cascade، unique (user_id, operation_id)، action، payload_hash، result JSON لإعادة المحاولة الآمنة.
+- user_playlist_changes: owner FK cascade، revision/entity_type/entity_key/payload/deleted event stream، مع indexes لدعم snapshot paging.
+- لا توجد جداول imports أو shared/public playlists؛ هذه المسارات خارج نطاق Phase06.
+- لم يتم الاتصال بقاعدة Neon الإنتاجية أو تنفيذ migrations عليها. هذا الجرد لا يثبت وجود أو حجم بيانات الإنتاج.

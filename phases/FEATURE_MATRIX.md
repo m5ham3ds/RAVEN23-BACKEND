@@ -1,6 +1,6 @@
 # مصفوفة ميزات RAVEN23 Backend — الموجود والجزئي والمفقود
 
-**Backend SHA:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
+**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306  
 **Flutter SHA:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE على مستوى source feature matrix — المصفوفة لا تدعي أن التكاملات الخارجية اختُبرت إنتاجيًا.
 
@@ -45,14 +45,14 @@
 
 | الميزة | الحالة | الدليل / الفجوة |
 |---|---|---|
-| Movie/TV favorites cloud | client-only / backend missing | BookmarkRepository وSQLite موجودان؛ sync/bookmarks غير موجود في routes |
-| Custom playlists cloud | client-only / backend missing | PlaylistStore/Repository موجودان؛ sync/playlists غير موجود |
+| Movie/TV favorites cloud | كود Backend موجود؛ CI غير معتمد | migration 000008 وUserBookmark/BookmarkSyncController؛ POST/DELETE routes؛ BookmarkSyncTest في TEST |
+| Custom playlists cloud | كود Backend موجود؛ CI غير معتمد | migration 000010 وPlaylistSyncController؛ العمليات الستة وoperation log وversion conflicts وstable cursor paging؛ اختبارات Feature/PostgreSQL في TEST |
 | Import/share playlists | client-only / backend missing | client repository يطلب playlist-imports/shared-lists |
-| Recently watched movies | client-only / backend missing | SQLite/tombstone/cursor engines؛ لا route/database server |
-| Recently watched episodes/anime | client-only / backend missing | نفس ما سبق |
-| Playback progress cross-device | client-side contract only | elapsed/remaining/updated_at_utc محلي؛ server route غائب |
+| Recently watched movies | كود Backend موجود؛ CI غير معتمد | migration 000009 وuser_recent_media وsync/recently-watched؛ LWW/tombstones/revisions/clock skew |
+| Recently watched episodes | كود Backend موجود؛ CI غير معتمد | episode_id/series_id/season_num/episode_num؛ is_anime يبقى client-local |
+| Playback progress cross-device | endpoint موجود؛ CI غير معتمد | elapsed/remaining/UTC milliseconds مع server revision وupload ack؛ full multi-device/offline orchestration يبقى Phase07 |
 | Wellness/viewing sessions | client-only / backend missing | repository/SQLite/tombstone/revision client موجود؛ server route غائب |
-| Cross-device sync reliability | client-only, backend not present | العميل لديه cursor/revision/clock skew logic؛ لا يمكن نجاح تكامل الخادم الحالي |
+| Cross-device sync reliability | جزئي / Phase07 | أساس recent revisions/LWW وplaylist snapshot paging موجود؛ offline/device orchestration الكامل لم ينفذ بعد |
 | Guest local data merge | client orchestration exists | يحتاج backend sync paths حتى يثبت نقل البيانات السحابية |
 
 ## 4. Config, ads, notifications, services
@@ -99,6 +99,13 @@
 ## 7. خلاصة الأولويات
 
 1. لا نعيد كتابة المصادقة الموجودة؛ نكملها ونحافظ على عقدها.
-2. فجوة المنتج الكبرى ليست Auth؛ إنها المجالات التي يملكها العميل ولا يملك Backend تنفيذها: sync/library/progress/playlists/wellness/config/ads/push/billing.
+2. الفجوات المتبقية هي imports/public playlist sharing، wellness/config/ads/push/billing، والمزامنة الشاملة offline/device orchestration.
 3. قبل بدء schema لهذه المجالات، يجب توثيق عقود JSON والـownership وidempotency وحالات التعارض من Flutter code.
 4. لا نبدأ Phase 01 قبل إكمال كل consumer/path inventory في Phase 00.
+
+
+## 8. تحديث التنفيذ — 23 نوفمبر 2026
+
+Bookmarks وRecently watched وPlaylist sync أصبحت لها migrations/controllers/routes على main. ويشمل playlist backend عمليات create/update/delete/reorder/item.add/item.remove، operation log وversion conflict responses وrevision snapshot pagination. تصدير الحساب v3 يشمل المكتبة والقوائم.
+
+هذه الميزات تصنف «كود موجود / CI غير معتمد» لأن أحدث jobs على الفروع الثلاثة فشلت قبل تخصيص runner (runner_id=0، steps=[]). لذلك لا تصنف «موجود ومختبر» حتى تعمل البوابات فعليًا. استيراد القوائم ومشاركتها العامة ليست ضمن Phase06.

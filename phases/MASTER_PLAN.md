@@ -30,7 +30,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
-| 06 | المكتبة الشخصية وسجل المشاهدة — IN_PROGRESS (bookmarks/recent code موجودان؛ playlist sync وCI الاعتمادي باقيان) | 05 COMPLETE؛ عقد Flutter موثق في مواصفة Phase06 |
+| 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — IN_PROGRESS / CI BLOCKED (bookmarks/recent/playlists مطبقة؛ الاعتماد والاختبارات لم يثبتا) | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
@@ -114,25 +114,24 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 ## 10. سجل الانتقالات والحالة الموحدة — 23 نوفمبر 2026
 
-التفاصيل التاريخية للمرحلة 00–05 محفوظة في تقارير كل مرحلة. لا تستخدم أرقام الفروع أو PRs القديمة في سجل التاريخ كحالة حالية؛ سياسة المستودع الحالية ثلاث فروع دائمة فقط.
+التفاصيل التاريخية للمراحل 00–05 محفوظة في تقاريرها. سياسة المستودع الحالية ثلاث فروع دائمة فقط.
 
-### الحالة الراهنة
-- `main`: `a3a5e85777f1b303230f0ebaeb2583a851185a71`؛ كود التطبيق راجعه SHA `8219a5833c7a322c00d53bdebe8c4b30cfad3218`.
-- `RAVEN23-BACKEND-TEST`: `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36`؛ أربعة ملفات اختبار فقط إضافة إلى main.
-- `RAVEN23-BACKEND-USERS`: `22ded7925bd4cfcd31914268359ffb041c13384b`؛ ملف `tests/BRANCH_SCOPE.md` فقط إضافة إلى main.
-- الفروع القديمة الستة حُذفت بعد مراجعة فروقها وPRs وCI.
+### حالة التنفيذ
+- Phase00–03 COMPLETE وفق أدلتها التاريخية؛ Phase04 PARTIAL للتكاملات الخارجية؛ Phase05 COMPLETE على مستوى الكود وCI التاريخي.
+- Phase06: bookmarks وrecently-watched وplaylists أصبحت منفذة بالكود على main، وتصدير الحساب v3. الاختبارات العامة الموسعة موجودة على TEST.
+- Playlist backend يستخدم operation log وstable revision change stream؛ لا يتضمن import أو public sharing.
+- Phase06 لم تغلق بسبب عدم تنفيذ GitHub Actions لأي خطوة على الرؤوس الحالية؛ الوظائف فشلت دون runner مخصص، لذا لا يوجد PASS ولا فشل PHP مثبت.
+- لا تبدأ Phase07 قبل نجاح SQLite وPostgreSQL وPint وSecurity على SHA موحد.
 
-### Phase00–05
-- Phase00 COMPLETE على مستوى جرد المصدر في 21 نوفمبر؛ تحديثات الجرد اللاحقة موثقة بملحق baseline بتاريخ 23 نوفمبر.
-- Phase01–03 COMPLETE بحسب تقاريرها وعمليات CI الناجحة في تواريخها؛ تبقى بوابات مزود الإنتاج موضحة في سياسة الأمن.
-- Phase04 PARTIAL: اختبارات الكود وCI نجحت، لكن Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا.
-- Phase05 COMPLETE على مستوى schema/API/code/CI التاريخي؛ profile/preferences/devices وبيانات الحساب وتصدير format v1 موثقة في تقريرها.
+### رؤوس الفروع
+- main code SHA: `fea7045178e603a7b54150e75475f5d27960d306`
+- TEST: `15369516309ddd6122a358a82063a48ca6e8b7d3`
+- USERS: `c789b333574b140d1aed23ce9982dbe6a5c945e0`
 
-### Phase06 — IN_PROGRESS
-- المفضلة منفذة على main عبر migration `2026_11_23_000008_create_user_bookmarks_table.php` و`BookmarkSyncController` ومسارات POST/DELETE.
-- سجل المشاهدة والتقدم منفذ بالكود على main عبر migration `2026_11_23_000009_create_user_recent_media_tables.php` و`RecentlyWatchedSyncController` ومسار POST. يدعم ملكية المستخدم، revisions، UTC milliseconds، LWW، tombstones، clock-skew response وupload acknowledgement.
-- تصدير الحساب محدث إلى `format_version=2` ويضم bookmarks وrecently_watched.
-- اختبارات bookmarks وrecent progress موجودة على TEST. CI لم يثبت SHA الحالي: main `#352/#85/#87` وTEST `#351/#84/#86` انتهت قبل إظهار خطوات تنفيذ، وسجلاتها غير متاحة؛ لا تسجل PASS أو فشل PHP معين.
-- Playlist sync غير منفذ. يجب إكمال operation log/idempotency/version conflicts/stable pagination واختباره قبل إغلاق المرحلة.
+### آخر تحقق CI
+- main: Docker #360 / Pint #96 / Security #98.
+- TEST: Docker #361 / Pint #97 / Security #99.
+- USERS: Auth #8 / Pint #98 / Security #100.
+- كل jobs التي فُحصت تعرض runner_id=0 وsteps=[]؛ سجلات الوظائف غير متاحة. احتمالية quota/billing أو منع runner لم تثبت بعد؛ راجع STATUS.md.
 
-**الخطوة المسموحة التالية:** استعادة بوابات CI على SHA حديث، ثم إكمال Playlist sync داخل Phase06. لا تبدأ Phase07 قبل اكتمال معايير Phase06 ونجاح البوابات.
+**الخطوة المسموحة التالية:** استعادة تخصيص Actions runners ثم تشغيل وإصلاح نتائج الاختبارات الفعلية. بعد نجاح بوابات Phase06 فقط، انتقل مباشرة إلى Phase07.

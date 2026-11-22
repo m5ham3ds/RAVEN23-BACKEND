@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> main docs snapshot: a3a5e85777f1b303230f0ebaeb2583a851185a71؛ كود التطبيق راجعه SHA 8219a5833c7a322c00d53bdebe8c4b30cfad3218 — 23 نوفمبر 2026  
+> main implementation SHA: fea7045178e603a7b54150e75475f5d27960d306 — 23 نوفمبر 2026  
 > الفروع التشغيلية المسموحة: main / RAVEN23-BACKEND-TEST / RAVEN23-BACKEND-USERS
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -28,9 +28,9 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا بتاريخ 23 نوفمبر 2026. Phase00–03 مكتملة وفق أدلتها التاريخية، Phase04 PARTIAL، Phase05 مكتملة على مستوى الكود وCI التاريخي، وPhase06 IN_PROGRESS. على main توجد مزامنة المفضلة وسجل المشاهدة/التقدم؛ Playlist sync ما زالت غير منفذة. لا تسجل Phase06 أو تنتقل إلى Phase07 قبل نجاح الاختبارات والبوابات على SHA واحد.
+راجع `STATUS.md` بوصفه snapshot موحدًا بتاريخ 23 نوفمبر 2026. Phase00–03 مكتملة وفق أدلتها التاريخية، Phase04 PARTIAL، Phase05 مكتملة على مستوى الكود وCI التاريخي، وPhase06 ما تزال IN_PROGRESS / CI BLOCKED. على main أصبحت المفضلة وسجل المشاهدة والقوائم الشخصية منفذة، مع تصدير حساب v3. لا تنتقل إلى Phase07 قبل نجاح الاختبارات والبوابات على SHA واحد.
 
-الفروع الدائمة الثلاثة فقط: `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`. أحدث hashes وحالة CI في `STATUS.md` وملحق Phase06.
+الفروع الدائمة الثلاثة فقط: `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`. تفاصيل التنفيذ وCI في `STATUS.md` وتقرير Phase06.
 
 ## قواعد هذا المجلد
 

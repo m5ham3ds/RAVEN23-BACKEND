@@ -1,27 +1,31 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Backend SHA المراجع:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218  
+**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306  
 **تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
 **الحالة:** COMPLETE على مستوى source/workflow inventory؛ لم تُنفذ workflows التي تكتب على الإنتاج.
 
 ## 1. ملفات workflows
 
+**Git tree الحالي:** 12 workflow files؛ لم يعد runtime-db-diagnostics.yml موجودًا.
+
 | الملف | الاسم في GitHub Actions | Trigger | طبيعة العمل / ملاحظات |
 |---|---|---|---|
-| docker-build.yml | RAVEN23 Backend Docker Validation | push وpull_request إلى main | يبني الصورة، Feature tests على SQLite، ويبني PostgreSQL test image ويشغل migrations/integration tests على PostgreSQL 16 مؤقتة |
-| auth-smoke.yml | RAVEN23 Live Authentication Smoke | push main مع paths-ignore، وworkflow_dispatch | يستيقظ Render ويفحص health/DB/schema/commit/routes بطلبات GET؛ شرط job الحالي يسمح push فقط، ولذلك manual dispatch لا يشغل المهمة |
-| production-account-retry.yml | RAVEN23 Production Registration Retry | تعديل الملف نفسه على main | ينتظر Render ثم ينشئ حسابًا اصطناعيًا ويسجل دخوله ويمسحه من production |
+| docker-build.yml | RAVEN23 Backend Docker Validation | push وpull_request إلى main وRAVEN23-BACKEND-TEST | يبني الصورة، يشغل جميع Feature tests على SQLite، وجميع Integration tests على PostgreSQL 16 المؤقتة، ثم smoke checks للـruntime |
+| auth-smoke.yml | RAVEN23 Live Authentication Smoke | push إلى main وworkflow_dispatch | يفحص health/DB/schema/commit/routes بطلبات GET؛ شرط job يسمح push فقط لذلك لا يثبت workflow_dispatch وحده تشغيل job |
+| pint-format-report.yml | RAVEN23 Pint Format Report | push وpull_request إلى الفروع الثلاثة وworkflow_dispatch | Laravel Pint على ملفات PHP المتغيرة |
+| security-scans.yml | RAVEN23 Security Scans | push وpull_request إلى الفروع الثلاثة وworkflow_dispatch | Gitleaks وTrivy filesystem/image وبوابات الثغرات |
+| users-auth-tests.yml | RAVEN23 USERS Authentication Tests | push وpull_request إلى RAVEN23-BACKEND-USERS | اختبارات SQLite وPostgreSQL لدورة الحسابات |
+| production-account-retry.yml | RAVEN23 Production Registration Retry | تعديل الملف نفسه على main | ينشئ حسابًا اصطناعيًا ويسجل دخوله ويمسحه من production |
 | production-account-retry-2.yml | RAVEN23 Production Account Retry 2 | تعديل الملف نفسه على main | نسخة قريبة من اختبار account lifecycle الإنتاجي |
 | production-account-retry-3.yml | RAVEN23 Production Account Retry 3 | تعديل الملف نفسه على main | نسخة قريبة من اختبار account lifecycle الإنتاجي |
 | production-account-retry-4.yml | RAVEN23 Production Account Retry 6 | تعديل الملف نفسه على main | نسخة قريبة؛ الاسم يوحي برقم retry غير مطابق للملف |
 | production-account-retry-7.yml | RAVEN23 Production Account Retry 6 | تعديل الملف نفسه على main | اسم workflow مكرر مع retry-4 رغم اختلاف اسم الملف |
-| production-account-smoke.yml | RAVEN23 Production Account Creation Test | تعديل الملف نفسه على main | ينشئ حساب إنتاج اصطناعيًا ويجرب دورة الحياة ويحاول التنظيف؛ إذا فشل cleanup يوقف المهمة بخطر بقاء الحساب |
-| production-registration-route-probe.yml | RAVEN23 Production Registration Route Probe | تعديل الملف نفسه على main | يختبر route validation عبر payload فارغ، ويتوقع 422؛ لا ينشئ حسابًا في المسار الرئيسي |
-| pint-format-report.yml | RAVEN23 Pint Format Report | push إلى الفروع الثلاثة | Laravel Pint للملفات المعدلة |\n| security-scans.yml | RAVEN23 Security Scans | push إلى الفروع الثلاثة | Gitleaks وTrivy filesystem/image وبوابات الثغرات |\n| users-auth-tests.yml | RAVEN23 USERS Authentication Tests | push إلى RAVEN23-BACKEND-USERS | اختبارات PostgreSQL/SQLite الخاصة بنطاق الحسابات |
+| production-account-smoke.yml | RAVEN23 Production Account Creation Test | تعديل الملف نفسه على main | ينشئ حساب إنتاج اصطناعيًا ويجرب دورة الحياة ويحاول التنظيف؛ cleanup failure قد يترك حسابًا |
+| production-registration-route-probe.yml | RAVEN23 Production Registration Route Probe | تعديل الملف نفسه على main | يختبر route validation عبر payload فارغ ويتوقع 422؛ لا ينشئ حسابًا في المسار الرئيسي |
 
 ## 2. نتائج CI المرصودة
 
-### أحدث خط أساس على main
+### نتائج خط الأساس التاريخية — 21 نوفمبر 2026
 
 - Backend Docker Validation #182 — SHA 9f29fa55afa21c0445be82d4590a4a532bb1747c — SUCCESS.
   - 11 Feature tests ناجحة / 68 assertions.
@@ -61,28 +65,18 @@
 - Phase 12: عدم استخدام أي production account test أو DB write خارج نافذة cutover المصرح بها.
 
 
-## 5. تحديث ملفات workflows وحالة التشغيل — 23 نوفمبر 2026
+## 5. أحدث حالة تشغيل — 23 نوفمبر 2026
 
-العدد الحالي على main هو 12 workflow:
-- `auth-smoke.yml`
-- `docker-build.yml`
-- `pint-format-report.yml`
-- `security-scans.yml`
-- `users-auth-tests.yml`
-- `production-account-retry.yml`
-- `production-account-retry-2.yml`
-- `production-account-retry-3.yml`
-- `production-account-retry-4.yml`
-- `production-account-retry-7.yml`
-- `production-account-smoke.yml`
-- `production-registration-route-probe.yml`
+### رؤوس الفروع ونتائج GitHub Actions
+- main implementation SHA fea7045178e603a7b54150e75475f5d27960d306: Docker #360 (run 45083888323)، Pint #96 (45083888275)، Security #98 (45083888350).
+- TEST SHA 15369516309ddd6122a358a82063a48ca6e8b7d3: Docker #361 (run 45083923781)، Pint #97 (45083923772)، Security #99 (45083923791).
+- USERS SHA c789b333574b140d1aed23ce9982dbe6a5c945e0: Auth #8 (run 45083951166)، Pint #98 (45083951162)، Security #100 (45083951138).
 
-`runtime-db-diagnostics.yml` لم يعد في Git tree الحالي. ما تزال نسخ production-account retry المتعددة موجودة؛ توحيدها مهمة Phase10، ولا تُحذف أو تُشغّل ضمن Phase06 دون تصريح مناسب.
+### نتيجة فحص تخصيص runner
+- آخر Docker job على main وTEST وآخر Auth job على USERS: runner_id=0، runner_name فارغ، steps=[].
+- سجلات الوظائف غير متاحة ويعيد endpoint تنزيلها BlobNotFound؛ لم تبدأ أي خطوة من المشروع.
+- هذا تعثر تخصيص/بدء runner قبل التنفيذ؛ لا يثبت فشل PHP أو نجاحه.
+- quota/billing أو إعدادات تخصيص runner احتمال تشغيلي فقط، لم يتم تأكيده من صفحة Billing. يحتاج مالك المستودع مراجعة Actions usage/spending limit/payment method.
+- لا تكرر rerun عشوائيًا ولا تعدّل الكود لإخفاء هذه الحالة.
 
-### أحدث نتائج الفروع الثلاثة بعد المزامنة وإعادة المحاولة
-- main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker #352، Pint #85، Security #87 — conclusion failure، لكن لا توجد steps منفذة/معروضة وسجلات الوظائف غير متاحة.
-- TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351، Pint #84، Security #86 — النتيجة نفسها.
-- هذه ليست إثباتًا أن اختبارات PHP فشلت؛ كما أنها ليست نجاحًا. لا توجد بوابة CI معتمدة للـSHA الحالي.
-- USERS `b0fd200...`: Auth #4 / Pint #80 / Security #82 SUCCESS على SHA قديم فقط.
-
-لم يتم تشغيل workflows التي تكتب على الإنتاج، ولم يتم قراءة secrets أو تعديل قاعدة الإنتاج.
+لم يتم تشغيل workflows التي تكتب على الإنتاج، ولم تتم قراءة secrets أو تعديل قاعدة الإنتاج.

@@ -21,10 +21,10 @@
 
 ## نقطة الانتقال — 23 نوفمبر 2026
 
-- تم تأكيد بقاء الفروع الدائمة الثلاثة فقط؛ الفروع القديمة الستة حُذفت بعد مراجعتها.
-- `main`: `a3a5e85777f1b303230f0ebaeb2583a851185a71` — كود التطبيق راجعه SHA `8219a5833c7a322c00d53bdebe8c4b30cfad3218`.
-- `RAVEN23-BACKEND-TEST`: `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36` — 4 ملفات اختبار إضافية فقط.
-- `RAVEN23-BACKEND-USERS`: `22ded7925bd4cfcd31914268359ffb041c13384b` — ملف `tests/BRANCH_SCOPE.md` فقط.
-- لا تنشئ فروع phase/feature أو فروعًا مؤقتة؛ لا تحذف أي فرع دائم.
-- بعد كل دفعة main، تتم مزامنة TEST وUSERS مع الحفاظ على الاختبارات والنطاق المسموح فقط.
-- Phase04 PARTIAL للتكاملات الخارجية، Phase05 COMPLETE، Phase06 IN_PROGRESS مع Playlists وCI verification غير مكتملين.
+- الفروع الدائمة الثلاثة فقط: main / RAVEN23-BACKEND-TEST / RAVEN23-BACKEND-USERS؛ تم حذف الفروع القديمة الستة.
+- آخر دفعة كود Phase06 على main: `fea7045178e603a7b54150e75475f5d27960d306`.
+- TEST: `15369516309ddd6122a358a82063a48ca6e8b7d3`؛ فرق الاختبارات عن main يضم BookmarkSyncTest وRecentlyWatchedSyncTest وPlaylistSyncTest وPostgresRecentlyWatchedSyncTest وPostgresPlaylistSyncTest وملف BRANCH_SCOPE.
+- USERS: `c789b333574b140d1aed23ce9982dbe6a5c945e0`؛ يحتفظ بملف BRANCH_SCOPE فقط كإضافة خاصة بالفرع.
+- main يحتفظ باختبارات Feature الأساسية التي يشغلها Docker، ويظل TEST هو الفرع المخصص للاختبارات العامة الموسعة.
+- Phase04 PARTIAL للتكاملات الخارجية، Phase05 COMPLETE، Phase06 code implemented but CI BLOCKED.
+- لا تنشئ phase/feature branches. لا تحذف أي فرع دائم. لا تنفذ إنتاج أو AWS.

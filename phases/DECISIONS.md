@@ -124,3 +124,22 @@
 - **الحالة:** تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
 - **القرار:** تم تحديث `GET /api/v1/user/data-export` إلى `format_version=2` ويضم bookmarks وrecently_watched إضافة إلى account/profile/preferences/devices. يستمر استبعاد password وgoogle_id وremember_token وSanctum tokens/secret values.
 - **التوافق:** يسجل D-014 صيغة v1 التاريخية الخاصة بـPhase05؛ لا يحذف القرار السابق. صيغة v2 هي الحالية بعد إضافة Phase06.
+
+
+## D-018 — Owner-scoped playlist operation sync
+
+- التاريخ: 23 نوفمبر 2026
+- الحالة: تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
+- القرار: تحفظ القوائم تحت user_playlists مع owner FK cascade؛ العناصر تحت user_playlist_items بمفتاح (playlist_id, media_type, media_id). سجل operation log يفرض unique (user_id, operation_id) ويحفظ payload hash والنتيجة؛ reuse لنفس operation_id مع محتوى مختلف يرفض.
+- المزامنة: domain revision منفصل في user_sync_revisions، وسجل تغييرات غير قابل للتغيير في user_playlist_changes. يستخدم since_revision/until_revision/cursor لتثبيت snapshot؛ سجلات القوائم تعاد في الصفحة الأولى وتُقسم سجلات العناصر إلى صفحات لتوافق PlaylistSyncEngine.
+- التعارض: update/reorder يحمل base_version؛ النسخة المتقادمة ترجع version_conflict/current_version.
+- القيود: 200 قائمة/مستخدم، 2500 عنصر/قائمة، 500 operation/request؛ media_type هو movie/tv فقط.
+- خارج النطاق: TMDB/IMDb imports ومشاركة القوائم العامة لم تنفذ.
+
+## D-019 — Account export format v3
+
+- التاريخ: 23 نوفمبر 2026
+- الحالة: تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
+- القرار: GET /api/v1/user/data-export أصبح format_version=3 ويضم account/profile/preferences/devices/bookmarks/recently_watched/playlists.
+- الأمان: لا تصدر كلمات المرور أو google_id أو remember_token أو Sanctum token hashes أو أسرار التحقق/الاسترداد.
+- التوافق: D-014 v1 وD-017 v2 تاريخيان؛ v3 هو العقد الحالي بعد إضافة Playlist sync.

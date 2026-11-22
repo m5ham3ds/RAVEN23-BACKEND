@@ -1,6 +1,6 @@
 # المرحلة 06 — المكتبة الشخصية وسجل المشاهدة وتقدم التشغيل
 
-**الحالة:** IN_PROGRESS — bookmarks وrecently-watched أضيفا إلى main؛ Playlist sync والاختبار النهائي ما زالا باقيين.  
+**الحالة:** IN_PROGRESS / CI BLOCKED — bookmarks وrecently-watched وplaylist sync أضيفت إلى main؛ الاختبارات موجودة لكن لم تحصل على runner للتنفيذ.  
 **الاعتماديات:** Phase05 COMPLETE؛ عقد Flutter المصدر تمت مراجعته على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`
 
 ## الهدف
@@ -73,32 +73,46 @@
 
 ## تقدم التنفيذ الفعلي — 23 نوفمبر 2026
 
-### Bookmarks — موجودة على main
-- Migration: `2026_11_23_000008_create_user_bookmarks_table.php`.
+### Bookmarks — كود main
+- Migration `2026_11_23_000008_create_user_bookmarks_table.php`.
 - Model/controller: `UserBookmark.php`, `BookmarkSyncController.php`.
 - المسارات: `POST /api/v1/sync/bookmarks` و`DELETE /api/v1/sync/bookmarks/{type}/{id}`.
-- Feature tests: `tests/Feature/BookmarkSyncTest.php` على TEST.
-- المزامنة والحذف owner-scoped، والمفتاح الفريد يمنع التكرار، والرد يعيد movie/tv union.
+- owner-scoped وunique (user_id, media_type, media_id)، والرد يعيد movie/tv union.
 
-### Recently watched / Playback — كود مضاف على main
-- Migration: `2026_11_23_000009_create_user_recent_media_tables.php` تنشئ `user_recent_media` و`user_sync_revisions`.
-- Models: `UserRecentMedia.php`, `UserSyncRevision.php`.
-- Controller/route: `RecentlyWatchedSyncController.php`, `POST /api/v1/sync/recently-watched`.
-- يدعم movies وepisodes، UTC millisecond stamps، revisions لكل مستخدم، LWW، tombstones، clock-skew 422، revision-ahead 422 وupload acknowledgements.
-- التحديث الأحدث يلغي tombstone أقدم؛ حذف أحدث يمنع إحياء نسخة أقدم.
-- تصدير البيانات `format_version=2` ويضم bookmarks وrecently_watched مع بيانات الحساب/الملف/التفضيلات/الأجهزة، مع استبعاد أسرار الحساب.
+### Recently watched / Playback — كود main
+- Migration `2026_11_23_000009_create_user_recent_media_tables.php`؛ الجداول `user_recent_media` و`user_sync_revisions`.
+- Controller/model: `RecentlyWatchedSyncController`, `UserRecentMedia`, `UserSyncRevision`, و`POST /api/v1/sync/recently-watched`.
+- يدعم movies وepisodes، timestamps UTC milliseconds، revisions لكل مستخدم، LWW، tombstones، clock-skew 422، revision-ahead 422، upload acknowledgements. التحديث الأحدث يلغي tombstone أقدم.
+- batch max 450 لكل نوع؛ retention للخادم 90 يومًا.
 
-### الاختبارات وحالة الاعتماد
-- TEST يحتوي `BookmarkSyncTest.php`, `RecentlyWatchedSyncTest.php`, و`PostgresRecentlyWatchedSyncTest.php` إضافة إلى ملف نطاق الفرع.
-- أضيف اختبار يثبت أن تقدمًا أحدث يتغلب على tombstone أقدم.
-- main docs head `a3a5e85777f1b303230f0ebaeb2583a851185a71` (code snapshot `8219a5833c7a322c00d53bdebe8c4b30cfad3218`): Docker #353/Pint #86/Security #88؛ TEST `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36`: Docker #354/Pint #87/Security #89؛ USERS `22ded7925bd4cfcd31914268359ffb041c13384b`: Auth #5/Pint #88/Security #90. جميعها فشلت حتى بعد إعادة محاولة واحدة، مع steps فارغة/null وسجلات غير متاحة. لا يوجد PASS أو دليل على failure في PHP نفسه.
-- لا يتم اعتماد هذا النطاق قبل نجاح SQLite وPostgreSQL وPint وSecurity على SHA موحد.
+### Playlists / Collections — كود main
+- Migration `2026_11_23_000010_create_user_playlist_sync_tables.php` تنشئ:
+  - `user_playlists`: UUID، owner FK cascade، الاسم والوصف والنسخة.
+  - `user_playlist_items`: movie/tv metadata والترتيب، PK مركب (playlist_id, media_type, media_id).
+  - `user_playlist_operations`: operation idempotency بسجل (user_id, operation_id) وpayload hash/result.
+  - `user_playlist_changes`: immutable revision snapshots/tombstones لpagination ثابتة.
+- Controller/route: `PlaylistSyncController` و`POST /api/v1/sync/playlists` خلف `auth:sanctum`.
+- العمليات الستة: playlist.create/update/delete/reorder وitem.add/remove.
+- max 500 operation/request، 200 playlist/user، 2500 items/playlist، name 80، description 500.
+- duplicate operation ID يعيد النتيجة المحفوظة، وإعادة استخدامه مع payload مختلف ترفض. stale base_version يرجع version_conflict/current_version.
+- pagination ثابتة عبر since_revision/until_revision/cursor. سجلات القوائم تصل في الصفحة الأولى لأن Flutter يجمعها هناك؛ تغييرات العناصر فقط تتصفح في الصفحات التالية. عمليات الحذف تحفظ tombstones.
+- حذف عنصر يعيد ترقيم مواضع العناصر المتبقية ويسجل تغييراتها في revision نفسه.
+- لا imports أو public sharing؛ تبقى خارج النطاق الحالي.
 
-### ما لا يزال مطلوبًا لإغلاق Phase06
-1. تنفيذ `POST /api/v1/sync/playlists` وفق عمليات Flutter الستة، مع operation idempotency وowner scope.
-2. version conflicts في update/reorder وسلوك رفض العملية وفق client replay.
-3. pagination snapshot ثابت عبر `until_revision` و`cursor`، وعدم تطبيق البيانات قبل اكتمال كل الصفحات.
-4. اختبارات SQLite/PostgreSQL لـcreate/update/delete/reorder/add/remove، التكرار، ownership، النزاعات، pagination، حذف القائمة وعناصرها.
-5. تحديث ERD وAPI inventory وFeature Matrix وتشغيل جميع البوابات على SHA موحد.
+### Data export
+- `GET /api/v1/user/data-export` أصبح `format_version=3` ويضم account/profile/preferences/devices/bookmarks/recently_watched/playlists.
+- لا يصدّر password أو google_id أو remember_token أو Sanctum tokens/secret values.
+- تم تحديث اختبار `UserDataFoundationTest.php` على main إلى الإصدار 3 لأن Docker Feature suite يشغله من main.
 
-**الحالة الدقيقة الحالية:** bookmarks وrecent sync منفذان بالكود مع اختبارات مضافة؛ CI لم يعتمدها بعد، وPlaylist sync غير منفذ. Phase06 IN_PROGRESS.
+### الاختبارات
+- TEST يحتوي BookmarkSyncTest وRecentlyWatchedSyncTest وPlaylistSyncTest وPostgresRecentlyWatchedSyncTest وPostgresPlaylistSyncTest.
+- يغطي التكرار، stale progress/tombstones، ownership، clock skew، عمليات القوائم الستة، conflicts، reorder، deletion، stable pagination، وexport v3.
+- لا يوجد PASS بعد: latest CI runs main #360/#96/#98، TEST #361/#97/#99، USERS #8/#98/#100. الوظائف المفحوصة انتهت بـrunner_id=0 وsteps=[] وسجلات غير متاحة. هذا عائق تخصيص runner قبل التنفيذ، وليس فشلًا مثبتًا في PHP tests.
+
+### ما يلزم للإغلاق
+1. استعادة runner allocation في GitHub Actions لدى مالك المستودع.
+2. تشغيل Docker/SQLite Feature suite، PostgreSQL Integration suite، Pint، Security على SHA موحد.
+3. إصلاح أي أخطاء فعلية تظهر بعد تخصيص runner وإعادة الاختبارات.
+4. إغلاق Phase06 بتقرير نهائي بعد استيفاء كل المعايير. لا تبدأ Phase07 قبل ذلك.
+
+**الحالة الدقيقة:** الميزات الثلاث منفذة بالكود، والاختبارات المخصصة موجودة على TEST، لكن لا يوجد إثبات CI صالح بعد. Phase06 IN_PROGRESS / CI BLOCKED.

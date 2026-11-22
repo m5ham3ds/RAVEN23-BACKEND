@@ -158,3 +158,57 @@ erDiagram
 - All three entities have user_id FK -> users.id with ON DELETE CASCADE. Controllers query using authenticated user ID.
 - Playlist tables/operation log are not implemented and are intentionally omitted until a migration is committed.
 - CI verification of Phase06 migrations is not yet confirmed; see Phase06 progress report.
+
+
+## 7. Addendum — Phase06 playlist entities (23 November 2026)
+
+```mermaid
+erDiagram
+    USERS ||--o{ USER_PLAYLISTS : owns
+    USERS ||--o{ USER_PLAYLIST_OPERATIONS : submits
+    USERS ||--o{ USER_PLAYLIST_CHANGES : receives
+    USER_PLAYLISTS ||--o{ USER_PLAYLIST_ITEMS : contains
+    USER_PLAYLISTS {
+        uuid id PK
+        bigint user_id FK
+        varchar name
+        varchar description
+        int version
+        timestamp created_at
+        timestamp updated_at
+    }
+    USER_PLAYLIST_ITEMS {
+        uuid playlist_id PK,FK
+        varchar media_type PK
+        bigint media_id PK
+        int position
+        varchar title
+        json genre_ids
+        timestamp created_at
+        timestamp updated_at
+    }
+    USER_PLAYLIST_OPERATIONS {
+        bigint id PK
+        bigint user_id FK
+        uuid operation_id
+        uuid playlist_id
+        varchar action
+        varchar payload_hash
+        json result
+    }
+    USER_PLAYLIST_CHANGES {
+        bigint id PK
+        bigint user_id FK
+        bigint revision
+        varchar entity_type
+        varchar entity_key
+        json payload
+        boolean deleted
+    }
+```
+
+- Migration 2026_11_23_000010 creates the four tables above; operation key is unique by (user_id, operation_id); item key is (playlist_id, media_type, media_id).
+- user_playlists.user_id, user_playlist_operations.user_id, and user_playlist_changes.user_id cascade to users; playlist items cascade to their playlist.
+- Sync domain playlists shares the owner-scoped revision table but has its own revision counter.
+- Playlist import jobs and public sharing are not part of this schema or Phase06.
+- CI verification remains blocked because GitHub Actions did not allocate runners.

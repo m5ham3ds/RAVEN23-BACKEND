@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
 **تاريخ الجرد:** 23 نوفمبر 2026
-**Backend SHA:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218
+**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -15,7 +15,7 @@
 
 ## 2. المسارات الموجودة في Backend الحالي
 
-المصدر: routes/api.php على main SHA 8219a5833c7a322c00d53bdebe8c4b30cfad3218.
+المصدر: routes/api.php على main implementation SHA fea7045178e603a7b54150e75475f5d27960d306.
 
 | الطريقة | المسار | المصادقة | وضع التنفيذ |
 |---|---|---|---|
@@ -33,7 +33,11 @@
 | PUT | /api/v1/user/profile | Bearer | تحديث الاسم وusername وprofile_id وphoto_url |
 | POST | /api/v1/user/change-email | Bearer | تغيير البريد مع تحقق كلمة المرور |
 | POST | /api/v1/user/change-password | Bearer | تغيير كلمة المرور وإلغاء جميع tokens |
-| DELETE | /api/v1/user/account | Bearer | إلغاء tokens ثم حذف الحساب مع cascade لبيانات owner FK |\n| POST | /api/v1/sync/bookmarks | Bearer | مزامنة movie/tv bookmarks، owner-scoped |\n| DELETE | /api/v1/sync/bookmarks/{type}/{id} | Bearer | حذف bookmark idempotent للمستخدم الحالي |\n| POST | /api/v1/sync/recently-watched | Bearer | مزامنة movie/episode progress مع revision/tombstones |
+| DELETE | /api/v1/user/account | Bearer | إلغاء tokens ثم حذف الحساب مع cascade لبيانات owner FK |
+| POST | /api/v1/sync/bookmarks | Bearer | مزامنة movie/tv bookmarks، owner-scoped |
+| DELETE | /api/v1/sync/bookmarks/{type}/{id} | Bearer | حذف bookmark idempotent للمستخدم الحالي |
+| POST | /api/v1/sync/recently-watched | Bearer | مزامنة movie/episode progress مع revision/tombstones |
+| POST | /api/v1/sync/playlists | Bearer | مزامنة القوائم والعناصر بالعمليات والإصدارات والصفحات الثابتة |
 
 ## 3. عقد المصادقة كما يستهلكه تطبيق Flutter
 
@@ -58,18 +62,18 @@
 
 **ملاحظة مهمة:** AuthRepository يحتوي exchangeFirebaseSession ويرسل id_token إلى auth/firebase/exchange. لا توجد route أو controller مقابلة في Backend الحالي. لا تحذف Firebase bridge أو SDK قبل حسم توافق الحسابات القديمة واختبار الترحيل.
 
-## 4. مسارات يتوقعها كود العميل لكنها غير موجودة في Backend الحالي
+## 4. مسارات يتوقعها كود العميل وحالتها في Backend الحالي
 
-المسارات التالية ظهرت في repositories أو integration tests في مستودع RAVEN23. لا توجد لها routes/controllers أو migrations مقابلة في Backend snapshot الذي تمت مراجعته.
+المسارات التالية ظهرت في repositories أو integration tests في مستودع RAVEN23. يعرض الجدول حالة التنفيذ الحالية؛ يظل CI غير معتمد على SHA Phase06 بسبب عدم تخصيص runner.
 
 | المجال | المسارات المتوقعة من العميل | وضع Backend |
 |---|---|---|
 | Bootstrap/config | GET config/bootstrap مع ETag | غير موجود |
 | إعلانات | GET ads، POST ads/{id}/impression، POST ads/{id}/click | غير موجود |
-| المفضلة | POST sync/bookmarks، DELETE sync/bookmarks/{type}/{id} | غير موجود |
-| سجل المشاهدة والتقدم | POST sync/recently-watched | غير موجود |
+| المفضلة | POST sync/bookmarks، DELETE sync/bookmarks/{type}/{id} | موجود بالكود؛ CI غير معتمد |
+| سجل المشاهدة والتقدم | POST sync/recently-watched | موجود بالكود؛ CI غير معتمد |
 | Wellness/viewing sessions | POST sync/wellness مع pagination/revision | غير موجود |
-| القوائم | POST sync/playlists | غير موجود |
+| القوائم | POST sync/playlists | موجود بالكود؛ CI غير معتمد |
 | استيراد القوائم | POST playlist-imports، GET playlist-imports/{id}، DELETE playlist-imports/{id}، POST playlist-imports/{id}/commit | غير موجود |
 | مشاركة القوائم | PUT playlists/{id}/sharing، GET shared-lists/{code} | غير موجود |
 | تسجيل جهاز/FCM | POST devices/register | غير موجود |
@@ -82,7 +86,7 @@
 
 ### أولوية هذا الفرق
 
-في MigrationFlags.fromRuntime، عندما يكون Firebase معطّلًا وLOCAL_DEV_MODE معطّلًا وRAVEN23_AUTH_ONLY غير مفعّل، تكون flags الافتراضية auth,ads,sync. أي إن مزامنة المفضلة والسجل وwellness والقوائم، وكذلك الإعلانات، قد تكون مفعّلة في build عادي حتى مع غياب routes الخادم المقابلة.
+في MigrationFlags.fromRuntime، عندما يكون Firebase معطّلًا وLOCAL_DEV_MODE معطّلًا وRAVEN23_AUTH_ONLY غير مفعّل، تكون flags الافتراضية auth,ads,sync. أي إن wellness وبعض مزايا sync غير المنفذة، وكذلك الإعلانات، قد تكون مفعّلة في build عادي رغم غياب routes الخادم المقابلة. أما bookmarks وrecently-watched وplaylists فلها routes على main الحالي.
 
 الملفات التي تتحكم بذلك:
 - lib/core/config/migration_flags.dart
@@ -137,7 +141,7 @@
 
 ### Bookmarks
 
-وثيقة migration PRD وعقد Flutter يذكران POST sync/bookmarks مع movies[], tvShows[] وdeleted_media[]. العميل يتوقع استجابة مدمجة تشمل movies وtvShows. حذف عنصر منفرد يتم عبر DELETE sync/bookmarks/{type}/{id}. يجب تثبيت مخطط العناصر والـnaming النهائي قبل بناء controller.
+وثيقة migration PRD وعقد Flutter يذكران POST sync/bookmarks مع movies[], tvShows[] وdeleted_media[]. العميل يتوقع استجابة مدمجة تشمل movies وtvShows. حذف عنصر منفرد يتم عبر DELETE sync/bookmarks/{type}/{id}. تم تنفيذ controller والمخطط في migration 2026_11_23_000008؛ الرد يعيد union للمفضلة movie/tv ويظل owner-scoped.
 
 ### Recently watched / playback progress
 
@@ -159,10 +163,12 @@
 
 ### Playlists
 
-- POST sync/playlists مع operations[]، since_revision، until_revision، cursor؛ الحد الأقصى للعملية الواحدة 500.
-- الرد المتوقع: server_revision، full، results[]، playlists[]، items[]، next_cursor.
-- playlist imports: start preview ثم commit create/append.
-- sharing: PUT playlists/{id}/sharing مع public، والقراءة العامة GET shared-lists/{code}.
+- POST sync/playlists منفذ بالكود على main مع operations[] وsince_revision وuntil_revision وcursor؛ الحد الأقصى 500 عملية/طلب.
+- الرد: server_revision، full، results[]، playlists[]، items[]، next_cursor.
+- العمليات: playlist.create/update/delete/reorder وitem.add/remove؛ operation IDs idempotent وbase_version يفرض conflict handling على update/reorder.
+- snapshot يثبت حتى until_revision؛ playlists ترجع في الصفحة الأولى والعناصر تتصفح بالـcursor بما يوافق PlaylistSyncEngine.
+- playlist imports: start preview ثم commit create/append ما زالت غير منفذة.
+- sharing: PUT playlists/{id}/sharing مع public والقراءة العامة GET shared-lists/{code} ما زالت غير منفذة.
 
 ### Device/push, config, ads, billing
 
