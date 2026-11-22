@@ -72,7 +72,7 @@ class AuthController extends Controller
                 // Never issue a bearer token for an Eloquent instance whose
                 // account row is not visible through a fresh PostgreSQL
                 // connection.
-                throw new \\RuntimeException(
+                throw new \RuntimeException(
                     'The account could not be verified after refreshing the database connection.'
                 );
             }
