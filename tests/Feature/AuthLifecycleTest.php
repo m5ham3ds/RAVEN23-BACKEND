@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Support\GoogleIdTokenVerifier;
+use App\Notifications\EmailVerificationNotification;
+use App\Notifications\PasswordResetNotification;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
@@ -63,7 +66,222 @@ class AuthLifecycleTest extends TestCase
             $table->timestamps();
             $table->index(['tokenable_type', 'tokenable_id', 'device_id']);
         });
+
+        Schema::connection('sqlite')->create('password_reset_tokens', static function (Blueprint $table): void {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::connection('sqlite')->create('email_verification_tokens', static function (Blueprint $table): void {
+            $table->unsignedBigInteger('user_id')->primary();
+            $table->char('token_hash', 64);
+            $table->timestamp('expires_at')->index();
+            $table->timestamp('created_at')->nullable();
+        });
+    
+    private function enableTestAuthMail(): void
+    {
+        config([
+            'services.raven23_auth.mail_enabled' => true,
+            'services.raven23_auth.action_url' => 'https://raven23.example.test/auth',
+            'mail.default' => 'array',
+            'security.email_verification_expire_minutes' => 60,
+            'auth.passwords.users.expire' => 60,
+            'auth.passwords.users.throttle' => 0,
+        ]);
     }
+
+    public function test_email_verification_uses_hashed_one_time_tokens_and_rejects_replay(): void
+    {
+        Notification::fake();
+        $this->enableTestAuthMail();
+
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
+        $user = User::findOrFail($registration->json('user.id'));
+        $plainToken = null;
+
+        Notification::assertSentTo($user, EmailVerificationNotification::class, function ($notification) use (&$plainToken): bool {
+            $plainToken = $notification->token;
+
+            return true;
+        });
+
+        $this->assertIsString($plainToken);
+        $this->assertDatabaseHas('email_verification_tokens', [
+            'user_id' => $user->id,
+            'token_hash' => hash('sha256', $plainToken),
+        ]);
+        $this->assertDatabaseMissing('email_verification_tokens', [
+            'user_id' => $user->id,
+            'token_hash' => $plainToken,
+        ]);
+
+        $this->postJson('/api/v1/auth/verify-email', [
+            'user_id' => $user->id,
+            'token' => $plainToken,
+        ])->assertOk()->assertJsonPath('verified', true);
+
+        $this->assertDatabaseHas('users', ['id' => $user->id, 'is_verified' => true]);
+        $this->assertNotNull($user->fresh()->email_verified_at);
+        $this->assertDatabaseMissing('email_verification_tokens', ['user_id' => $user->id]);
+
+        $this->postJson('/api/v1/auth/verify-email', [
+            'user_id' => $user->id,
+            'token' => $plainToken,
+        ])->assertStatus(422);
+    }
+
+    public function test_expired_email_verification_token_is_rejected(): void
+    {
+        Notification::fake();
+        $this->enableTestAuthMail();
+
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
+        $userId = $registration->json('user.id');
+        $user = User::findOrFail($userId);
+        $plainToken = null;
+
+        Notification::assertSentTo($user, EmailVerificationNotification::class, function ($notification) use (&$plainToken): bool {
+            $plainToken = $notification->token;
+
+            return true;
+        });
+
+        DB::table('email_verification_tokens')
+            ->where('user_id', $userId)
+            ->update(['expires_at' => now()->subMinute()]);
+
+        $this->postJson('/api/v1/auth/verify-email', [
+            'user_id' => $userId,
+            'token' => $plainToken,
+        ])->assertStatus(422);
+
+        $this->assertDatabaseHas('users', ['id' => $userId, 'is_verified' => false]);
+    }
+
+    public function test_password_reset_is_non_enumerating_one_time_and_revokes_all_sessions(): void
+    {
+        Notification::fake();
+        $this->enableTestAuthMail();
+
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
+        $user = User::findOrFail($registration->json('user.id'));
+        $oldToken = $registration->json('token');
+
+        $existing = $this->postJson('/api/v1/auth/forgot-password', [
+            'email' => 'raven-test@example.test',
+        ])->assertAccepted()->json();
+        $unknown = $this->postJson('/api/v1/auth/forgot-password', [
+            'email' => 'missing-account@example.test',
+        ])->assertAccepted()->json();
+        $this->assertSame($existing, $unknown);
+
+        $resetToken = null;
+        Notification::assertSentTo($user, PasswordResetNotification::class, function ($notification) use (&$resetToken): bool {
+            $resetToken = $notification->token;
+
+            return true;
+        });
+
+        $stored = DB::table('password_reset_tokens')->where('email', $user->email)->first();
+        $this->assertNotNull($stored);
+        $this->assertTrue(Hash::check($resetToken, $stored->token));
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $user->email,
+            'token' => $resetToken,
+            'password' => 'Raven-New-Password-42!',
+            'password_confirmation' => 'Raven-New-Password-42!',
+        ])->assertOk()->assertJsonPath('success', true);
+
+        $this->assertTrue(Hash::check('Raven-New-Password-42!', $user->fresh()->password));
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+        $this->withToken($oldToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $user->email,
+            'token' => $resetToken,
+            'password' => 'Raven-Another-Password-42!',
+            'password_confirmation' => 'Raven-Another-Password-42!',
+        ])->assertStatus(422);
+    }
+
+    public function test_password_reset_expiry_is_enforced_by_the_password_broker(): void
+    {
+        Notification::fake();
+        $this->enableTestAuthMail();
+        config(['auth.passwords.users.expire' => 1]);
+
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
+        $user = User::findOrFail($registration->json('user.id'));
+        $this->postJson('/api/v1/auth/forgot-password', ['email' => $user->email])->assertAccepted();
+
+        $resetToken = null;
+        Notification::assertSentTo($user, PasswordResetNotification::class, function ($notification) use (&$resetToken): bool {
+            $resetToken = $notification->token;
+
+            return true;
+        });
+
+        DB::table('password_reset_tokens')
+            ->where('email', $user->email)
+            ->update(['created_at' => now()->subMinutes(2)]);
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $user->email,
+            'token' => $resetToken,
+            'password' => 'Raven-New-Password-42!',
+            'password_confirmation' => 'Raven-New-Password-42!',
+        ])->assertStatus(422);
+    }
+
+    public function test_device_listing_and_revocation_are_scoped_to_the_authenticated_account(): void
+    {
+        $first = $this->postJson('/api/v1/auth/register', $this->registrationData([
+            'device_id' => '11111111-1111-4111-8111-111111111111',
+            'device_name' => 'Owner phone',
+            'platform' => 'android',
+        ]))->assertCreated();
+
+        $second = $this->postJson('/api/v1/auth/login', [
+            'email' => 'raven-test@example.test',
+            'password' => 'Raven-Test-Password-42!',
+            'device_id' => '22222222-2222-4222-8222-222222222222',
+            'device_name' => 'Owner tablet',
+            'platform' => 'android',
+        ])->assertOk();
+
+        $other = $this->postJson('/api/v1/auth/register', $this->registrationData([
+            'email' => 'other-device-owner@example.test',
+            'username' => 'other_device_owner',
+        ]))->assertCreated();
+
+        $ownerToken = $second->json('token');
+        $otherToken = $other->json('token');
+        $otherAccessToken = PersonalAccessToken::findToken($otherToken);
+        $this->assertNotNull($otherAccessToken);
+
+        $listing = $this->withToken($ownerToken)->getJson('/api/v1/user/devices')
+            ->assertOk()
+            ->assertJsonCount(2, 'devices');
+
+        $ownerDeviceToRevoke = collect($listing->json('devices'))->firstWhere('current', false);
+        $this->assertIsArray($ownerDeviceToRevoke);
+
+        $this->withToken($ownerToken)->deleteJson('/api/v1/user/devices/'.$otherAccessToken->getKey())
+            ->assertNotFound();
+        $this->assertNotNull(PersonalAccessToken::findToken($otherToken));
+
+        $this->withToken($ownerToken)->deleteJson('/api/v1/user/devices/'.$ownerDeviceToRevoke['id'])->assertOk();
+        $this->withToken($ownerToken)->getJson('/api/v1/user/devices')->assertOk()->assertJsonCount(1, 'devices');
+
+        $this->withToken($ownerToken)->deleteJson('/api/v1/user/devices')
+            ->assertOk()->assertJsonPath('revoked_count', 1);
+        $this->withToken($ownerToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
+        $this->withToken($otherToken)->getJson('/api/v1/user/profile')->assertOk();
+    }
+}
 
     private function registrationData(array $overrides = []): array
     {
