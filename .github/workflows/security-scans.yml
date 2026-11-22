@@ -55,6 +55,14 @@ jobs:
             image --scanners vuln,misconfig,secret --severity HIGH,CRITICAL \
             --exit-code 0 --format json --output /reports/trivy-image.json raven23-backend:security
 
+      - name: Fail on fixable HIGH and CRITICAL production-image vulnerabilities
+        run: |
+          docker run --rm \\
+            -v /var/run/docker.sock:/var/run/docker.sock \\
+            aquasec/trivy:0.76.2 \\
+            image --scanners vuln --ignore-unfixed --severity HIGH,CRITICAL \\
+            --exit-code 1 --format table raven23-backend:security
+
       - name: Publish scan report summary
         if: always()
         run: |

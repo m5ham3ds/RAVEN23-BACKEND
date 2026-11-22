@@ -68,7 +68,7 @@ CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"
 
 # Production runtime: pinned FrankenPHP/PHP 8.4 image, Caddy HTTP server,
 # PHP production settings, and no Render/Neon-specific startup behaviour.
-FROM dunglas/frankenphp:php8.4-bookworm@sha256:81ba601edfb650d1df63f54dafdedc021d9d1fb37517850a4e93278ab19cced1 AS runtime
+FROM dunglas/frankenphp:1.13.6-php8.4-bookworm AS runtime
 
 ARG RAVEN23_SOURCE_COMMIT=unknown
 ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}
@@ -93,14 +93,17 @@ RUN set -eu; \
     cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
     install-php-extensions curl dom mbstring opcache pdo_pgsql xml; \
     composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader; \
-    apt-get update && apt-get install -y --no-install-recommends libcap2-bin; \
+    apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends libcap2-bin; \
     groupadd --gid 10001 raven; \
     useradd --uid 10001 --gid 10001 --create-home --no-log-init --shell /usr/sbin/nologin raven; \
     setcap -r /usr/local/bin/frankenphp; \
     mkdir -p /data /config storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs; \
     chown -R raven:raven /data /config storage bootstrap/cache; \
     chmod 755 /usr/local/bin/raven23-entrypoint; \
-    apt-get purge -y libcap2-bin; \
+    apt-get purge -y libcap2-bin linux-libc-dev; \
+    apt-get autoremove -y --purge; \
     rm -rf /var/lib/apt/lists/*
 
 USER raven:raven
