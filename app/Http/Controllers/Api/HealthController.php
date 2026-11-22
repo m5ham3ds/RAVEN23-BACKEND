@@ -112,7 +112,6 @@ class HealthController extends Controller
                     'database' => 'unavailable',
                     'schema' => 'unknown',
                 ],
-                'source_commit' => $this->sourceCommit(),
             ], 503);
         }
     }
