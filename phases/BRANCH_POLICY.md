@@ -22,9 +22,9 @@
 ## نقطة الانتقال — 23 نوفمبر 2026
 
 - تم تأكيد بقاء الفروع الدائمة الثلاثة فقط؛ الفروع القديمة الستة حُذفت بعد مراجعتها.
-- `main`: `8219a5833c7a322c00d53bdebe8c4b30cfad3218` — العمل الوظيفي والـmigrations والوثائق.
-- `RAVEN23-BACKEND-TEST`: `08f5e05fec98d19cf3d18a0b2993352680952f2b` — اختبارات bookmarks/recent progress؛ يحتاج مزامنة main الأحدث.
-- `RAVEN23-BACKEND-USERS`: `b0fd200021b65e19c3a133f95de480804f6fd87e` — آخر CI ناجح على SHA قديم؛ يحتاج مزامنة main.
+- `main`: `a3a5e85777f1b303230f0ebaeb2583a851185a71` — كود التطبيق راجعه SHA `8219a5833c7a322c00d53bdebe8c4b30cfad3218`.
+- `RAVEN23-BACKEND-TEST`: `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36` — 4 ملفات اختبار إضافية فقط.
+- `RAVEN23-BACKEND-USERS`: `22ded7925bd4cfcd31914268359ffb041c13384b` — ملف `tests/BRANCH_SCOPE.md` فقط.
 - لا تنشئ فروع phase/feature أو فروعًا مؤقتة؛ لا تحذف أي فرع دائم.
 - بعد كل دفعة main، تتم مزامنة TEST وUSERS مع الحفاظ على الاختبارات والنطاق المسموح فقط.
 - Phase04 PARTIAL للتكاملات الخارجية، Phase05 COMPLETE، Phase06 IN_PROGRESS مع Playlists وCI verification غير مكتملين.

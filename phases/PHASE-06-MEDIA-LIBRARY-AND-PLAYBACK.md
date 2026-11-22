@@ -91,7 +91,7 @@
 ### الاختبارات وحالة الاعتماد
 - TEST يحتوي `BookmarkSyncTest.php`, `RecentlyWatchedSyncTest.php`, و`PostgresRecentlyWatchedSyncTest.php` إضافة إلى ملف نطاق الفرع.
 - أضيف اختبار يثبت أن تقدمًا أحدث يتغلب على tombstone أقدم.
-- main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker #352 وPint #85 وSecurity #87 انتهت بالفشل دون خطوات تنفيذ معروضة، والسجلات غير متاحة. TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351 وPint #84 وSecurity #86 لديها الحالة نفسها. لا يوجد PASS أو دليل على failure في PHP نفسه.
+- main docs head `a3a5e85777f1b303230f0ebaeb2583a851185a71` (code snapshot `8219a5833c7a322c00d53bdebe8c4b30cfad3218`): Docker #353/Pint #86/Security #88؛ TEST `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36`: Docker #354/Pint #87/Security #89؛ USERS `22ded7925bd4cfcd31914268359ffb041c13384b`: Auth #5/Pint #88/Security #90. جميعها فشلت حتى بعد إعادة محاولة واحدة، مع steps فارغة/null وسجلات غير متاحة. لا يوجد PASS أو دليل على failure في PHP نفسه.
 - لا يتم اعتماد هذا النطاق قبل نجاح SQLite وPostgreSQL وPint وSecurity على SHA موحد.
 
 ### ما لا يزال مطلوبًا لإغلاق Phase06

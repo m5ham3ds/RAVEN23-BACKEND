@@ -79,7 +79,7 @@
 
 `runtime-db-diagnostics.yml` لم يعد في Git tree الحالي. ما تزال نسخ production-account retry المتعددة موجودة؛ توحيدها مهمة Phase10، ولا تُحذف أو تُشغّل ضمن Phase06 دون تصريح مناسب.
 
-### أحدث نتائج Phase06
+### أحدث نتائج الفروع الثلاثة بعد المزامنة وإعادة المحاولة
 - main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker #352، Pint #85، Security #87 — conclusion failure، لكن لا توجد steps منفذة/معروضة وسجلات الوظائف غير متاحة.
 - TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351، Pint #84، Security #86 — النتيجة نفسها.
 - هذه ليست إثباتًا أن اختبارات PHP فشلت؛ كما أنها ليست نجاحًا. لا توجد بوابة CI معتمدة للـSHA الحالي.

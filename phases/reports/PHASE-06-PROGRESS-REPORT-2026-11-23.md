@@ -85,3 +85,11 @@
 ## 8. قرار الاستمرار
 
 Phase06 تبقى IN_PROGRESS. الخطوة التالية ضمن نفس المرحلة هي Playlist sync بعد استعادة بوابات CI القابلة للتنفيذ؛ Phase07 غير مصرح ببدئها قبل اكتمال Phase06، نجاح اختبارات SQLite/PostgreSQL وPint/Security، وتحديث توثيق الإغلاق.
+
+## 9. مراجع الفروع النهائية بعد توثيق Phase06 ومزامنة الفروع
+
+- main documentation commit: `a3a5e85777f1b303230f0ebaeb2583a851185a71` (كود التطبيق الذي خضع للمراجعة: `8219a5833c7a322c00d53bdebe8c4b30cfad3218`).
+- TEST: `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36`؛ diff من main أربعة ملفات اختبار فقط: BRANCH_SCOPE وBookmarkSyncTest وRecentlyWatchedSyncTest وPostgresRecentlyWatchedSyncTest.
+- USERS: `22ded7925bd4cfcd31914268359ffb041c13384b`؛ diff من main ملف `tests/BRANCH_SCOPE.md` فقط.
+- تم تأكيد وجود ثلاثة branch refs فقط ولا توجد PRs مفتوحة.
+- إعادة تشغيل الوظائف الفاشلة مرة واحدة على كل من main وTEST وUSERS لم تحل التعثر؛ بقيت جميع jobs بلا خطوات تنفيذ أو سجلات متاحة.

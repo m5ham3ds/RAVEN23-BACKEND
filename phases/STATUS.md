@@ -1,9 +1,9 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
 **آخر تحديث:** 23 نوفمبر 2026
-**main:** `8219a5833c7a322c00d53bdebe8c4b30cfad3218`
-**RAVEN23-BACKEND-TEST:** `08f5e05fec98d19cf3d18a0b2993352680952f2b` (يحتاج مزامنة مع آخر main)
-**RAVEN23-BACKEND-USERS:** `b0fd200021b65e19c3a133f95de480804f6fd87e` (يحتاج مزامنة مع آخر main)
+**main HEAD عند آخر مزامنة توثيقية:** `a3a5e85777f1b303230f0ebaeb2583a851185a71` (كود التطبيق راجعه SHA `8219a5833c7a322c00d53bdebe8c4b30cfad3218`)
+**RAVEN23-BACKEND-TEST:** `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36` (مزامن مع main؛ 4 ملفات اختبار إضافية فقط)
+**RAVEN23-BACKEND-USERS:** `22ded7925bd4cfcd31914268359ffb041c13384b` (مزامن مع main؛ ملف BRANCH_SCOPE فقط)
 **الفروع الوحيدة:** `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`.
 
 ## 1. ملخص حالة المراحل
@@ -39,12 +39,12 @@
 - توسيع اختبارات PostgreSQL/SQLite وتشغيلها فعليًا على commit موحد.
 - تحديث ERD وAPI contract والـFeature Matrix وإثبات كل معايير القبول.
 
-## 3. حالة CI على أحدث SHA مفحوص
+## 3. حالة CI على رؤوس الفروع المتزامنة
 
-- main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker Validation #352 وPint #85 وSecurity #87 انتهت بالفشل.
-- TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351 وPint #84 وSecurity #86 انتهت بالفشل.
-- تفاصيل الوظائف لم تعرض خطوات تنفيذ، وكانت steps فارغة/null وسجلات الوظائف غير متاحة؛ لا يوجد دليل أن PHP أو الاختبارات وصلت إلى التنفيذ. لا نصنف هذه النتائج كفشل اختبار كود محدد، ولا نصنفها PASS.
-- USERS `b0fd200...`: آخر تشغيلات Auth #4 وPint #80 وSecurity #82 ناجحة على SHA الفرع القديم، ولا تثبت SHA الحالي.
+- main `a3a5e85777f1b303230f0ebaeb2583a851185a71`: Docker #353 (run 45081864951)، Pint #86 (45081865002)، Security #88 (45081865004). أُعيدت الوظائف مرة واحدة (attempt 2) وما زالت conclusion=failure.
+- TEST `e5da2b9ce3c880fd7264015719dc76e9c4e1ae36`: Docker #354 (45081894162)، Pint #87 (45081894210)، Security #89 (45081894207). أُعيدت مرة واحدة وما زالت failure.
+- USERS `22ded7925bd4cfcd31914268359ffb041c13384b`: Auth #5 (45081903413)، Pint #88 (45081903427)، Security #90 (45081903433). أُعيدت مرة واحدة وما زالت failure.
+- عند فحص jobs لم تظهر خطوات تنفيذ (steps فارغة/null) وسجلات الوظائف غير متاحة؛ لا يوجد دليل أن PHP أو الاختبارات وصلت إلى التنفيذ. لا نصنف هذه النتائج كفشل اختبار كود محدد، ولا نصنفها PASS. هذه النتيجة تكررت بعد retry للوظائف الثلاثة على كل فرع.
 
 **بوابة الاعتماد:** Phase06 تبقى IN_PROGRESS إلى أن تعمل Docker + Pint + Security وPostgreSQL integration على SHA واحد معروف وتنجح جميع اختبارات القبول. لا انتقال إلى Phase07 قبل ذلك.
 
