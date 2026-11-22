@@ -132,4 +132,30 @@ class UserDataFoundationMigrationTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $secondUserId, 'email' => 'legacy-two@example.test']);
         $this->assertDatabaseHas('user_devices', ['user_id' => $firstUserId]);
     }
+
+    public function test_existing_partial_profile_table_without_owner_constraints_is_rejected(): void
+    {
+        $userId = DB::table('users')->insertGetId([
+            'name' => 'Legacy partial account',
+            'email' => 'legacy-partial@example.test',
+            'profile_id' => 0,
+            'photo_url' => null,
+        ]);
+
+        Schema::connection('sqlite')->create('user_profiles', static function (Blueprint $table): void {
+            // Simulate a table that has the required fields but no FK to users.
+            $table->unsignedBigInteger('user_id')->primary();
+            $table->unsignedSmallInteger('profile_id')->default(0);
+            $table->text('photo_url')->nullable();
+            $table->timestamps();
+        });
+
+        $migration = require database_path('migrations/2026_11_22_000007_create_user_data_foundation_tables.php');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('must cascade its user_id foreign key to users.id');
+        $migration->up();
+
+        $this->assertDatabaseHas('users', ['id' => $userId]);
+    }
 }
