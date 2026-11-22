@@ -1,0 +1,92 @@
+name: RAVEN23 Security Scans
+
+on:
+  pull_request:
+    branches: [main, feature/phase-02-portable-runtime]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-security-scans-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-and-image-scans:
+    name: Secret, dependency, filesystem and image scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Create report directory
+        run: mkdir -p "$RUNNER_TEMP/raven23-security-reports"
+
+      - name: Scan working tree for secrets with Gitleaks
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            -v "$RUNNER_TEMP/raven23-security-reports:/reports" \
+            zricethezav/gitleaks:v8.30.1 \
+            dir /repo --redact --report-format json --report-path /reports/gitleaks.json
+
+      - name: Scan source filesystem for dependency, secret and configuration findings
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            -v "$RUNNER_TEMP/raven23-security-reports:/reports" \
+            aquasecurity/trivy:0.76.2 \
+            fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL \
+            --exit-code 0 --format json --output /reports/trivy-fs.json /repo
+
+      - name: Build the exact production image for container scanning
+        run: docker build --pull --build-arg RAVEN23_SOURCE_COMMIT="$GITHUB_SHA" -t raven23-backend:security .
+
+      - name: Scan production image for OS and Composer vulnerabilities and misconfiguration
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$RUNNER_TEMP/raven23-security-reports:/reports" \
+            aquasecurity/trivy:0.76.2 \
+            image --scanners vuln,misconfig,secret --severity HIGH,CRITICAL \
+            --exit-code 0 --format json --output /reports/trivy-image.json raven23-backend:security
+
+      - name: Publish scan report summary
+        if: always()
+        run: |
+          {
+            echo "## RAVEN23 security scan reports"
+            echo
+            echo "- Gitleaks: working-tree secret scan (a finding fails the job)."
+            echo "- Trivy filesystem: dependency, secret and misconfiguration report."
+            echo "- Trivy image: production image vulnerability and misconfiguration report."
+            echo
+            for report in "$RUNNER_TEMP"/raven23-security-reports/*.json; do
+              [ -f "$report" ] || continue
+              echo "### $(basename "$report")"
+              jq -r '
+                if type == "array" then
+                  "Findings: " + (length|tostring)
+                elif has("Results") then
+                  "Targets: " + ((.Results|length)|tostring) +
+                  "; findings: " + ([.Results[]?.Misconfigurations[]?, .Results[]?.Vulnerabilities[]?, .Results[]?.Secrets[]?] | length | tostring)
+                else
+                  "Report generated."
+                end
+              ' "$report" || true
+              echo
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload security scan reports
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: raven23-security-reports-${{ github.run_number }}
+          path: ${{ runner.temp }}/raven23-security-reports/
+          if-no-files-found: warn
+          retention-days: 30
