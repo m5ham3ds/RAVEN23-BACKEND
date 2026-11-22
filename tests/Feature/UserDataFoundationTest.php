@@ -190,7 +190,7 @@ class UserDataFoundationTest extends TestCase
             ->getJson('/api/v1/user/data-export')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.format_version', 2)
+            ->assertJsonPath('data.format_version', 3)
             ->assertJsonPath('data.account.id', $first['id'])
             ->assertJsonPath('data.preferences.locale', 'ar')
             ->assertJsonPath('data.preferences.timezone', 'Africa/Khartoum')
