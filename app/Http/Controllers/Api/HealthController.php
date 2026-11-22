@@ -56,15 +56,15 @@ class HealthController extends Controller
 
             $missingSchema = [];
             foreach (self::REQUIRED_COLUMNS as $table => $columns) {
-                if (!Schema::connection($connectionName)->hasTable($table)) {
+                if (! Schema::connection($connectionName)->hasTable($table)) {
                     $missingSchema[] = $table;
                     continue;
                 }
 
                 $actualColumns = Schema::connection($connectionName)->getColumnListing($table);
                 foreach ($columns as $column) {
-                    if (!in_array($column, $actualColumns, true)) {
-                        $missingSchema[] = $table . '.' . $column;
+                    if (! in_array($column, $actualColumns, true)) {
+                        $missingSchema[] = $table.'.'.$column;
                     }
                 }
             }
@@ -138,5 +138,4 @@ class HealthController extends Controller
                 : (($checks['schema'] ?? null) === 'incomplete' ? 'incomplete' : 'unknown'),
         ], $response->getStatusCode());
     }
-
 }
