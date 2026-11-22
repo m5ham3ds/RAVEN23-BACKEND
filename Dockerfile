@@ -19,6 +19,8 @@ RUN set -eu; \
     for file in composer.json composer.lock artisan bootstrap/app.php bootstrap/providers.php \
       public/index.php routes/api.php routes/web.php \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
+      app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
+      config/cors.php config/security.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
       database/migrations/0001_01_01_000000_create_users_table.php \
       database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
@@ -28,13 +30,15 @@ RUN set -eu; \
       database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
+      tests/Feature/SecurityResponseTest.php tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/php-production.ini; do \
         test -s "$file" || { echo "Required project file missing or empty: $file" >&2; exit 1; }; \
     done
 
 RUN composer validate --strict \
     && composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader \
+    && composer audit --no-interaction \
+    && vendor/bin/pint --test \
     && php -r '$required = ["curl","ctype","dom","fileinfo","filter","hash","mbstring","openssl","pcre","PDO","session","tokenizer","xml","pdo_pgsql","pdo_sqlite"]; foreach ($required as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing required PHP extension: ".$extension.PHP_EOL); exit(1); } }'
 
 # Source-level checks and deterministic SQLite Feature suite.
