@@ -103,3 +103,24 @@
 - **الحالة:** معتمد في Phase 05؛ pending CI
 - **القرار:** تبقى API تحت /api/v1 وبغلاف success المتوافق مع Flutter. يتطلب PUT /user/preferences حقلاً واحداً على الأقل من locale/timezone ويستخدم أخطاء Laravel القياسية مع request_id. يصدّر GET /user/data-export بيانات Backend الشخصية المتاحة بإصدار format_version=1، ولا يتضمن password أو google_id أو remember_token أو Sanctum token/token hash أو recovery/verification secrets.
 - **الحدود:** هذا export لا يدّعي تصدير بيانات المكتبة أو wellness أو الاشتراكات غير المنفذة في Backend؛ تلحق بها المراحل التي تبني تلك المجالات.
+
+## D-015 — Owner-scoped bookmarks API
+
+- **التاريخ:** 23 نوفمبر 2026
+- **الحالة:** تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
+- **القرار:** تخزن المفضلة في `user_bookmarks` بمفتاح فريد (user_id, media_type, media_id) وFK cascade. الأنواع movie/tv وفق عقد Flutter. المزامنة والحذف خلف auth:sanctum، والمالك هو المستخدم المصادق فقط.
+- **الأثر:** migration `2026_11_23_000008_create_user_bookmarks_table.php` و`BookmarkSyncController`. الاختبارات العامة في TEST.
+
+## D-016 — Recently watched revision and tombstone semantics
+
+- **التاريخ:** 23 نوفمبر 2026
+- **الحالة:** تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
+- **القرار:** يخزن سجل المشاهدة في `user_recent_media` مع revision لكل مستخدم/domain في `user_sync_revisions`. الطوابع UTC milliseconds؛ LWW يقارن تحديث progress مع tombstone، والتحديث الأحدث يلغي tombstone أقدم، والحذف الأحدث يمنع إحياء نسخة قديمة. clock skew يعيد الخطأ الذي يتعامل معه Flutter؛ response يعيد upload acknowledgements والحالة الحالية عند التعارض.
+- **الأثر:** `POST /api/v1/sync/recently-watched`؛ جميع القراءة والكتابة revisions owner-scoped. لا يعني هذا اكتمال cross-device/offline orchestration الذي يبقى Phase07.
+
+## D-017 — Account export format v2
+
+- **التاريخ:** 23 نوفمبر 2026
+- **الحالة:** تنفيذ أضيف إلى main؛ CI غير معتمد بعد.
+- **القرار:** تم تحديث `GET /api/v1/user/data-export` إلى `format_version=2` ويضم bookmarks وrecently_watched إضافة إلى account/profile/preferences/devices. يستمر استبعاد password وgoogle_id وremember_token وSanctum tokens/secret values.
+- **التوافق:** يسجل D-014 صيغة v1 التاريخية الخاصة بـPhase05؛ لا يحذف القرار السابق. صيغة v2 هي الحالية بعد إضافة Phase06.

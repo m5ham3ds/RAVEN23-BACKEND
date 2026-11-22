@@ -30,7 +30,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
-| 06 | المفضلة والقوائم وسجل المشاهدة والتقدم — IN_PROGRESS | 05 COMPLETE؛ عقود Flutter تمت مراجعتها وتحديد payloads/revisions/idempotency |
+| 06 | المكتبة الشخصية وسجل المشاهدة — IN_PROGRESS (bookmarks/recent code موجودان؛ playlist sync وCI الاعتمادي باقيان) | 05 COMPLETE؛ عقد Flutter موثق في مواصفة Phase06 |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
@@ -112,44 +112,27 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - إضافة نظام دفع أو اشتراكات بأسعار أو قواعد غير معتمدة.
 - استكشاف مستودعات أو أرشيفات غير مرتبطة بالمشروع دون طلب مباشر.
 
-## 10. الحالة الراهنة — 22 نوفمبر 2026
+## 10. سجل الانتقالات والحالة الموحدة — 23 نوفمبر 2026
 
-**Phase 00 COMPLETE.** اكتمل جرد المستودع وعقود Flutter وبيانات المخطط والبيئة والميزات وسير العمل على SHA الأساس `9f29fa55afa21c0445be82d4590a4a532bb1747c`. تقرير الإغلاق محفوظ ضمن `phases/reports/PHASE-00-REPORT-2026-11-21.md`.
+التفاصيل التاريخية للمرحلة 00–05 محفوظة في تقارير كل مرحلة. لا تستخدم أرقام الفروع أو PRs القديمة في سجل التاريخ كحالة حالية؛ سياسة المستودع الحالية ثلاث فروع دائمة فقط.
 
-**Phase 01 COMPLETE.** الفرع `feature/phase-01-laravel-project` وPR #2 مفتوح كمسودة وغير مدمج. SHA التطبيق الذي اجتاز جميع البوابات `519c3f1039f05818b413d466fbc31793ee6daeb6`; Docker Validation #210 SUCCESS، SQLite 14 tests / 100 assertions، PostgreSQL 16 3 tests / 72 assertions، وComposer Lock Bootstrap #18 اجتاز dependency resolution و`composer validate --strict` وclean locked install. تقرير الإغلاق: `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`.
+### الحالة الراهنة
+- `main`: `8219a5833c7a322c00d53bdebe8c4b30cfad3218`.
+- `RAVEN23-BACKEND-TEST`: `08f5e05fec98d19cf3d18a0b2993352680952f2b`؛ يحتوي اختبارات bookmarks وrecent progress مع ملفات النطاق.
+- `RAVEN23-BACKEND-USERS`: `b0fd200021b65e19c3a133f95de480804f6fd87e`؛ يحتاج مزامنة مع main.
+- الفروع القديمة الستة حُذفت بعد مراجعة فروقها وPRs وCI.
 
-**Phase 02 COMPLETE.** الفرع `feature/phase-02-portable-runtime` وPR #3 Draft/Open/Unmerged يستهدف Phase 01. اجتاز Docker Validation #249 على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`: FrankenPHP/Caddy image، Composer/PHP lint/Artisan/routes، SQLite 20 tests / 138 assertions، PostgreSQL 16 3 tests / 72 assertions، web startup بدون DB، `/up` liveness، `/ready` HTTP 503 عند DB unavailable وlive readiness عند DB جاهزة، one-off migration على قاعدة CI المؤقتة، non-root `raven:raven`، ورفض تنفيذ PHP asset حقيقي. تقرير الإغلاق `phases/reports/PHASE-02-COMPLETION-REPORT-2026-11-22.md`.
+### Phase00–05
+- Phase00 COMPLETE على مستوى جرد المصدر في 21 نوفمبر؛ تحديثات الجرد اللاحقة موثقة بملحق baseline بتاريخ 23 نوفمبر.
+- Phase01–03 COMPLETE بحسب تقاريرها وعمليات CI الناجحة في تواريخها؛ تبقى بوابات مزود الإنتاج موضحة في سياسة الأمن.
+- Phase04 PARTIAL: اختبارات الكود وCI نجحت، لكن Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا.
+- Phase05 COMPLETE على مستوى schema/API/code/CI التاريخي؛ profile/preferences/devices وبيانات الحساب وتصدير format v1 موثقة في تقريرها.
 
-لم يتم الاتصال بقاعدة الإنتاج أو Render/Neon أو قراءة الأسرار أو إنشاء موارد AWS أو تنفيذ نشر. PR #1/#2/#3 تظل مفتوحة وغير مدمجة.
+### Phase06 — IN_PROGRESS
+- المفضلة منفذة على main عبر migration `2026_11_23_000008_create_user_bookmarks_table.php` و`BookmarkSyncController` ومسارات POST/DELETE.
+- سجل المشاهدة والتقدم منفذ بالكود على main عبر migration `2026_11_23_000009_create_user_recent_media_tables.php` و`RecentlyWatchedSyncController` ومسار POST. يدعم ملكية المستخدم، revisions، UTC milliseconds، LWW، tombstones، clock-skew response وupload acknowledgement.
+- تصدير الحساب محدث إلى `format_version=2` ويضم bookmarks وrecently_watched.
+- اختبارات bookmarks وrecent progress موجودة على TEST. CI لم يثبت SHA الحالي: main `#352/#85/#87` وTEST `#351/#84/#86` انتهت قبل إظهار خطوات تنفيذ، وسجلاتها غير متاحة؛ لا تسجل PASS أو فشل PHP معين.
+- Playlist sync غير منفذ. يجب إكمال operation log/idempotency/version conflicts/stable pagination واختباره قبل إغلاق المرحلة.
 
-**Phase 03 IN_PROGRESS.** بدأ العمل الأمني بعد اكتمال الاعتماديات 01 و02، على فرع مستقل يستهدف Phase02 SHA أعلاه. النطاق في `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`.
-
-
-## 11. حالة الانتقال بعد Phase 03 — 22 نوفمبر 2026
-
-**Phase 03 COMPLETE على مستوى الكود وCI.** اجتاز SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748` Docker Validation #291 (34 Feature tests / 210 assertions، 3 PostgreSQL integration tests / 72 assertions)، Pint #27، وSecurity Scans #29. يشمل الإثبات أدوار PostgreSQL منفصلة للتطبيق والترحيل، حراسة TLS للاتصال البعيد، سجل API منقح، وثبات FrankenPHP runtime وreadiness.
-
-لا تعني هذه النتيجة أن إعدادات مزود الإنتاج قد اختبرت. تظل مراجعة حساب DB الفعلي، TLS الطرفي/proxy الفعلي، log retention، backup/PITR وrestore rehearsal وRPO/RTO متطلبات ما قبل الإنتاج كما في `SECURITY-OPERATIONS-POLICY.md`.
-
-**Phase 04 IN_PROGRESS.** PR #5 مفتوح كمسودة فوق فرع Phase 03. بدأ تنفيذ verification/reset/device APIs مع إبقاء البريد معطلاً افتراضيًا حتى يختار المستخدم مزودًا ويحدد رابط التطبيق؛ ولا يثبت mock email أو Google verifier اختبار تكامل Android حقيقي.
-
-## 12. تسليم Phase 04 وبدء Phase 05 — 22 نوفمبر 2026
-
-**Phase 04 — code/CI exit: PASS؛ حالة المنتج والحوكمة: PARTIAL.** تم التحقق من SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f مع ثلاث عمليات على SHA واحد:
-- Docker Validation #320: SUCCESS — SQLite 40 tests / 269 assertions، PostgreSQL 16 4 tests / 99 assertions، وصورة FrankenPHP وفحوص DB roles وreadiness وnon-root وPHP asset blocking.
-- Pint Format #52: SUCCESS.
-- Security Scans #54: SUCCESS — Gitleaks وTrivy filesystem/image وبوابة fixable HIGH/CRITICAL.
-PR #4 وPR #5 ما زالا Draft/Open وغير مدمجين. لم يتم اختبار Google OAuth الحقيقي من Android أو تسليم البريد الحقيقي في staging، كما تبقى متطلبات مزود Phase 03 قبل الإنتاج. لذلك لا توصف Phase 04 بأنها مكتملة على مستوى المنتج أو الإنتاج. تقرير الإثبات: phases/reports/PHASE-04-CI-VERIFICATION-ADDENDUM-2026-11-22.md.
-
-**استثناء اعتماد غير مانع لـPhase 05:** يجوز متابعة schema/API work على PostgreSQL وSQLite المؤقتتين، لأنها لا تعتمد على mail delivery أو Google OAuth الحي. لا يسمح الاستثناء بدمج PRs أو النشر أو migration إنتاجية، ولا يرفع Phase 04 إلى COMPLETE. يجب إغلاق بوابات الحوكمة والتكاملات الخارجية قبل rollout.
-
-**Phase 05 IN_PROGRESS** على feature/phase-05-user-data-foundation. لم تظهر نتائج CI لهذه المرحلة بعد؛ لا تسجل PASS حتى تنجح Docker وPint وSecurity على SHA واحد بعد فتح PR #6 إلى فرع Phase 04.
-
-## 13. الحالة التنفيذية بعد Phase 05 — 22 نوفمبر 2026
-
-- تم دمج roadmap وPhase01–05 إلى main. PR #5 أُغلق دون دمج مستقل بعد ثبوت أن فروقه workflow-only وقد غطاها إعداد main الأحدث.
-- Phase05 COMPLETE على مستوى schema/API/code/CI. اختُبر SHA `3c056ed983dbd7025e2f1bc65806cfcaae3af885` ثم اختُبر merge SHA `9c8374e591c11b845dac82d625fb81ed306d939c` بعد الدمج.
-- Docker #340 / Pint #69 / Security #71 كلها SUCCESS على main SHA. Docker سجل SQLite 50/369 وPostgreSQL 5/140.
-- لم يتم اتصال بقاعدة الإنتاج أو قراءة secrets أو نشر أو إنشاء موارد AWS.
-- Phase04 PARTIAL على مستوى تكاملات Google Android والبريد الحقيقي في staging.
-- Phase06 IN_PROGRESS؛ يبدأ من المواصفات وعقود Flutter في `PHASE-06-MEDIA-LIBRARY-AND-PLAYBACK.md`.
+**الخطوة المسموحة التالية:** استعادة بوابات CI على SHA حديث، ثم إكمال Playlist sync داخل Phase06. لا تبدأ Phase07 قبل اكتمال معايير Phase06 ونجاح البوابات.

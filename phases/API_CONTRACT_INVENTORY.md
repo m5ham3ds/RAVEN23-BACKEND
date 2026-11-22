@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
-**تاريخ الجرد:** 21 نوفمبر 2026  
-**Backend baseline:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
+**تاريخ الجرد:** 23 نوفمبر 2026
+**Backend SHA:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -15,7 +15,7 @@
 
 ## 2. المسارات الموجودة في Backend الحالي
 
-المصدر: routes/api.php على Backend baseline.
+المصدر: routes/api.php على main SHA 8219a5833c7a322c00d53bdebe8c4b30cfad3218.
 
 | الطريقة | المسار | المصادقة | وضع التنفيذ |
 |---|---|---|---|
@@ -33,7 +33,7 @@
 | PUT | /api/v1/user/profile | Bearer | تحديث الاسم وusername وprofile_id وphoto_url |
 | POST | /api/v1/user/change-email | Bearer | تغيير البريد مع تحقق كلمة المرور |
 | POST | /api/v1/user/change-password | Bearer | تغيير كلمة المرور وإلغاء جميع tokens |
-| DELETE | /api/v1/user/account | Bearer | إلغاء tokens ثم حذف الحساب |
+| DELETE | /api/v1/user/account | Bearer | إلغاء tokens ثم حذف الحساب مع cascade لبيانات owner FK |\n| POST | /api/v1/sync/bookmarks | Bearer | مزامنة movie/tv bookmarks، owner-scoped |\n| DELETE | /api/v1/sync/bookmarks/{type}/{id} | Bearer | حذف bookmark idempotent للمستخدم الحالي |\n| POST | /api/v1/sync/recently-watched | Bearer | مزامنة movie/episode progress مع revision/tombstones |
 
 ## 3. عقد المصادقة كما يستهلكه تطبيق Flutter
 

@@ -1,6 +1,6 @@
 # المرحلة 06 — المكتبة الشخصية وسجل المشاهدة وتقدم التشغيل
 
-**الحالة:** IN_PROGRESS — بدأ التنفيذ على main بعد إغلاق Phase05.  
+**الحالة:** IN_PROGRESS — bookmarks وrecently-watched أضيفا إلى main؛ Playlist sync والاختبار النهائي ما زالا باقيين.  
 **الاعتماديات:** Phase05 COMPLETE؛ عقد Flutter المصدر تمت مراجعته على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`
 
 ## الهدف
@@ -71,4 +71,34 @@
 6. SQLite + PostgreSQL restricted-role tests: ownership, duplicate requests, conflicts, tombstone races, pagination, clock skew, batch limits.
 7. Contracts/Feature Matrix ثم Docker/Pint/Security على SHA موحد.
 
-**الحالة الدقيقة:** مراجعة العقد مكتملة؛ لم تُنشأ migrations أو endpoints Phase06 بعد.
+## تقدم التنفيذ الفعلي — 23 نوفمبر 2026
+
+### Bookmarks — موجودة على main
+- Migration: `2026_11_23_000008_create_user_bookmarks_table.php`.
+- Model/controller: `UserBookmark.php`, `BookmarkSyncController.php`.
+- المسارات: `POST /api/v1/sync/bookmarks` و`DELETE /api/v1/sync/bookmarks/{type}/{id}`.
+- Feature tests: `tests/Feature/BookmarkSyncTest.php` على TEST.
+- المزامنة والحذف owner-scoped، والمفتاح الفريد يمنع التكرار، والرد يعيد movie/tv union.
+
+### Recently watched / Playback — كود مضاف على main
+- Migration: `2026_11_23_000009_create_user_recent_media_tables.php` تنشئ `user_recent_media` و`user_sync_revisions`.
+- Models: `UserRecentMedia.php`, `UserSyncRevision.php`.
+- Controller/route: `RecentlyWatchedSyncController.php`, `POST /api/v1/sync/recently-watched`.
+- يدعم movies وepisodes، UTC millisecond stamps، revisions لكل مستخدم، LWW، tombstones، clock-skew 422، revision-ahead 422 وupload acknowledgements.
+- التحديث الأحدث يلغي tombstone أقدم؛ حذف أحدث يمنع إحياء نسخة أقدم.
+- تصدير البيانات `format_version=2` ويضم bookmarks وrecently_watched مع بيانات الحساب/الملف/التفضيلات/الأجهزة، مع استبعاد أسرار الحساب.
+
+### الاختبارات وحالة الاعتماد
+- TEST يحتوي `BookmarkSyncTest.php`, `RecentlyWatchedSyncTest.php`, و`PostgresRecentlyWatchedSyncTest.php` إضافة إلى ملف نطاق الفرع.
+- أضيف اختبار يثبت أن تقدمًا أحدث يتغلب على tombstone أقدم.
+- main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker #352 وPint #85 وSecurity #87 انتهت بالفشل دون خطوات تنفيذ معروضة، والسجلات غير متاحة. TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351 وPint #84 وSecurity #86 لديها الحالة نفسها. لا يوجد PASS أو دليل على failure في PHP نفسه.
+- لا يتم اعتماد هذا النطاق قبل نجاح SQLite وPostgreSQL وPint وSecurity على SHA موحد.
+
+### ما لا يزال مطلوبًا لإغلاق Phase06
+1. تنفيذ `POST /api/v1/sync/playlists` وفق عمليات Flutter الستة، مع operation idempotency وowner scope.
+2. version conflicts في update/reorder وسلوك رفض العملية وفق client replay.
+3. pagination snapshot ثابت عبر `until_revision` و`cursor`، وعدم تطبيق البيانات قبل اكتمال كل الصفحات.
+4. اختبارات SQLite/PostgreSQL لـcreate/update/delete/reorder/add/remove، التكرار، ownership، النزاعات، pagination، حذف القائمة وعناصرها.
+5. تحديث ERD وAPI inventory وFeature Matrix وتشغيل جميع البوابات على SHA موحد.
+
+**الحالة الدقيقة الحالية:** bookmarks وrecent sync منفذان بالكود مع اختبارات مضافة؛ CI لم يعتمدها بعد، وPlaylist sync غير منفذ. Phase06 IN_PROGRESS.

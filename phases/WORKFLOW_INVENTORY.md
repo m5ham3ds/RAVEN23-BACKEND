@@ -1,7 +1,7 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Backend baseline:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
-**التاريخ:** 21 نوفمبر 2026  
+**Backend SHA المراجع:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218  
+**تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
 **الحالة:** COMPLETE على مستوى source/workflow inventory؛ لم تُنفذ workflows التي تكتب على الإنتاج.
 
 ## 1. ملفات workflows
@@ -17,7 +17,7 @@
 | production-account-retry-7.yml | RAVEN23 Production Account Retry 6 | تعديل الملف نفسه على main | اسم workflow مكرر مع retry-4 رغم اختلاف اسم الملف |
 | production-account-smoke.yml | RAVEN23 Production Account Creation Test | تعديل الملف نفسه على main | ينشئ حساب إنتاج اصطناعيًا ويجرب دورة الحياة ويحاول التنظيف؛ إذا فشل cleanup يوقف المهمة بخطر بقاء الحساب |
 | production-registration-route-probe.yml | RAVEN23 Production Registration Route Probe | تعديل الملف نفسه على main | يختبر route validation عبر payload فارغ، ويتوقع 422؛ لا ينشئ حسابًا في المسار الرئيسي |
-| runtime-db-diagnostics.yml | RAVEN23 Runtime Database Diagnostics | تحديث workflow/script أو workflow_dispatch | يبني image ثم يشغل فحوص DNS/TCP/PDO على Neon، ويقارن repository secret بهدف Render |
+| pint-format-report.yml | RAVEN23 Pint Format Report | push إلى الفروع الثلاثة | Laravel Pint للملفات المعدلة |\n| security-scans.yml | RAVEN23 Security Scans | push إلى الفروع الثلاثة | Gitleaks وTrivy filesystem/image وبوابات الثغرات |\n| users-auth-tests.yml | RAVEN23 USERS Authentication Tests | push إلى RAVEN23-BACKEND-USERS | اختبارات PostgreSQL/SQLite الخاصة بنطاق الحسابات |
 
 ## 2. نتائج CI المرصودة
 
@@ -59,3 +59,30 @@
 - خلال Phase 10: توحيد auth smoke وcontract smoke على staging، وحذف/دمج retry workflows بعد نقل كل assertions المفيدة إليها.
 - خلال Phase 11: إضافة build-once/publish-by-digest/deploy عبر GitHub OIDC إلى AWS بعد موافقة المستخدم.
 - Phase 12: عدم استخدام أي production account test أو DB write خارج نافذة cutover المصرح بها.
+
+
+## 5. تحديث ملفات workflows وحالة التشغيل — 23 نوفمبر 2026
+
+العدد الحالي على main هو 12 workflow:
+- `auth-smoke.yml`
+- `docker-build.yml`
+- `pint-format-report.yml`
+- `security-scans.yml`
+- `users-auth-tests.yml`
+- `production-account-retry.yml`
+- `production-account-retry-2.yml`
+- `production-account-retry-3.yml`
+- `production-account-retry-4.yml`
+- `production-account-retry-7.yml`
+- `production-account-smoke.yml`
+- `production-registration-route-probe.yml`
+
+`runtime-db-diagnostics.yml` لم يعد في Git tree الحالي. ما تزال نسخ production-account retry المتعددة موجودة؛ توحيدها مهمة Phase10، ولا تُحذف أو تُشغّل ضمن Phase06 دون تصريح مناسب.
+
+### أحدث نتائج Phase06
+- main `8219a5833c7a322c00d53bdebe8c4b30cfad3218`: Docker #352، Pint #85، Security #87 — conclusion failure، لكن لا توجد steps منفذة/معروضة وسجلات الوظائف غير متاحة.
+- TEST `08f5e05fec98d19cf3d18a0b2993352680952f2b`: Docker #351، Pint #84، Security #86 — النتيجة نفسها.
+- هذه ليست إثباتًا أن اختبارات PHP فشلت؛ كما أنها ليست نجاحًا. لا توجد بوابة CI معتمدة للـSHA الحالي.
+- USERS `b0fd200...`: Auth #4 / Pint #80 / Security #82 SUCCESS على SHA قديم فقط.
+
+لم يتم تشغيل workflows التي تكتب على الإنتاج، ولم يتم قراءة secrets أو تعديل قاعدة الإنتاج.

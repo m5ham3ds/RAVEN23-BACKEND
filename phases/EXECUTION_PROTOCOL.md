@@ -12,7 +12,7 @@
 7. إذا كان المطلوب قرارًا أو حسابًا أو secret من المستخدم، سجّل WAITING_EXTERNAL وأكمل فقط العمل المستقل عنه.
 
 ## 2. قواعد التغيير
-- اعمل في فرع مخصص وPR؛ لا تضع إعادة هيكلة معمارية كبيرة مباشرة على main دون مراجعة.
+- التزم بـ`BRANCH_POLICY.md`: ثلاثة فروع دائمة فقط. تغييرات التطبيق والـmigrations والوثائق على `main` بcommits صغيرة؛ الاختبارات العامة فقط على `RAVEN23-BACKEND-TEST` واختبارات الحسابات فقط على `RAVEN23-BACKEND-USERS`. لا تنشئ feature/phase branches أو PRs إضافية.
 - اجعل commits صغيرة ومحددة.
 - لا تخلط refactoring غير المرتبط مع تغيير وظيفة للمستخدم.
 - فضّل migrations تدريجية وAPI compatibility.
@@ -98,3 +98,10 @@
 
 ## 9. نزاهة النتائج
 الاختبار الفاشل لا يسجل PASS. الوظيفة الملغاة CANCELLED وليست نجاحًا أو فشلًا. Workflow على commit قديم لا يثبت commit جديدًا. نجاح Docker build لا يعني جاهزية الإنتاج. ونجاح staging لا يثبت عمل مزود خارجي ما لم يُختبر ذلك المسار.
+
+
+## 10. حوكمة الفروع الحالية — 23 نوفمبر 2026
+
+- الفروع الوحيدة: `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`.
+- تعليمات الفروع المخصصة/PR في التقارير القديمة تاريخية وقد superseded بها BRANCH_POLICY.
+- لا تنشئ phase/feature branch. عند تعطل CI سجّل SHA/run/job/log evidence، وأصلح على الفرع الدائم نفسه.

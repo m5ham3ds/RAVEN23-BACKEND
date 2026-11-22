@@ -1,4 +1,4 @@
-# فهرس ملفات RAVEN23-BACKEND — خط الأساس
+# فهرس ملفات RAVEN23-BACKEND — خط الأساس والتحديث الحالي
 
 **Commit:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **التاريخ:** 21 نوفمبر 2026  
@@ -62,7 +62,7 @@
 - tests/Feature/AuthLifecycleTest.php
 - tests/Integration/PostgresAuthLifecycleTest.php
 
-## 8. ملفات Laravel الأساسية غير الموجودة في baseline
+## 8. ملفات Laravel الأساسية التي كانت غير موجودة في baseline
 
 لم تظهر ضمن tree:
 - composer.json
@@ -113,3 +113,40 @@
 - test/integration/laravel_migration_e2e_test.dart
 
 هذا فهرس الملفات المؤثرة في عقد Laravel؛ لا يعني أن كل ملفات Flutter الـ2,085 قد فُحص محتواها سطرًا بسطر. مسارات scraper/TMDB مستقلة عن account backend ويجب أن تبقى خارج نطاق عقد Laravel.
+
+
+## 10. جرد التنفيذ الحالي — 23 نوفمبر 2026
+
+**SHA الذي تمت مراجعته:** `8219a5833c7a322c00d53bdebe8c4b30cfad3218`. يحتفظ هذا الملف بقائمة baseline القديمة لأنها تسجل تاريخ Phase00؛ الأعداد التالية هي المرجع الحالي بدلًا منها.
+
+- Git tree recursive: `truncated=false`, 130 tracked files، 12 workflows، 12 migrations، 43 ملفًا تحت phases، و8 ملفات تحت tests.
+- أصبح `composer.json`, `composer.lock`, `artisan`, و`.env.example` ضمن الشجرة؛ لم تعد فجوة المصدر القديمة قائمة.
+- ملفات Phase06 على main:
+  - `app/Http/Controllers/Api/BookmarkSyncController.php`
+  - `app/Http/Controllers/Api/RecentlyWatchedSyncController.php`
+  - `app/Models/UserBookmark.php`
+  - `app/Models/UserRecentMedia.php`
+  - `app/Models/UserSyncRevision.php`
+  - `database/migrations/2026_11_23_000008_create_user_bookmarks_table.php`
+  - `database/migrations/2026_11_23_000009_create_user_recent_media_tables.php`
+- `routes/api.php` يضم endpoints المفضلة وسجل المشاهدة.
+- `AuthController.php` يصدّر account data بصيغة `format_version=2` متضمنة bookmarks وrecently_watched.
+- اختبارات Phase06 في فرع TEST: `BookmarkSyncTest.php`, `RecentlyWatchedSyncTest.php`, `PostgresRecentlyWatchedSyncTest.php`.
+- Playlist backend ومigrations الخاصة به غير موجودة بعد.
+
+### القائمة الحالية للـworkflows
+`.github/workflows/`: auth-smoke.yml, docker-build.yml, pint-format-report.yml, security-scans.yml, users-auth-tests.yml, production-account-retry.yml, production-account-retry-2.yml, production-account-retry-3.yml, production-account-retry-4.yml, production-account-retry-7.yml, production-account-smoke.yml, production-registration-route-probe.yml.
+
+### migrations الحالية (12)
+- `0001_01_01_000000_create_users_table.php`
+- `0001_01_01_000001_create_cache_table.php`
+- `0001_01_01_000002_create_jobs_table.php`
+- `2026_11_18_000001_add_raven23_auth_fields_to_users.php`
+- `2026_11_18_000002_ensure_personal_access_tokens_table.php`
+- `2026_11_18_000003_reconcile_raven23_auth_schema.php`
+- `2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php`
+- `2026_11_21_000005_reconcile_guest_account_flag.php`
+- `2026_11_22_000006_create_email_verification_tokens_table.php`
+- `2026_11_22_000007_create_user_data_foundation_tables.php`
+- `2026_11_23_000008_create_user_bookmarks_table.php`
+- `2026_11_23_000009_create_user_recent_media_tables.php`

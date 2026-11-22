@@ -23,7 +23,7 @@
 | Logout | موجود ومختبر آليًا | إلغاء presented token |
 | Profile read/update | موجود ومختبر | لا يوجد إثبات client live لكل الحقول |
 | Change email/password | موجود ومختبر جزئيًا | email verification بعد التغيير غير مكتمل |
-| Delete account | موجود ومختبر | يحذف المستخدم والتوكنات؛ لا توجد user-domain tables بالخادم حاليًا لتنفيذ cascade عليها |
+| Delete account | موجود ومختبر جزئيًا | يحذف المستخدم والتوكنات؛ user_profiles/preferences/devices/bookmarks/recent media ترتبط بـowner FK cascade؛ wallet-credit contract mismatch ما زال قائمًا |
 | Username availability | موجود | route/controller موجود |
 | Firebase legacy token exchange | client-only / backend missing | Flutter ينادي auth/firebase/exchange |
 | Password reset/email verification | موجود شكليًا/غير مكتمل | endpoints 503؛ لا mail flow كامل |

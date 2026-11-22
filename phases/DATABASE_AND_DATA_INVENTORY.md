@@ -1,6 +1,6 @@
 # جرد قاعدة البيانات والبيانات — RAVEN23
 
-**Backend baseline:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
+**Backend SHA الحالي:** 8219a5833c7a322c00d53bdebe8c4b30cfad3218 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE على مستوى source inventory — مبني على جميع migrations/models/client data stores؛ لم يتم الاتصال بقاعدة الإنتاج وفق قواعد السلامة.
 
@@ -57,7 +57,7 @@ Sanctum bearer sessions:
 
 ### الجداول الأخرى
 
-لا توجد في المستودع الحالي migrations committed أو Models/Controllers واضحة لجداول:
+على baseline 21 نوفمبر لم تكن توجد migrations لهذه المجالات. على main الحالي أضيفت bookmarks وrecent media؛ playlists لم تنفذ بعد:
 - bookmarks / user_bookmarks
 - recently_watched_movies / recently_watched_episodes
 - wellness_sessions / wellness_daily_summaries
@@ -130,3 +130,27 @@ Sanctum bearer sessions:
 - Raven23AuthSchema: https://github.com/m5ham3ds/RAVEN23-BACKEND/blob/main/app/Support/Raven23AuthSchema.php
 - Client SQLite/sync layer: https://github.com/m5ham3ds/RAVEN23/tree/main/lib/data/sync
 - Local database controllers: https://github.com/m5ham3ds/RAVEN23/tree/main/lib/controllers
+
+
+## 8. تحديث الجداول المنفذة — 23 نوفمبر 2026
+
+### `user_bookmarks`
+- Migration: `2026_11_23_000008_create_user_bookmarks_table.php`.
+- Model/controller: `UserBookmark`, `BookmarkSyncController`.
+- مفتاح فريد (user_id, media_type, media_id)، وFK من user_id إلى users.id مع ON DELETE CASCADE.
+- media_type = movie أو tv؛ metadata JSON؛ لا يقبل API owner_id من العميل.
+
+### `user_recent_media`
+- Migration: `2026_11_23_000009_create_user_recent_media_tables.php`.
+- owner-scoped بـuser_id؛ مفتاح فريد (user_id, media_type, media_id).
+- يخزن metadata JSON، elapsed، remaining، updated_at_utc وdeleted_at_utc بوحدة milliseconds، وrevision.
+- media_type = movie أو episode؛ حقل is_anime يبقى محليًا ولا يرسله Flutter إلى Backend.
+
+### `user_sync_revisions`
+- migration نفسها تنشئ domain revision لكل (user_id, domain)؛ domain الحالي `recent`.
+- FK user_id cascade، unique (user_id, domain)، ويستخدم القفل داخل المعاملة لضبط revision.
+- migration additive وdown() forward-only.
+
+### ما لم ينشأ بعد
+- لا توجد جداول playlists أو playlist entries أو operation log؛ تظل مطلوبة ضمن Phase06.
+- لم يتم الاتصال بقاعدة Neon الإنتاجية أو تنفيذ migration عليها. هذا الجرد لا يثبت وجود أو حجم بيانات الإنتاج.

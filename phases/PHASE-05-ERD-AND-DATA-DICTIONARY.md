@@ -111,3 +111,50 @@ Relationship rules:
 - Existing tables are rejected if the owner FK/cascade or required unique/primary key is missing. A column-only partial table is not accepted.
 - Migration rollback is deliberately non-destructive. The migration does not drop profile, preference, or device records.
 - Existing account deletion removes Sanctum and temporary auth tokens, and the new owner FKs cascade profile/preferences/device rows. No production deletion/migration was performed in this phase.
+
+## 6. Addendum — Phase06 library entities (23 November 2026)
+
+This follow-on schema extension does not change the Phase05 account foundation.
+
+```mermaid
+erDiagram
+    USERS ||--o{ USER_BOOKMARKS : saves
+    USERS ||--o{ USER_RECENT_MEDIA : watches
+    USERS ||--o{ USER_SYNC_REVISIONS : checkpoints
+    USER_BOOKMARKS {
+        bigint id PK
+        bigint user_id FK
+        varchar media_type
+        bigint media_id
+        json metadata
+        timestamp created_at
+        timestamp updated_at
+    }
+    USER_RECENT_MEDIA {
+        bigint id PK
+        bigint user_id FK
+        varchar media_type
+        bigint media_id
+        json metadata
+        bigint elapsed
+        bigint remaining
+        bigint updated_at_utc
+        bigint deleted_at_utc
+        bigint revision
+    }
+    USER_SYNC_REVISIONS {
+        bigint id PK
+        bigint user_id FK
+        varchar domain
+        bigint revision
+        timestamp created_at
+        timestamp updated_at
+    }
+```
+
+- `user_bookmarks`: unique (user_id, media_type, media_id); media_type is `movie` or `tv`.
+- `user_recent_media`: unique (user_id, media_type, media_id); current values are `movie` and `episode`. UTC millisecond stamps, tombstones and row revision are persisted.
+- `user_sync_revisions`: unique (user_id, domain); `recent` currently tracks the recently-watched revision namespace.
+- All three entities have user_id FK -> users.id with ON DELETE CASCADE. Controllers query using authenticated user ID.
+- Playlist tables/operation log are not implemented and are intentionally omitted until a migration is committed.
+- CI verification of Phase06 migrations is not yet confirmed; see Phase06 progress report.
