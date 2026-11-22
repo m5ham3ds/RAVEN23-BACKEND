@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\RecentlyWatchedSyncController;
+use App\Http\Controllers\Api\PlaylistSyncController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -40,5 +41,6 @@ Route::prefix('v1')->group(function (): void {
             ->where('type', 'movie|tv')
             ->whereNumber('id');
         Route::post('/sync/recently-watched', [RecentlyWatchedSyncController::class, 'sync']);
+        Route::post('/sync/playlists', [PlaylistSyncController::class, 'sync']);
     });
 });

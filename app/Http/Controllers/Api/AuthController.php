@@ -739,10 +739,59 @@ class AuthController extends Controller
             }
         }
 
+        $playlistRows = DB::table('user_playlists')
+            ->where('user_id', $userId)
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id', 'name', 'description', 'version', 'created_at']);
+
+        $playlistIds = $playlistRows->pluck('id')->all();
+        $playlistItemRows = $playlistIds === []
+            ? collect()
+            : DB::table('user_playlist_items')
+                ->whereIn('playlist_id', $playlistIds)
+                ->orderBy('playlist_id')
+                ->orderBy('position')
+                ->get([
+                    'playlist_id', 'media_type', 'media_id', 'position', 'title',
+                    'poster_path', 'backdrop_path', 'vote_average', 'release_date',
+                    'genre_ids', 'added_at',
+                ]);
+
+        $itemsByPlaylist = [];
+        foreach ($playlistItemRows as $item) {
+            $genreIds = json_decode((string) $item->genre_ids, true);
+            $itemsByPlaylist[$item->playlist_id][] = [
+                'playlist_id' => (string) $item->playlist_id,
+                'media_type' => (string) $item->media_type,
+                'media_id' => (int) $item->media_id,
+                'position' => (int) $item->position,
+                'title' => (string) $item->title,
+                'poster_path' => $item->poster_path,
+                'backdrop_path' => $item->backdrop_path,
+                'vote_average' => $item->vote_average === null ? null : (float) $item->vote_average,
+                'release_date' => $item->release_date,
+                'genre_ids' => is_array($genreIds) ? $genreIds : [],
+                'added_at' => $item->added_at,
+            ];
+        }
+
+        $playlists = [];
+        foreach ($playlistRows as $playlist) {
+            $playlists[] = [
+                'id' => (string) $playlist->id,
+                'name' => (string) $playlist->name,
+                'description' => $playlist->description,
+                'version' => (int) $playlist->version,
+                'created_at' => (string) $playlist->created_at,
+                'items' => $itemsByPlaylist[$playlist->id] ?? [],
+            ];
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'format_version' => 2,
+                'format_version' => 3,
                 'exported_at' => now()->utc()->toISOString(),
                 'account' => [
                     'id' => $userId,
@@ -768,6 +817,7 @@ class AuthController extends Controller
                 'devices' => $devices,
                 'bookmarks' => $bookmarks,
                 'recently_watched' => $recentlyWatched,
+                'playlists' => $playlists,
             ],
         ]);
     }
