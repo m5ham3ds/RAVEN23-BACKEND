@@ -72,7 +72,7 @@ class PostgresAuthLifecycleTest extends TestCase
         });
         $this->assertNotNull($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
 
-        $routeRequest = \Illuminate\Http\Request::create('/api/v1/auth/register', 'POST');
+        $routeRequest = Request::create('/api/v1/auth/register', 'POST');
         $matchedRoute = $routes->match($routeRequest);
         $this->assertSame('api/v1/auth/register', $matchedRoute->uri());
         $this->assertContains('POST', $matchedRoute->methods());
@@ -123,7 +123,6 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertContains('platform', $tokenColumns, 'PostgreSQL personal_access_tokens.platform column is missing.');
     }
 
-
     public function test_postgresql_verification_reset_and_device_routes_use_restricted_application_role(): void
     {
         \Illuminate\Support\Facades\Notification::fake();
@@ -148,7 +147,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $verificationToken = null;
         \Illuminate\Support\Facades\Notification::assertSentTo(
             $user,
-            \App\Notifications\EmailVerificationNotification::class,
+            EmailVerificationNotification::class,
             function ($notification) use (&$verificationToken): bool {
                 $verificationToken = $notification->token;
 
@@ -173,7 +172,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $resetToken = null;
         \Illuminate\Support\Facades\Notification::assertSentTo(
             $user,
-            \App\Notifications\PasswordResetNotification::class,
+            PasswordResetNotification::class,
             function ($notification) use (&$resetToken): bool {
                 $resetToken = $notification->token;
 
