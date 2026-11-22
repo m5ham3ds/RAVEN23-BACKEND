@@ -20,6 +20,7 @@ RUN set -eu; \
       public/index.php routes/api.php routes/web.php \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
       app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
+      app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
       config/cors.php config/security.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
       database/migrations/0001_01_01_000000_create_users_table.php \
@@ -29,8 +30,10 @@ RUN set -eu; \
       database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php \
       database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
       database/migrations/2026_11_22_000006_create_email_verification_tokens_table.php \
+      database/migrations/2026_11_22_000007_create_user_data_foundation_tables.php \
       app/Notifications/EmailVerificationNotification.php app/Notifications/PasswordResetNotification.php \
-      tests/TestCase.php tests/Feature/AuthLifecycleTest.php \
+      tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
+      tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
       tests/Feature/SecurityResponseTest.php tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/php-production.ini; do \
