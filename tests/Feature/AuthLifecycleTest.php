@@ -117,6 +117,27 @@ class AuthLifecycleTest extends TestCase
         ]))->assertStatus(429);
     }
 
+    public function test_login_rate_limit_is_applied_to_an_hmac_identity_bucket(): void
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $this->postJson('/api/v1/auth/login', [
+                'email' => 'same-identity@example.test',
+                'password' => 'incorrect-password',
+            ])->assertUnauthorized();
+        }
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'same-identity@example.test',
+            'password' => 'incorrect-password',
+        ])->assertStatus(429);
+
+        // A different identity is still allowed under the per-IP threshold.
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'different-identity@example.test',
+            'password' => 'incorrect-password',
+        ])->assertUnauthorized();
+    }
+
     public function test_email_registration_persists_user_and_password_login_returns_same_account(): void
     {
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())
