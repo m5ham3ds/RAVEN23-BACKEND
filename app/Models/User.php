@@ -18,11 +18,6 @@ class User extends Authenticatable
         'password',
         'profile_id',
         'photo_url',
-        'provider',
-        'google_id',
-        'is_verified',
-        'is_account_verified',
-        'is_guest',
     ];
 
     protected $hidden = [
