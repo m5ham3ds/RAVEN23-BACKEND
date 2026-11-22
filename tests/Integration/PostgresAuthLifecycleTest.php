@@ -3,14 +3,17 @@
 namespace Tests\Integration;
 
 use App\Models\User;
+use App\Notifications\EmailVerificationNotification;
+use App\Notifications\PasswordResetNotification;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
-use Tests\TestCase;
 use Laravel\Sanctum\PersonalAccessToken;
+use Tests\TestCase;
 
 /**
  * Boots the same Laravel application and production API routes used on Render.
