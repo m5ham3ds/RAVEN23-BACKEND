@@ -132,7 +132,7 @@ class PlaylistSyncController extends Controller
                 $cursor,
             );
 
-            $itemRows = $page['items'];
+            $itemRows = $page['items']->all();
             $hasMore = count($itemRows) > self::PAGE_SIZE;
             if ($hasMore) {
                 array_pop($itemRows);
@@ -464,10 +464,13 @@ class PlaylistSyncController extends Controller
                 return $this->operationResult($operationId, 'rejected', ['code' => 'playlist_item_limit']);
             }
 
+            $lastPosition = $connection->table('user_playlist_items')
+                ->where('playlist_id', $playlistId)
+                ->max('position');
             $item = [
                 'playlist_id' => $playlistId,
                 ...$validatedItem,
-                'position' => $itemCount,
+                'position' => $lastPosition === null ? 0 : ((int) $lastPosition + 1),
                 'added_at' => now()->utc()->toISOString(),
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -511,6 +514,28 @@ class PlaylistSyncController extends Controller
                 $this->itemPayload($item),
                 true,
             );
+
+            // Compact positions after a removal and publish each changed row
+            // in the same revision so other devices see the new order.
+            $remainingItems = $connection->table('user_playlist_items')
+                ->where('playlist_id', $playlistId)
+                ->orderBy('position')
+                ->orderBy('media_type')
+                ->orderBy('media_id')
+                ->get();
+            foreach ($remainingItems as $position => $remainingItem) {
+                if ((int) $remainingItem->position === $position) {
+                    continue;
+                }
+
+                $connection->table('user_playlist_items')
+                    ->where('playlist_id', $playlistId)
+                    ->where('media_type', $remainingItem->media_type)
+                    ->where('media_id', $remainingItem->media_id)
+                    ->update(['position' => $position, 'updated_at' => now()]);
+                $remainingItem->position = $position;
+                $this->appendItemChange($connection, $userId, $revision, $remainingItem);
+            }
 
             return $this->operationResult($operationId, 'applied');
         }
