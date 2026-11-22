@@ -114,10 +114,14 @@ Implemented account endpoints:
 - `GET /api/v1/users/check-username`
 - Authenticated: `POST /api/v1/auth/logout`
 - Authenticated: `GET/PUT /api/v1/user/profile`
+- Authenticated: `GET/PUT /api/v1/user/preferences` (account locale and IANA timezone)
+- Authenticated: `GET /api/v1/user/data-export` (server-held account, profile, preference and device data; excludes credentials and tokens)
 - Authenticated: `POST /api/v1/user/change-email`, `/change-password`
 - Authenticated: `DELETE /api/v1/user/account`
 
-A valid `guest_token` upgrades the existing guest row during email or Google registration, preserving its account ID and revoking the old anonymous token. Device metadata (`device_id`, `device_name`, `platform`) is stored with Sanctum tokens, and re-authentication on the same installation replaces that installation's earlier token.
+A valid `guest_token` upgrades the existing guest row during email or Google registration, preserving its account ID and revoking the old anonymous token. Device metadata (`device_id`, `device_name`, `platform`) is stored with Sanctum tokens, and re-authentication on the same installation replaces that installation's earlier token. The account also keeps one `user_devices` installation record per owner/device ID with first/last-seen timestamps; token sessions remain in `personal_access_tokens`.
+
+Account data uses separate `user_profiles` and `user_preferences` records while preserving the legacy `users.profile_id` and `users.photo_url` fields for current Android response compatibility. Only locale and timezone are account-level preferences in this phase. Player, theme, audio/subtitle and other installation settings remain local to the device unless a later approved product contract says otherwise. Server timestamps are stored in UTC; the saved IANA `timezone` is for presentation and does not override the database/session timezone.
 
 Google sign-in requires a verified Google identity token. A synthetic token accepted by a test double does not prove that Android OAuth is configured correctly.
 
