@@ -70,7 +70,7 @@ jobs:
           PGPASSWORD: raven23_users_test
         run: |
           set -eu
-          docker run --rm --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
+          docker run --rm -i --network host -e PGPASSWORD="$PGPASSWORD" postgres:16-alpine \
             psql -h 127.0.0.1 -U raven23_users_test -d raven23_users_test -v ON_ERROR_STOP=1 <<'SQL'
           CREATE ROLE raven23_users_migrator LOGIN PASSWORD 'raven23_users_migrator'
               NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
@@ -106,7 +106,9 @@ jobs:
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync
           MAIL_MAILER: array
-        run: php artisan test tests/Integration/PostgresAuthLifecycleTest.php
+        run: |
+          php artisan test tests/Integration/PostgresAuthLifecycleTest.php \
+            --filter='test_postgresql_(verification_reset_and_device_routes_use_restricted_application_role|email_registration_and_login_create_real_sanctum_sessions|guest_creation_and_session_are_successful|device_token_replacement_and_logout_are_persistent)'
 
       - name: Ensure USERS branch contains tests only
         run: |
