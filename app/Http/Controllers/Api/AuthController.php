@@ -16,9 +16,7 @@ use Throwable;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly GoogleIdTokenVerifier $googleVerifier)
-    {
-    }
+    public function __construct(private readonly GoogleIdTokenVerifier $googleVerifier) {}
 
     private function markStage(Request $request, string $stage): void
     {
@@ -85,7 +83,7 @@ class AuthController extends Controller
         // device credentials. Each statement commits independently, so a
         // failed token write cannot leave the account without its old session.
         $this->markStage($request, 'session.create_sanctum_token');
-        $issued = $user->createToken('raven23-' . $platform);
+        $issued = $user->createToken('raven23-'.$platform);
 
         try {
             $this->markStage($request, 'session.persist_device_metadata');
@@ -137,7 +135,7 @@ class AuthController extends Controller
      */
     private function guestAccount(?string $plainTextToken): ?User
     {
-        if (!is_string($plainTextToken) || trim($plainTextToken) === '') {
+        if (! is_string($plainTextToken) || trim($plainTextToken) === '') {
             return null;
         }
 
@@ -149,7 +147,7 @@ class AuthController extends Controller
 
     private function discardGuest(?User $guest, ?User $destination = null): void
     {
-        if (!$guest || ($destination && $guest->is($destination))) {
+        if (! $guest || ($destination && $guest->is($destination))) {
             return;
         }
 
@@ -177,12 +175,12 @@ class AuthController extends Controller
             ->toString();
 
         if (strlen($base) < 5) {
-            $base = 'raven_' . Str::lower(Str::random(8));
+            $base = 'raven_'.Str::lower(Str::random(8));
         }
 
         $candidate = $base;
         while (User::where('username', $candidate)->exists()) {
-            $candidate = substr($base, 0, 21) . '_' . Str::lower(Str::random(4));
+            $candidate = substr($base, 0, 21).'_'.Str::lower(Str::random(4));
         }
 
         return $candidate;
@@ -278,9 +276,9 @@ class AuthController extends Controller
 
         // Older production schemas may contain NULL for is_guest. Treat that
         // legacy value as a normal account; actual guest accounts are TRUE.
-        $user = $emailRow && !$emailRow->is_guest ? $emailRow : null;
+        $user = $emailRow && ! $emailRow->is_guest ? $emailRow : null;
         $passwordMatches = $user !== null && Hash::check($data['password'], $user->password);
-        if (!$user || !$passwordMatches) {
+        if (! $user || ! $passwordMatches) {
             // Keep the log independent of account existence and submitted PII.
             // The API response is identical for an unknown email and bad password.
             Log::warning('RAVEN23 login rejected', [
@@ -296,7 +294,7 @@ class AuthController extends Controller
 
         $this->markStage($request, 'login.consume_guest_account');
         $guest = $this->guestAccount($data['guest_token'] ?? null);
-        if ($guest && !$guest->is($user)) {
+        if ($guest && ! $guest->is($user)) {
             DB::transaction(function () use ($guest): void {
                 $guest->tokens()->delete();
                 $guest->delete();
@@ -314,7 +312,7 @@ class AuthController extends Controller
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
-        if (!filled(config('services.google.client_id'))) {
+        if (! filled(config('services.google.client_id'))) {
             return response()->json([
                 'success' => false,
                 'message' => 'Google authentication is not configured on the backend.',
@@ -323,10 +321,10 @@ class AuthController extends Controller
 
         $claims = $this->googleVerifier->verify($data['id_token']);
         if (
-            !$claims
-            || !is_string($claims['sub'] ?? null)
+            ! $claims
+            || ! is_string($claims['sub'] ?? null)
             || trim($claims['sub']) === ''
-            || !is_string($claims['email'] ?? null)
+            || ! is_string($claims['email'] ?? null)
             || trim($claims['email']) === ''
             || ($claims['email_verified'] ?? false) !== true
         ) {
@@ -340,13 +338,13 @@ class AuthController extends Controller
         $email = Str::lower(trim($claims['email']));
         $name = trim((string) ($claims['name'] ?? ''));
 
-        $result = DB::transaction(function () use ($data, $request, $googleId, $email, $name): array|JsonResponse {
+        $result = DB::transaction(function () use ($data, $googleId, $email, $name): array|JsonResponse {
             $user = User::query()
                 ->where('google_id', $googleId)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$user) {
+            if (! $user) {
                 $user = User::query()
                     ->where('email', $email)
                     ->lockForUpdate()
@@ -355,14 +353,14 @@ class AuthController extends Controller
 
             $guest = $this->guestAccount($data['guest_token'] ?? null);
 
-            if ($user && $user->google_id && !hash_equals((string) $user->google_id, $googleId)) {
+            if ($user && $user->google_id && ! hash_equals((string) $user->google_id, $googleId)) {
                 return $this->googleConflict(
                     'google_identity_conflict',
                     'This email is linked to a different Google identity.',
                 );
             }
 
-            if ($user && !$user->is_guest && !$user->google_id) {
+            if ($user && ! $user->is_guest && ! $user->google_id) {
                 // Match the app's account-linking contract: Google cannot
                 // silently take over an existing password account.
                 return $this->googleConflict(
@@ -447,8 +445,8 @@ class AuthController extends Controller
         $this->markStage($request, 'guest.insert_user');
         $user = User::create([
             'name' => 'Guest',
-            'email' => 'guest-' . Str::lower(Str::random(16)) . '@guest.raven23.invalid',
-            'username' => 'guest_' . Str::lower(Str::random(16)),
+            'email' => 'guest-'.Str::lower(Str::random(16)).'@guest.raven23.invalid',
+            'username' => 'guest_'.Str::lower(Str::random(16)),
             'password' => Str::random(64),
         ]);
         $user->forceFill([
@@ -483,7 +481,7 @@ class AuthController extends Controller
         }
         $data = $request->validate([
             'name' => ['sometimes', 'string', 'min:2', 'max:40'],
-            'username' => ['sometimes', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/', 'unique:users,username,' . $user->id],
+            'username' => ['sometimes', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/', 'unique:users,username,'.$user->id],
             'profile_id' => ['sometimes', 'integer', 'min:0', 'max:143'],
             'photo_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
         ]);
@@ -498,9 +496,9 @@ class AuthController extends Controller
         $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email,' . $user->id],
+            'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email,'.$user->id],
         ]);
-        if (!Hash::check($data['current_password'], $user->password)) {
+        if (! Hash::check($data['current_password'], $user->password)) {
             return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
         $user->forceFill([
@@ -519,7 +517,7 @@ class AuthController extends Controller
             'current_password' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'max:128'],
         ]);
-        if (!Hash::check($data['current_password'], $user->password)) {
+        if (! Hash::check($data['current_password'], $user->password)) {
             return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
 
@@ -557,7 +555,7 @@ class AuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'available' => !User::where('username', Str::lower($data['username']))->exists(),
+            'available' => ! User::where('username', Str::lower($data['username']))->exists(),
         ]);
     }
 
