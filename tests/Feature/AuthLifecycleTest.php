@@ -7,9 +7,11 @@ use App\Support\GoogleIdTokenVerifier;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\PasswordResetNotification;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
@@ -190,15 +192,34 @@ class AuthLifecycleTest extends TestCase
         $this->assertNotNull($stored);
         $this->assertTrue(Hash::check($resetToken, $stored->token));
 
-        $this->postJson('/api/v1/auth/reset-password', [
+        Log::spy();
+        $resetResponse = $this->postJson('/api/v1/auth/reset-password', [
             'email' => $user->email,
             'token' => $resetToken,
             'password' => 'Raven-New-Password-42!',
             'password_confirmation' => 'Raven-New-Password-42!',
-        ])->assertOk()->assertJsonPath('success', true);
+        ]);
 
+        if ($resetResponse->status() !== 200) {
+            $failureContext = null;
+            Log::shouldHaveReceived('error')->withArgs(function (string $message, array $context) use (&$failureContext): bool {
+                if ($message !== 'RAVEN23 API request failed') {
+                    return false;
+                }
+
+                $failureContext = $context;
+
+                return true;
+            });
+
+            $this->fail('Password reset failed with safe diagnostic context: '.json_encode($failureContext, JSON_THROW_ON_ERROR));
+        }
+
+        $resetResponse->assertJsonPath('success', true);
         $this->assertTrue(Hash::check('Raven-New-Password-42!', $user->fresh()->password));
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+
+        Auth::forgetGuards();
         $this->withToken($oldToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
 
         $this->postJson('/api/v1/auth/reset-password', [
@@ -280,6 +301,7 @@ class AuthLifecycleTest extends TestCase
 
         $this->withToken($ownerToken)->deleteJson('/api/v1/user/devices')
             ->assertOk()->assertJsonPath('revoked_count', 1);
+        Auth::forgetGuards();
         $this->withToken($ownerToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
         $this->withToken($otherToken)->getJson('/api/v1/user/profile')->assertOk();
     }
