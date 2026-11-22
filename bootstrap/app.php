@@ -49,8 +49,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(RequestCorrelationId::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Laravel's default QueryException reporter may emit SQL/bindings.
-        // All API exception logs are explicitly reduced to safe metadata below.
+        // API exceptions are reported only by the redacted renderer below.
+        // Suppress Laravel's default reporter because it may log the exception
+        // message and request context, including sensitive user input.
+        $exceptions->dontReportWhen(static fn (Throwable $exception): bool => request()->is('api/*'));
+
+        // QueryException is also suppressed outside API routes to avoid SQL/bindings.
         $exceptions->dontReport([QueryException::class]);
 
         $requestId = static function (Request $request): string {
