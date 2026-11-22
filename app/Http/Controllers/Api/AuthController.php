@@ -833,5 +833,4 @@ class AuthController extends Controller
 
         return response()->json(['success' => false, 'message' => 'The password reset token is invalid or expired.'], 422);
     }
-
 }
