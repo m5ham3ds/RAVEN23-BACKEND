@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   docker-build:
-    name: Build and test Laravel API image
+    name: Build and test portable Laravel runtime
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16-alpine
@@ -39,13 +39,70 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build production image and run SQLite tests
-        run: docker build --pull -t raven23-backend:ci .
+      - name: Build portable FrankenPHP production image and run SQLite tests
+        run: |
+          docker build --pull \
+            --build-arg RAVEN23_SOURCE_COMMIT="${GITHUB_SHA}" \
+            -t raven23-backend:ci .
 
       - name: Build reusable PostgreSQL integration-test image
         run: docker build --pull --target postgres-test -t raven23-backend:postgres-test .
 
-      - name: Run PostgreSQL migrations and lifecycle suite on isolated CI database
+      - name: Prove web startup and liveness do not require a database
+        run: |
+          set -eu
+          container_name=raven23-no-database-startup
+          cleanup() { docker rm -f "$container_name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker run -d --name "$container_name" --network host \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_HOST=127.0.0.1 \
+            -e DB_PORT=1 \
+            -e DB_DATABASE=raven23_unavailable_test \
+            -e DB_USERNAME=raven23_unavailable_test \
+            -e DB_PASSWORD=unavailable \
+            -e RAVEN23_SOURCE_COMMIT="${GITHUB_SHA}" \
+            raven23-backend:ci
+
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail --max-time 3 http://127.0.0.1:10000/up >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = true || {
+            echo "::error::Web startup/liveness incorrectly depends on a database connection."
+            docker logs "$container_name" || true
+            exit 1
+          }
+
+          readiness_body_file="$(mktemp)"
+          readiness_status="$(curl --silent --show-error --output "$readiness_body_file" --write-out '%{http_code}' --max-time 5 http://127.0.0.1:10000/ready)"
+          test "$readiness_status" = "503" || {
+            echo "::error::Expected readiness HTTP 503 with PostgreSQL unreachable on 127.0.0.1:1; got $readiness_status."
+            echo "Readiness response body:"
+            cat "$readiness_body_file" || true
+            echo "Container logs:"
+            docker logs "$container_name" || true
+            rm -f "$readiness_body_file"
+            exit 1
+          }
+          jq -e '.success == false and .status == "not_ready" and .checks.application == "ok" and .checks.database == "unavailable" and .checks.schema == "unknown"' "$readiness_body_file" >/dev/null || {
+            echo "::error::Readiness returned HTTP 503 but the JSON contract was incorrect."
+            cat "$readiness_body_file" || true
+            docker logs "$container_name" || true
+            rm -f "$readiness_body_file"
+            exit 1
+          }
+          rm -f "$readiness_body_file"
+
+          echo "PASS: the web process starts and /up is healthy without DB_URL; /ready correctly returns 503."
+
+      - name: Run PostgreSQL migrations and authentication lifecycle suite on isolated CI database
         run: |
           set -eu
           docker run --rm --network host \
@@ -57,3 +114,84 @@ jobs:
             --entrypoint sh \
             raven23-backend:postgres-test \
             -c 'set -eu; php artisan migrate --force; php artisan test tests/Integration/PostgresAuthLifecycleTest.php'
+
+      - name: Apply the schema through an explicit one-off runtime migration command
+        run: |
+          set -eu
+          docker run --rm --network host \
+            -e APP_ENV=production \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_SSLMODE=disable \
+            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            --entrypoint php \
+            raven23-backend:ci artisan migrate --force
+
+      - name: Smoke-test the non-root HTTP runtime, liveness and database readiness
+        run: |
+          set -eu
+          container_name=raven23-frankenphp-smoke
+          cleanup() { docker rm -f "$container_name" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          docker run -d --name "$container_name" --network host \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_SSLMODE=disable \
+            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            -e RAVEN23_SOURCE_COMMIT="${GITHUB_SHA}" \
+            raven23-backend:ci
+
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail --max-time 3 http://127.0.0.1:10000/up >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "$ready" != true ]; then
+            echo "::error::FrankenPHP did not serve the liveness endpoint."
+            docker logs "$container_name" || true
+            exit 1
+          fi
+
+          curl --silent --show-error --fail --max-time 5 \
+            http://127.0.0.1:10000/ready \
+            | jq -e '.success == true and .status == "ready" and .checks.database == "ok" and .checks.schema == "ready"' >/dev/null
+
+          curl --silent --show-error --fail --max-time 5 \
+            http://127.0.0.1:10000/api/v1/health \
+            | jq -e '.success == true and .database == "connected" and .schema == "ready" and .runtime_target.source_commit == env.GITHUB_SHA' >/dev/null
+
+          runtime_user="$(docker inspect --format '{{.Config.User}}' "$container_name")"
+          test "$runtime_user" = "raven:raven" || {
+            echo "::error::Expected non-root runtime user raven:raven; got $runtime_user"
+            exit 1
+          }
+
+          # Create an actual temporary PHP asset in the disposable CI container.
+          # The HTTP request must be rejected before the PHP interpreter runs it.
+          docker exec --user 0 "$container_name" sh -c "printf '%s\\n' '<?php echo \"UNTRUSTED_PHP_WAS_EXECUTED\";' > /var/www/html/public/untrusted-upload.php"
+
+          asset_body_file="$(mktemp)"
+          asset_status="$(curl --silent --show-error --output "$asset_body_file" --write-out '%{http_code}' --max-time 5 http://127.0.0.1:10000/untrusted-upload.php)"
+          test "$asset_status" = "404" || {
+            echo "::error::Direct PHP files in the public tree must be rejected (HTTP $asset_status)."
+            cat "$asset_body_file" || true
+            rm -f "$asset_body_file"
+            exit 1
+          }
+          if grep -q 'UNTRUSTED_PHP_WAS_EXECUTED' "$asset_body_file"; then
+            echo "::error::An uploaded PHP asset was executed by the HTTP runtime."
+            rm -f "$asset_body_file"
+            exit 1
+          fi
+          rm -f "$asset_body_file"
+
+          echo "PASS: FrankenPHP HTTP runtime is healthy, non-root, ready, and rejects an actual PHP asset before execution."
+
+      - name: Stop containers
+        if: always()
+        run: docker rm -f raven23-frankenphp-smoke >/dev/null 2>&1 || true
