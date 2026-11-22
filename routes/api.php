@@ -26,6 +26,9 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/user/devices/{tokenId}', [AuthController::class, 'revokeDevice'])->whereNumber('tokenId')->middleware('throttle:auth-device-management');
         Route::get('/user/profile', [AuthController::class, 'profile']);
         Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+        Route::get('/user/preferences', [AuthController::class, 'preferences']);
+        Route::put('/user/preferences', [AuthController::class, 'updatePreferences']);
+        Route::get('/user/data-export', [AuthController::class, 'exportUserData']);
         Route::post('/user/change-email', [AuthController::class, 'changeEmail']);
         Route::post('/user/change-password', [AuthController::class, 'changePassword']);
         Route::delete('/user/account', [AuthController::class, 'deleteAccount']);
