@@ -325,6 +325,74 @@ class AuthLifecycleTest extends TestCase
         ]);
     }
 
+    public function test_profile_update_cannot_mass_assign_provider_or_verification_fields(): void
+    {
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())
+            ->assertCreated();
+
+        $userId = $registration->json('user.id');
+        $token = $registration->json('token');
+
+        $this->withToken($token)
+            ->putJson('/api/v1/user/profile', [
+                'name' => 'Updated Raven User',
+                'provider' => 'google',
+                'google_id' => 'attacker-controlled-google-subject',
+                'is_guest' => true,
+                'is_verified' => true,
+                'is_account_verified' => true,
+                'email' => 'attacker@example.test',
+                'password' => 'Attacker-Password-42!',
+            ])
+            ->assertOk()
+            ->assertJsonPath('user.name', 'Updated Raven User');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $userId,
+            'name' => 'Updated Raven User',
+            'email' => 'raven-test@example.test',
+            'provider' => 'email',
+            'is_guest' => false,
+            'is_verified' => false,
+            'is_account_verified' => false,
+        ]);
+
+        $this->assertDatabaseMissing('users', [
+            'id' => $userId,
+            'google_id' => 'attacker-controlled-google-subject',
+        ]);
+    }
+
+    public function test_device_token_replacement_cannot_revoke_another_users_token(): void
+    {
+        $owner = $this->postJson('/api/v1/auth/register', $this->registrationData([
+            'email' => 'device-owner@example.test',
+            'username' => 'device_owner',
+        ]))->assertCreated();
+
+        $other = $this->postJson('/api/v1/auth/register', $this->registrationData([
+            'email' => 'other-owner@example.test',
+            'username' => 'other_owner',
+        ]))->assertCreated();
+
+        $otherToken = $other->json('token');
+        $otherAccessToken = PersonalAccessToken::findToken($otherToken);
+        $this->assertNotNull($otherAccessToken);
+
+        $ownerLogin = $this->postJson('/api/v1/auth/login', [
+            'email' => 'device-owner@example.test',
+            'password' => 'Raven-Test-Password-42!',
+            'replace_device_id' => $otherAccessToken->getKey(),
+        ])->assertOk();
+
+        $this->assertNotEmpty($ownerLogin->json('token'));
+        $this->assertNotNull(PersonalAccessToken::findToken($otherToken));
+        $this->assertDatabaseHas('personal_access_tokens', [
+            'id' => $otherAccessToken->getKey(),
+            'tokenable_id' => $other->json('user.id'),
+        ]);
+    }
+
     public function test_logout_invalidates_the_exact_token_that_was_signed_out(): void
     {
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
