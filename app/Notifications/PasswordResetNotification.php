@@ -25,7 +25,7 @@ class PasswordResetNotification extends Notification
         $url = $base.(str_contains($base, '?') ? '&' : '?').$query;
         $expires = max(1, (int) config('auth.passwords.users.expire', 60));
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Reset your RAVEN23 password')
             ->greeting('Password reset requested')
             ->line('Use the one-time link below to choose a new password.')
