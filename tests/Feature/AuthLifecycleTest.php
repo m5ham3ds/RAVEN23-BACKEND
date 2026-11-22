@@ -82,6 +82,33 @@ class AuthLifecycleTest extends TestCase
             $table->timestamp('created_at')->nullable();
         });
 
+        Schema::connection('sqlite')->create('user_profiles', static function (Blueprint $table): void {
+            $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
+            $table->unsignedSmallInteger('profile_id')->default(0);
+            $table->text('photo_url')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::connection('sqlite')->create('user_preferences', static function (Blueprint $table): void {
+            $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
+            $table->string('locale', 16)->nullable();
+            $table->string('timezone', 64)->default('UTC');
+            $table->timestamps();
+        });
+
+        Schema::connection('sqlite')->create('user_devices', static function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('device_id', 64);
+            $table->string('device_name', 100)->nullable();
+            $table->string('platform', 16)->nullable();
+            $table->timestamp('first_seen_at');
+            $table->timestamp('last_seen_at');
+            $table->timestamps();
+            $table->unique(['user_id', 'device_id']);
+            $table->index(['user_id', 'last_seen_at']);
+        });
+
     }
 
     private function enableTestAuthMail(): void
