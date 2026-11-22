@@ -187,9 +187,15 @@ class RecentlyWatchedSyncController extends Controller
     ): void {
         $idField = $type === 'movie' ? 'movie_id' : 'episode_id';
         $updatedAt = (int) $input['updated_at_utc'];
-        $deletedAt = isset($input['deleted_at_utc']) ? (int) $input['deleted_at_utc'] : null;
+        $submittedDeletedAt = isset($input['deleted_at_utc']) ? (int) $input['deleted_at_utc'] : null;
+        // A later progress update resurrects an older dismissal/finished tombstone.
+        $deletedAt = $submittedDeletedAt !== null && $submittedDeletedAt >= $updatedAt
+            ? $submittedDeletedAt
+            : null;
         $effectiveStamp = max($updatedAt, $deletedAt ?? 0);
 
+        // Acknowledge the exact uploaded row, correcting only its effective
+        // UTC stamps so the client can mark the matching local version synced.
         $uploads[] = [
             ...$input,
             'id' => $mediaId,
