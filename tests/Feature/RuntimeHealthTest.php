@@ -135,4 +135,5 @@ class RuntimeHealthTest extends TestCase
         } finally {
             putenv('RAVEN23_SOURCE_COMMIT');
         }
-    }}
+    }
+}
