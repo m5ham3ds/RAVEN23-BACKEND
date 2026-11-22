@@ -375,6 +375,7 @@ class PostgresAuthLifecycleTest extends TestCase
             ->assertJsonPath('preferences.locale', null)
             ->assertJsonPath('preferences.timezone', 'UTC');
 
+        Auth::forgetGuards();
         $firstExport = $this->withToken($firstToken)
             ->getJson('/api/v1/user/data-export')
             ->assertOk()
