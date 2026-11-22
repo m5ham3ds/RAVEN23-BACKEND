@@ -22,7 +22,8 @@
 11. USER_RULES_AND_CONSTRAINTS.md — قواعد المستخدم وقيوده غير القابلة للتجاوز.
 12. EXECUTION_PROTOCOL.md — آلية العمل والاختبار وتسجيل النتائج وإغلاق المرحلة.
 13. DECISIONS.md — سجل القرارات المعمارية والمنتج.
-14. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
+14. SECURITY-OPERATIONS-POLICY.md — ضوابط PostgreSQL وTLS والسجلات والنسخ الاحتياطية.
+15. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
 15. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
 
 ## الحالة الحالية

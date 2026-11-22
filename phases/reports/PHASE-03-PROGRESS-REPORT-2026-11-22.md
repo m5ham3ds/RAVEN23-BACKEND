@@ -126,3 +126,28 @@
 - إذا نجح، لا تعِد Docker/Pint؛ فقد اجتازا على نفس SHA.
 - راجع المخاطر غير القابلة للإصلاح في artifact، ثم وثّق متطلبات least-privilege وretention/backup وما يستلزم صلاحية بيئة الإنتاج.
 - لا تبدأ Phase 04 ولا تدمج PR #4 أو تنشر دون إكمال شروط المرحلة وموافقة المستخدم.
+
+
+---
+
+## تحديث لاحق — فصل PostgreSQL roles وحراسة TLS وتنقيح سجلات الأخطاء
+
+**الفرع:** `feature/phase-03-security-observability`  
+**SHA قيد التحقق:** `8932cb21497dfbf999d20b674ecc1bf3ddae121b`
+
+أضيفت التغييرات التالية بعد نجاح Docker/Pint/Security على SHA `096ad1d…`:
+
+- فصل دور قاعدة التطبيق عن دور الترحيل في Docker Validation: `raven23_app_test` بلا SUPERUSER/CREATEDB/CREATEROLE ولا CREATE على schema، ويملك CRUD وsequence access على الجداول الموجودة فقط.
+- `raven23_migrator_test` منفصل، غير superuser، يملك CREATE على schema لتنفيذ migrations فقط.
+- نقل PostgreSQL integration suite وHTTP runtime smoke إلى دور التطبيق، وتنفيذ migrations بدور الترحيل.
+- إضافة اختبارات تثبت رفض إنشاء role/database من دور التطبيق.
+- إضافة حراسة config تمنع `sslmode=prefer/allow/disable` لاتصال PostgreSQL بعيد في production، وتستخدم `require` افتراضيًا. يظل `disable` مسموحًا لاتصال loopback في CI فقط.
+- إضافة regression test يثبت أن سجلات أخطاء API لا تحتوي البريد أو كلمة المرور أو request token أو bearer token أو exception message.
+- توثيق الضوابط التشغيلية في `phases/SECURITY-OPERATIONS-POLICY.md`؛ قيم log retention وbackup retention وRPO/RTO لا تزال تنتظر الاعتماد، ولم يتم التحقق من إعدادات المزود الإنتاجي.
+
+تشغيلات SHA الجديد:
+- Docker Validation #285 — pending وقت كتابة هذا التحديث.
+- Security Scans #25 — pending وقت كتابة هذا التحديث.
+- Pint Format Report #23 — pending وقت كتابة هذا التحديث.
+
+لا تُعتبر هذه التغييرات ناجحة حتى تنتهي الوظائف الثلاث على SHA `8932cb…`. لا يوجد اتصال أو تعديل لقاعدة الإنتاج.

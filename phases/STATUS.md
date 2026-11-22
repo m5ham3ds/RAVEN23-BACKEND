@@ -15,7 +15,7 @@
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
-| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مسودة مفتوحة؛ SHA الحالي `096ad1d…`؛ Docker #282 (18/18) وPint #20 (8/8) نجحا؛ Security #22 نجح على digest Trixie نفسه، وSecurity #23 (12/12) SUCCESS على SHA المثبت؛ بقايا أقل صلاحية DB وسياسات TLS/retention/backup الإنتاجية غير مختبرة |
+| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مفتوح كمسودة؛ أساسه اجتاز Docker #282/Pint #20/Security #23 على `096ad1d…`. أضيف فصل DB app/migrator وحراسة TLS البعيد واختبارات تنقيح logs على `8932cb…`؛ Docker #285/Security #25/Pint #23 قيد التحقق، راجع أحدث تقرير. سياسة retention/backup موثقة وقيمها وإعداد المزود تنتظر اعتمادًا وفحصًا قبل الإنتاج |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
@@ -69,13 +69,15 @@
 
 - الاعتماديات 01 و02 مكتملة.
 - فرع التنفيذ: `feature/phase-03-security-observability`، PR #4 مفتوح كمسودة وغير مدمج؛ أساسه Phase 02 SHA أعلاه.
-- آخر SHA في فرع التنفيذ: `096ad1d31033a0af75f173f537410ddf3f6cb6bf`.
+- SHA السابق الذي اجتاز جميع البوابات: `096ad1d31033a0af75f173f537410ddf3f6cb6bf`.
+- SHA الجديد قيد التحقق: `8932cb21497dfbf999d20b674ecc1bf3ddae121b`.
 - صورة التشغيل: `dunglas/frankenphp:1.13.6-php8.4-trixie@sha256:bbe6057527f8dd9e270d9e2a33315f26b264ce8b0dbd19b67b0855a7899960ec` (multi-platform index digest).
 - Docker Validation #282 (run 44974897172): SUCCESS، جميع 18 خطوة، بما فيها SQLite وPostgreSQL وPint وAPP_DEBUG guard وno-DB readiness وnon-root HTTP smoke وPHP-asset blocking.
 - Pint Format Report #20 (run 44974897523): SUCCESS، 8 خطوات.
 - Security Scans #22 (run 44974402053): SUCCESS، 12 خطوة على صورة Trixie المطابقة للـdigest؛ تقرير Trivy image سجّل 121 finding (1 CRITICAL و120 HIGH) دون FixedVersion متاح وقت الفحص، ونجحت بوابة الثغرات القابلة للإصلاح. التقرير محفوظ كـartifact باسم `raven23-security-reports-22`.
 - Security Scans #23 (run 44974897193) أعيد على SHA المثبت نفسه؛ كان IN_PROGRESS عند آخر تحديث. لا تعتبر #22 بديلًا عن إكمال هذا التشغيل على الـSHA الحالي.
 - تفاصيل الإصلاحات ومقارنة Bookworm/Trixie وحدود التحقق في `reports/PHASE-03-PROGRESS-REPORT-2026-11-22.md`.
+- أضيفت سياسة التشغيل `SECURITY-OPERATIONS-POLICY.md` مع متطلبات فصل DB roles وTLS وlogging وbackup؛ retention/RPO/RTO لم تُحدد بعد.
 - لا production DB changes أو secrets reads أو deploy ضمن هذه المرحلة.
 
 
