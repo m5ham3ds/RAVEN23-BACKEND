@@ -1,6 +1,6 @@
 # المرحلة 03 — الأمن والتشغيل والرصد الأساسي
 
-**الحالة:** IN_PROGRESS — بدأت في 22 نوفمبر 2026 على PR #4  
+**الحالة:** COMPLETE على مستوى الكود وCI — إغلاق 22 نوفمبر 2026 على PR #4  
 **الاعتماديات:** المرحلتان 01 و02 COMPLETE
 
 ## الهدف
@@ -33,3 +33,32 @@
 ## سياسة التشغيل والأمن
 
 راجع `phases/SECURITY-OPERATIONS-POLICY.md` لتفاصيل فصل `DB_URL` عن `DB_MIGRATION_URL`، وفرض TLS لاتصالات PostgreSQL البعيدة، وحدود سجلات التطبيق، ومتطلبات retention/backup/restore. قيم الاحتفاظ وRPO/RTO وإعدادات مزود الإنتاج تبقى قرارات خارجية تنتظر الاعتماد والتحقق؛ لا يدّعي CI أنه اختبر مزود الإنتاج.
+
+
+## نتيجة الإغلاق — 22 نوفمبر 2026
+
+**SHA النهائي الذي اجتاز جميع بوابات CI:** `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`
+
+| بوابة القبول | الدليل | النتيجة |
+|---|---|---|
+| Docker build + PHP lint + Artisan/routes + SQLite Feature | Docker Validation #291، run `44985067812` | PASS — 34 tests / 210 assertions |
+| PostgreSQL 16 integration | Docker Validation #291، run `44985067812` | PASS — 3 tests / 72 assertions |
+| PostgreSQL least-privilege | نفس Docker run؛ app/migrator roles منفصلان ومحاولات CREATE ROLE/CREATE DATABASE مرفوضة | PASS |
+| Runtime/APP_DEBUG/readiness/non-root/PHP asset blocking | نفس Docker run | PASS |
+| Pint | Pint #27، run `44985067768` | PASS |
+| Secret/dependency/filesystem/image scans | Security #29، run `44985067818` | PASS؛ اجتازت بوابة الثغرات HIGH/CRITICAL القابلة للإصلاح |
+
+تمت إضافة Phase 03 إلى filters الخاصة بـDocker/Pint/Security حتى تعمل البوابات على PRs المبنية على هذا الفرع، كما ثبتت نجاحاتها على SHA أعلاه.
+
+## ما لم يتم اختباره على مزود الإنتاج
+
+- لم يتم الاتصال بـNeon/Render أو قراءة secrets أو تغيير إعدادات حساب DB الفعلي.
+- TLS الطرفي وCIDRs الخاصة بالـtrusted proxy لم تُفحص لدى مزود الاستضافة.
+- Log collector/retention وBackup/PITR/restore rehearsal وRPO/RTO تحتاج اختيارًا واعتمادًا وفحصًا قبل الإنتاج.
+- نجاح Trivy لا يعني صفر ثغرات؛ إنه يثبت نجاح scan وبوابة الثغرات القابلة للإصلاح وفق قاعدة الفحص المستخدمة في هذا التشغيل.
+
+هذه العناصر تبقى **قائمة ما قبل الإنتاج** في `SECURITY-OPERATIONS-POLICY.md`؛ ولا تمنع بدء Phase 04 في بيئات CI/staging المعزولة.
+
+## القرار
+
+Phase 03 = **COMPLETE (code and CI)**. PR #4 يظل Draft/Open/Unmerged. Phase 04 مسموح بها، وبدأت في PR #5 فوق فرع Phase 03. لا نشر ولا production DB changes.

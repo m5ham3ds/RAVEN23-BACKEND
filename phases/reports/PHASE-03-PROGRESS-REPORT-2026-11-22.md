@@ -151,3 +151,18 @@
 - Pint Format Report #23 — pending وقت كتابة هذا التحديث.
 
 لا تُعتبر هذه التغييرات ناجحة حتى تنتهي الوظائف الثلاث على SHA `8932cb…`. لا يوجد اتصال أو تعديل لقاعدة الإنتاج.
+
+
+---
+
+## إغلاق Phase 03 — 22 نوفمبر 2026
+
+تم اعتماد Phase 03 مكتملة على مستوى الكود وCI بعد إعادة التحقق على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748` الذي أضاف تفعيل بوابات CI للـPRs المبنية على Phase 03.
+
+- Docker Validation #291 — run `44985067812` — SUCCESS: SQLite 34 tests / 210 assertions، PostgreSQL 3 tests / 72 assertions، least-privilege DB roles، HTTP/non-root/readiness/PHP asset blocking PASS.
+- Pint #27 — run `44985067768` — SUCCESS.
+- Security Scans #29 — run `44985067818` — SUCCESS: Gitleaks/Trivy scans وبوابة HIGH/CRITICAL القابلة للإصلاح PASS.
+- Phase 03 completion report: `PHASE-03-COMPLETION-REPORT-2026-11-22.md`.
+- لا تزال إعدادات مزود الإنتاج وrestore rehearsal خارج نطاق ما تم إثباته؛ راجع `SECURITY-OPERATIONS-POLICY.md`.
+
+Phase 04 بدأت على فرع منفصل وPR #5. لم يتم merge أو deploy أو اتصال بقاعدة الإنتاج.
