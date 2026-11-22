@@ -15,7 +15,7 @@
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
-| 03 — الأمن والرصد | IN_PROGRESS | بدأت على فرع مستقل بعد إغلاق Phase 02؛ PR #4 قيد الإنشاء على أساس SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d` |
+| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مفتوح كمسودة على feature/phase-03-security-observability؛ أحدث SHA في تقرير التقدم 50780ce…، وDocker #272/Security #15/Pint #13 كانت PENDING وقت التوثيق |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
@@ -65,11 +65,13 @@
 - تقرير الإغلاق: `phases/reports/PHASE-02-COMPLETION-REPORT-2026-11-22.md`.
 - لم يتم اتصال production DB أو تغيير Render/Neon أو قراءة أسرار أو deploy أو AWS.
 
-## بدء Phase 03 — 22 نوفمبر 2026
+## تنفيذ Phase 03 — 22 نوفمبر 2026
 
 - الاعتماديات 01 و02 مكتملة.
-- فرع التنفيذ المقترح: `feature/phase-03-security-observability`، أساسه Phase02 SHA أعلاه.
-- النطاق: مراجعة authorization/CORS/trusted proxies، إخفاء معلومات البنية العامة، correlation IDs، structured logs الآمنة، rate limits، security headers، Composer/secret/container scanning، واختبارات authorization.
+- فرع التنفيذ: feature/phase-03-security-observability، PR #4 مفتوح كمسودة وغير مدمج؛ أساسه Phase02 SHA أعلاه.
+- آخر SHA موثق: 50780ce27e410b890a7f2535172e86cbfe5565a8.
+- Docker Validation #272 وSecurity Scans #15 وPint #13 كانت PENDING وقت التقرير؛ راجع reports/PHASE-03-PROGRESS-REPORT-2026-11-22.md ولا تعتبر أي تشغيل على SHA أقدم دليلًا نهائيًا.
+- تم تشخيص فشل CORS واختبار Pint في التشغيلات السابقة وإصلاحهما على فرع PR #4؛ ينتظر إثبات البوابات على SHA الحالي.
 - لا production DB changes أو secrets reads أو deploy ضمن هذه المرحلة.
 
 
