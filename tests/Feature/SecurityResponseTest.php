@@ -108,4 +108,41 @@ class SecurityResponseTest extends TestCase
         $blocked->assertNoContent();
         $this->assertNull($blocked->headers->get('Access-Control-Allow-Origin'));
     }
+
+    public function test_cors_configuration_rejects_wildcard_subdomain_origins(): void
+    {
+        $name = 'CORS_ALLOWED_ORIGINS';
+        $originalProcessValue = getenv($name);
+        $hadEnvValue = array_key_exists($name, $_ENV);
+        $originalEnvValue = $_ENV[$name] ?? null;
+        $hadServerValue = array_key_exists($name, $_SERVER);
+        $originalServerValue = $_SERVER[$name] ?? null;
+
+        putenv($name . '=https://*.example.test');
+        $_ENV[$name] = 'https://*.example.test';
+        $_SERVER[$name] = 'https://*.example.test';
+
+        try {
+            $this->expectException(\\InvalidArgumentException::class);
+            require base_path('config/cors.php');
+        } finally {
+            if ($originalProcessValue === false) {
+                putenv($name);
+            } else {
+                putenv($name . '=' . $originalProcessValue);
+            }
+
+            if ($hadEnvValue) {
+                $_ENV[$name] = $originalEnvValue;
+            } else {
+                unset($_ENV[$name]);
+            }
+
+            if ($hadServerValue) {
+                $_SERVER[$name] = $originalServerValue;
+            } else {
+                unset($_SERVER[$name]);
+            }
+        }
+    }
 }
