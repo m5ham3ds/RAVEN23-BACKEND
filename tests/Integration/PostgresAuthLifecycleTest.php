@@ -117,6 +117,75 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertContains('platform', $tokenColumns, 'PostgreSQL personal_access_tokens.platform column is missing.');
     }
 
+
+    public function test_postgresql_verification_reset_and_device_routes_use_restricted_application_role(): void
+    {
+        \Illuminate\Support\Facades\Notification::fake();
+        config([
+            'services.raven23_auth.mail_enabled' => true,
+            'services.raven23_auth.action_url' => 'https://raven23.example.test/auth',
+            'mail.default' => 'array',
+            'auth.passwords.users.expire' => 60,
+            'auth.passwords.users.throttle' => 0,
+            'security.email_verification_expire_minutes' => 60,
+        ]);
+
+        $data = $this->accountPayload();
+        $data['device_id'] = 'a83d810e-d04a-4796-a7c8-61fe1e21b4a8';
+        $data['device_name'] = 'PostgreSQL Android';
+        $data['platform'] = 'android';
+
+        $registration = $this->postJson('/api/v1/auth/register', $data)->assertCreated();
+        [$userId, $accessToken] = $this->rememberSession($registration->json());
+        $user = User::on('pgsql')->findOrFail($userId);
+
+        $verificationToken = null;
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $user,
+            \App\Notifications\EmailVerificationNotification::class,
+            function ($notification) use (&$verificationToken): bool {
+                $verificationToken = $notification->token;
+
+                return true;
+            },
+        );
+
+        $this->assertDatabaseHas('email_verification_tokens', [
+            'user_id' => $userId,
+            'token_hash' => hash('sha256', $verificationToken),
+        ]);
+        $this->postJson('/api/v1/auth/verify-email', [
+            'user_id' => $userId,
+            'token' => $verificationToken,
+        ])->assertOk()->assertJsonPath('verified', true);
+
+        $devices = $this->withToken($accessToken)->getJson('/api/v1/user/devices')
+            ->assertOk()->assertJsonCount(1, 'devices');
+        $this->assertSame('PostgreSQL Android', $devices->json('devices.0.device_name'));
+
+        $this->postJson('/api/v1/auth/forgot-password', ['email' => $data['email']])->assertAccepted();
+        $resetToken = null;
+        \Illuminate\Support\Facades\Notification::assertSentTo(
+            $user,
+            \App\Notifications\PasswordResetNotification::class,
+            function ($notification) use (&$resetToken): bool {
+                $resetToken = $notification->token;
+
+                return true;
+            },
+        );
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $data['email'],
+            'token' => $resetToken,
+            'password' => 'Raven-PG-New-Password-42!',
+            'password_confirmation' => 'Raven-PG-New-Password-42!',
+        ])->assertOk();
+
+        $this->withToken($accessToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $data['email']]);
+    }
+
     protected function tearDown(): void
     {
         foreach (array_reverse($this->createdTokens) as $tokenId) {
