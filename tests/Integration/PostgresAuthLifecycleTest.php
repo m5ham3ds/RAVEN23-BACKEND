@@ -342,4 +342,68 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->withToken($secondToken)->postJson('/api/v1/auth/logout')->assertOk();
         $this->assertNull(PersonalAccessToken::findToken($secondToken));
     }
+
+    public function test_postgresql_preferences_and_data_exports_are_scoped_to_the_authenticated_owner(): void
+    {
+        $firstData = $this->accountPayload();
+        $firstData['device_id'] = '66666666-6666-4666-8666-666666666666';
+        $firstData['device_name'] = 'PostgreSQL owner one';
+        $firstData['platform'] = 'android';
+        $first = $this->postJson('/api/v1/auth/register', $firstData)->assertCreated();
+        [$firstUserId, $firstToken] = $this->rememberSession($first->json());
+
+        $secondData = $this->accountPayload();
+        $secondData['device_id'] = '77777777-7777-4777-8777-777777777777';
+        $secondData['device_name'] = 'PostgreSQL owner two';
+        $secondData['platform'] = 'tv';
+        $second = $this->postJson('/api/v1/auth/register', $secondData)->assertCreated();
+        [$secondUserId, $secondToken] = $this->rememberSession($second->json());
+
+        $this->withToken($firstToken)
+            ->putJson('/api/v1/user/preferences', [
+                'locale' => 'ar',
+                'timezone' => 'Africa/Khartoum',
+            ])
+            ->assertOk()
+            ->assertJsonPath('preferences.locale', 'ar')
+            ->assertJsonPath('preferences.timezone', 'Africa/Khartoum');
+
+        $this->withToken($secondToken)
+            ->getJson('/api/v1/user/preferences')
+            ->assertOk()
+            ->assertJsonPath('preferences.locale', null)
+            ->assertJsonPath('preferences.timezone', 'UTC');
+
+        $firstExport = $this->withToken($firstToken)
+            ->getJson('/api/v1/user/data-export')
+            ->assertOk()
+            ->assertJsonPath('data.account.id', $firstUserId)
+            ->assertJsonPath('data.preferences.locale', 'ar')
+            ->assertJsonCount(1, 'data.devices');
+
+        $firstExportData = $firstExport->json('data');
+        $this->assertSame('66666666-6666-4666-8666-666666666666', $firstExportData['devices'][0]['device_id']);
+        $this->assertArrayNotHasKey('password', $firstExportData['account']);
+        $this->assertArrayNotHasKey('google_id', $firstExportData['account']);
+        $this->assertStringNotContainsString($secondData['email'], $firstExport->getContent());
+        $this->assertStringNotContainsString('77777777-7777-4777-8777-777777777777', $firstExport->getContent());
+
+        $this->withToken($secondToken)
+            ->getJson('/api/v1/user/data-export')
+            ->assertOk()
+            ->assertJsonPath('data.account.id', $secondUserId)
+            ->assertJsonCount(1, 'data.devices');
+
+        $this->assertDatabaseHas('user_profiles', ['user_id' => $firstUserId]);
+        $this->assertDatabaseHas('user_preferences', [
+            'user_id' => $firstUserId,
+            'locale' => 'ar',
+            'timezone' => 'Africa/Khartoum',
+        ]);
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $firstUserId,
+            'device_id' => '66666666-6666-4666-8666-666666666666',
+        ]);
+    }
+
 }
