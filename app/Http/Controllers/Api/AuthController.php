@@ -822,10 +822,11 @@ class AuthController extends Controller
         $status = Password::reset([
             'email' => Str::lower(trim($data['email'])),
             'token' => $data['token'],
-        ], function (User $user) use ($data): void {
-            DB::transaction(function () use ($user, $data): void {
+            'password' => $data['password'],
+        ], function (User $user, string $password): void {
+            DB::transaction(function () use ($user, $password): void {
                 $user->forceFill([
-                    'password' => $data['password'],
+                    'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
                 $user->tokens()->delete();
