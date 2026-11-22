@@ -34,10 +34,21 @@
 
 - فرع التنفيذ: `feature/phase-04-authentication-completion`.
 - PR #5: Draft/Open، stacked على `feature/phase-03-security-observability`، ولا يدمج PR #4 أو يعيد تنفيذ Phase 00–03.
-- SHA الجاري اختباره عند آخر تحديث: `f66e0ea1de23e6d4510d5b8dfaa2a4ea8c9a4525`.
+- SHA الجاري اختباره عند آخر تحديث: `6a7bc6efa8660783b38109815036ef22088a7bad`.
 - أضيفت تدفقات hashed one-time email verification، password reset عبر Laravel password broker، وواجهات device listing/session revoke مع rate limits.
 - أضيفت اختبارات Feature وPostgreSQL للتوكن المنتهي/المعاد استخدامه، hash-at-rest، عدم كشف وجود البريد، إبطال الجلسات، وصلاحيات حساب التطبيق.
 - إرسال البريد مغلق افتراضيًا عبر `RAVEN23_AUTH_MAIL_ENABLED=false`؛ يلزم مزود حقيقي ورابط `RAVEN23_AUTH_ACTION_URL` واعتماد إعدادات staging قبل إثبات التسليم.
 - Google verifier والربط الحالي محفوظان؛ إثبات Google ID token حقيقي من نسخة Android ما زال WAITING_EXTERNAL.
 
 لا تسجل Phase 04 COMPLETE قبل نجاح Docker/Pint/Security على SHA موحد، واختبارات PostgreSQL، واكتمال ما يمكن اختباره من الكود. افصل تكامل staging الحقيقي للبريد وGoogle عن نتائج mocks/notifications fake.
+
+
+## سجل إصلاحات CI — 22 نوفمبر 2026
+
+- `e46d4005`: أظهر PHP lint أن `AuthLifecycleTest::setUp()` لم تُغلق قبل helper، فتم إصلاحها في `f66e0ea1`.
+- `f66e0ea1`: كشف lint قوس إغلاق مبكرًا للصنف قبل اختبار email-change، وتم إصلاح نطاق الصنف في `6b7211af`.
+- `6b7211af`: أظهرت SQLite اختبارات reset/device failures؛ تم عزل سلوك guard المؤقت في test harness عبر `Auth::forgetGuards()`، وتتبع 500 في reset إلى نقص `password` من credentials المرسلة إلى Laravel 13 PasswordBroker (مصدره PasswordBroker.php:134).
+- `434f5f10`: أضيف password إلى broker credentials واستُخدم callback signature الرسمي. SQLite أصبحت **40 passed / 269 assertions**. Security scans وPint workflow نجحا، لكن Docker Pint gate الداخلي رفض 7 style issues في 6 ملفات.
+- `6a7bc6ef`: طُبق تنسيق Pint على ملفات PHP المتأثرة. التشغيلات الحالية Docker #308، Pint #42، Security #44 ما زالت `pending` عند آخر فحص، ولم تُسجل نتائج Jobs بعد. لا تعلن Phase 04 مكتملة حتى تنتهي هذه التشغيلات على هذا SHA نفسه.
+
+الاختبارات الملغاة على commits الوسيطة لا تعد فشلًا إضافيًا ولا نجاحًا. SHA الحالي ونتائج هذه البوابات هما نقطة الاستئناف.
