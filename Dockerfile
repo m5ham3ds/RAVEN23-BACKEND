@@ -28,6 +28,8 @@ RUN set -eu; \
       database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
       database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php \
       database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
+      database/migrations/2026_11_22_000006_create_email_verification_tokens_table.php \
+      app/Notifications/EmailVerificationNotification.php app/Notifications/PasswordResetNotification.php \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
       tests/Feature/SecurityResponseTest.php tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \

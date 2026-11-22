@@ -132,6 +132,47 @@ class AppServiceProvider extends ServiceProvider
             return $limits;
         });
 
+
+        RateLimiter::for('auth-device-management', function (Request $request) use ($limit, $ipFingerprint, $fingerprint): array {
+            $perMinute = (int) config('security.rate_limits.device_management_per_minute', 30);
+            $limits = [$limit('device-management:'.$ipFingerprint($request), $perMinute)];
+
+            if ($request->user()) {
+                $limits[] = $limit(
+                    'device-management:'.$fingerprint('user', (string) $request->user()->getAuthIdentifier()),
+                    $perMinute,
+                );
+            }
+
+            return $limits;
+        });
+
+        RateLimiter::for('auth-email-verification', function (Request $request) use ($limit, $ipFingerprint, $emailFingerprint, $fingerprint): array {
+            $limits = [
+                $limit(
+                    'email-verification:'.$ipFingerprint($request),
+                    (int) config('security.rate_limits.email_verification_ip_per_minute', 5),
+                ),
+            ];
+
+            $identity = $emailFingerprint($request);
+            if ($identity === null) {
+                $userId = $request->input('user_id') ?? $request->user()?->getAuthIdentifier();
+                if ($userId !== null) {
+                    $identity = $fingerprint('user', (string) $userId);
+                }
+            }
+
+            if ($identity !== null) {
+                $limits[] = $limit(
+                    'email-verification:'.$identity,
+                    (int) config('security.rate_limits.email_verification_identity_per_minute', 3),
+                );
+            }
+
+            return $limits;
+        });
+
         RateLimiter::for('auth-username-check', function (Request $request) use ($limit, $ipFingerprint, $fingerprint): array {
             $limits = [
                 $limit(
