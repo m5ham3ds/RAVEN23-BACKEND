@@ -283,8 +283,6 @@ class AuthLifecycleTest extends TestCase
         $this->withToken($ownerToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
         $this->withToken($otherToken)->getJson('/api/v1/user/profile')->assertOk();
     }
-}
-
 
     public function test_email_change_revokes_old_recovery_tokens_and_reissues_verification(): void
     {
