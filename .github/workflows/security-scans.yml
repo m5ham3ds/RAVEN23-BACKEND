@@ -2,9 +2,9 @@ name: RAVEN23 Security Scans
 
 on:
   pull_request:
-    branches: [main, feature/phase-02-portable-runtime, feature/phase-03-security-observability, feature/phase-04-authentication-completion]
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   push:
-    branches: [main]
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   workflow_dispatch:
 
 permissions:

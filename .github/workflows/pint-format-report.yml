@@ -1,8 +1,10 @@
 name: RAVEN23 Pint Format Report
 
 on:
+  push:
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   pull_request:
-    branches: [feature/phase-02-portable-runtime, feature/phase-03-security-observability, feature/phase-04-authentication-completion]
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   workflow_dispatch:
 
 permissions:
@@ -28,9 +30,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin "${GITHUB_BASE_REF:-feature/phase-02-portable-runtime}"
+          git fetch origin "$base_ref"
           mapfile -t changed_php < <(
-            git diff --name-only "origin/${GITHUB_BASE_REF:-feature/phase-02-portable-runtime}...HEAD" -- '*.php'
+            git diff --name-only "origin/$base_ref...HEAD" -- '*.php'
           )
           if [ "${#changed_php[@]}" -eq 0 ]; then
             echo "No changed PHP files."

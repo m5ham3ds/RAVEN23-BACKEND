@@ -2,9 +2,9 @@ name: RAVEN23 Backend Docker Validation
 
 on:
   push:
-    branches: [main]
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   pull_request:
-    branches: [main, feature/phase-01-laravel-project, feature/phase-02-portable-runtime, feature/phase-03-security-observability, feature/phase-04-authentication-completion]
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
 
 permissions:
   contents: read
