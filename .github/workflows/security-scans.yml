@@ -39,7 +39,7 @@ jobs:
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/repo:ro" \
             -v "$RUNNER_TEMP/raven23-security-reports:/reports" \
-            aquasecurity/trivy:0.76.2 \
+            aquasec/trivy:0.76.2 \
             fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL \
             --exit-code 0 --format json --output /reports/trivy-fs.json /repo
 
@@ -51,7 +51,7 @@ jobs:
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$RUNNER_TEMP/raven23-security-reports:/reports" \
-            aquasecurity/trivy:0.76.2 \
+            aquasec/trivy:0.76.2 \
             image --scanners vuln,misconfig,secret --severity HIGH,CRITICAL \
             --exit-code 0 --format json --output /reports/trivy-image.json raven23-backend:security
 
