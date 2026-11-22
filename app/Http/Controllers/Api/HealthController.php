@@ -58,6 +58,7 @@ class HealthController extends Controller
             foreach (self::REQUIRED_COLUMNS as $table => $columns) {
                 if (! Schema::connection($connectionName)->hasTable($table)) {
                     $missingSchema[] = $table;
+
                     continue;
                 }
 
