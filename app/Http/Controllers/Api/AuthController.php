@@ -573,8 +573,9 @@ class AuthController extends Controller
         }
 
         $newEmail = Str::lower(trim($data['email']));
-        if (! hash_equals(Str::lower((string) $user->email), $newEmail)) {
-            DB::transaction(function () use ($user, $newEmail): void {
+        $oldEmail = Str::lower((string) $user->email);
+        if (! hash_equals($oldEmail, $newEmail)) {
+            DB::transaction(function () use ($user, $newEmail, $oldEmail): void {
                 $user->forceFill([
                     'email' => $newEmail,
                     'email_verified_at' => null,
@@ -582,6 +583,9 @@ class AuthController extends Controller
                 ])->save();
 
                 DB::table('email_verification_tokens')->where('user_id', $user->getKey())->delete();
+                DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
+                    ->where('email', $oldEmail)
+                    ->delete();
             });
         }
 
@@ -623,9 +627,13 @@ class AuthController extends Controller
         ]);
 
         DB::transaction(function () use ($user): void {
-            // Sanctum tokens are polymorphic and have no user foreign key;
-            // explicitly revoke them before removing the account row.
+            // Tokens are deliberately cleaned before removing the account row:
+            // neither Sanctum nor temporary auth-token tables have a user FK.
             $user->tokens()->delete();
+            DB::table('email_verification_tokens')->where('user_id', $user->getKey())->delete();
+            DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
+                ->where('email', $user->email)
+                ->delete();
             $user->delete();
         });
 
