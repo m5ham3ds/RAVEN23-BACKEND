@@ -248,7 +248,6 @@ class AuthController extends Controller
         return $candidate;
     }
 
-
     public function register(Request $request): JsonResponse
     {
         $this->markStage($request, 'register.normalize_input');
@@ -557,7 +556,6 @@ class AuthController extends Controller
         return response()->json(['success' => true, 'user' => $user->fresh()->toRavenArray()]);
     }
 
-
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -638,7 +636,6 @@ class AuthController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Account deleted.']);
     }
-
 
     public function sendEmailVerification(Request $request): JsonResponse
     {
@@ -769,7 +766,6 @@ class AuthController extends Controller
         ]);
     }
 
-
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
@@ -807,7 +803,6 @@ class AuthController extends Controller
             'message' => 'If the account exists, a password reset link has been sent.',
         ], 202);
     }
-
 
     public function resetPassword(Request $request): JsonResponse
     {
