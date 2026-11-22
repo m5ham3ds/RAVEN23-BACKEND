@@ -12,5 +12,9 @@ return [
         'password_reset_ip_per_minute' => (int) env('AUTH_PASSWORD_RESET_IP_LIMIT', 5),
         'password_reset_identity_per_minute' => (int) env('AUTH_PASSWORD_RESET_IDENTITY_LIMIT', 3),
         'username_check_ip_per_minute' => (int) env('AUTH_USERNAME_CHECK_IP_LIMIT', 30),
+        'device_management_per_minute' => (int) env('AUTH_DEVICE_MANAGEMENT_LIMIT', 30),
+        'email_verification_ip_per_minute' => (int) env('AUTH_EMAIL_VERIFICATION_IP_LIMIT', 5),
+        'email_verification_identity_per_minute' => (int) env('AUTH_EMAIL_VERIFICATION_IDENTITY_LIMIT', 3),
+        'email_verification_expire_minutes' => (int) env('AUTH_EMAIL_VERIFICATION_EXPIRE', 60),
     ],
 ];
