@@ -19,6 +19,9 @@ RUN set -eu; \
     for file in composer.json composer.lock artisan bootstrap/app.php bootstrap/providers.php \
       public/index.php routes/api.php routes/web.php \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
+      app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
+      app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
+      config/cors.php config/security.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
       database/migrations/0001_01_01_000000_create_users_table.php \
       database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
@@ -26,15 +29,20 @@ RUN set -eu; \
       database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php \
       database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php \
       database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php \
-      tests/TestCase.php tests/Feature/AuthLifecycleTest.php \
+      database/migrations/2026_11_22_000006_create_email_verification_tokens_table.php \
+      database/migrations/2026_11_22_000007_create_user_data_foundation_tables.php \
+      app/Notifications/EmailVerificationNotification.php app/Notifications/PasswordResetNotification.php \
+      tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
+      tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
+      tests/Feature/SecurityResponseTest.php tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/php-production.ini; do \
         test -s "$file" || { echo "Required project file missing or empty: $file" >&2; exit 1; }; \
     done
 
 RUN composer validate --strict \
     && composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader \
+    && composer audit --no-interaction \
     && php -r '$required = ["curl","ctype","dom","fileinfo","filter","hash","mbstring","openssl","pcre","PDO","session","tokenizer","xml","pdo_pgsql","pdo_sqlite"]; foreach ($required as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing required PHP extension: ".$extension.PHP_EOL); exit(1); } }'
 
 # Source-level checks and deterministic SQLite Feature suite.
@@ -65,7 +73,7 @@ CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"
 
 # Production runtime: pinned FrankenPHP/PHP 8.4 image, Caddy HTTP server,
 # PHP production settings, and no Render/Neon-specific startup behaviour.
-FROM dunglas/frankenphp:php8.4-bookworm@sha256:81ba601edfb650d1df63f54dafdedc021d9d1fb37517850a4e93278ab19cced1 AS runtime
+FROM dunglas/frankenphp:1.13.6-php8.4-trixie@sha256:bbe6057527f8dd9e270d9e2a33315f26b264ce8b0dbd19b67b0855a7899960ec AS runtime
 
 ARG RAVEN23_SOURCE_COMMIT=unknown
 ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}
@@ -90,14 +98,17 @@ RUN set -eu; \
     cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"; \
     install-php-extensions curl dom mbstring opcache pdo_pgsql xml; \
     composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader; \
-    apt-get update && apt-get install -y --no-install-recommends libcap2-bin; \
+    apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends libcap2-bin; \
     groupadd --gid 10001 raven; \
     useradd --uid 10001 --gid 10001 --create-home --no-log-init --shell /usr/sbin/nologin raven; \
     setcap -r /usr/local/bin/frankenphp; \
     mkdir -p /data /config storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs; \
     chown -R raven:raven /data /config storage bootstrap/cache; \
     chmod 755 /usr/local/bin/raven23-entrypoint; \
-    apt-get purge -y libcap2-bin; \
+    apt-get purge -y libcap2-bin linux-libc-dev; \
+    apt-get autoremove -y --purge; \
     rm -rf /var/lib/apt/lists/*
 
 USER raven:raven

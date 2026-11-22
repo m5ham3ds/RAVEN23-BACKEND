@@ -1,0 +1,85 @@
+name: RAVEN23 Pint Format Report
+
+on:
+  push:
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+  pull_request:
+    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-pint-format-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  format-changed-php:
+    name: Format changed PHP files with Laravel Pint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the full pull request history
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Determine changed PHP files against Phase 02
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref="${GITHUB_BASE_REF:-main}"
+          git fetch origin "$base_ref"
+          mapfile -t changed_php < <(
+            git diff --name-only "origin/$base_ref...HEAD" -- '*.php'
+          )
+          if [ "${#changed_php[@]}" -eq 0 ]; then
+            echo "No changed PHP files."
+            echo "has_files=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s\n' "${changed_php[@]}" > "$RUNNER_TEMP/changed-php-files.txt"
+          echo "has_files=true" >> "$GITHUB_OUTPUT"
+          printf 'Files to format:\n%s\n' "${changed_php[@]}"
+
+      - name: Build the development Composer image
+        if: steps.changed.outputs.has_files == 'true'
+        run: docker build --target postgres-test --pull -t raven23-pint:ci .
+
+      - name: Run Pint on changed PHP source only
+        if: steps.changed.outputs.has_files == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/raven23-pint-source"
+          container_id="$(docker create raven23-pint:ci)"
+          docker cp "$container_id:/opt/raven/." "$RUNNER_TEMP/raven23-pint-source/"
+          docker rm "$container_id"
+
+          mapfile -t changed_php < "$RUNNER_TEMP/changed-php-files.txt"
+          docker run --rm \
+            -v "$RUNNER_TEMP/raven23-pint-source:/opt/raven" \
+            -w /opt/raven \
+            --entrypoint php \
+            raven23-pint:ci \
+            vendor/bin/pint "${changed_php[@]}"
+
+          mkdir -p "$RUNNER_TEMP/raven23-pint-formatted"
+          for file in "${changed_php[@]}"; do
+            mkdir -p "$RUNNER_TEMP/raven23-pint-formatted/$(dirname "$file")"
+            cp "$RUNNER_TEMP/raven23-pint-source/$file" "$RUNNER_TEMP/raven23-pint-formatted/$file"
+          done
+
+          tar -czf "$RUNNER_TEMP/raven23-pint-formatted.tar.gz" \
+            -C "$RUNNER_TEMP/raven23-pint-formatted" .
+
+      - name: Upload formatted PHP sources
+        if: steps.changed.outputs.has_files == 'true'
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: raven23-pint-formatted-${{ github.run_number }}
+          path: ${{ runner.temp }}/raven23-pint-formatted.tar.gz
+          if-no-files-found: error
+          retention-days: 7

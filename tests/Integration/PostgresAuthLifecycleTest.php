@@ -3,13 +3,18 @@
 namespace Tests\Integration;
 
 use App\Models\User;
-use Tests\TestCase;
+use App\Notifications\EmailVerificationNotification;
+use App\Notifications\PasswordResetNotification;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Laravel\Sanctum\PersonalAccessToken;
+use Tests\TestCase;
 
 /**
  * Boots the same Laravel application and production API routes used on Render.
@@ -17,7 +22,9 @@ use Laravel\Sanctum\PersonalAccessToken;
 class PostgresAuthLifecycleTest extends TestCase
 {
     private array $createdUsers = [];
+
     private array $createdTokens = [];
+
     private array $createdEmails = [];
 
     protected function setUp(): void
@@ -66,7 +73,7 @@ class PostgresAuthLifecycleTest extends TestCase
         });
         $this->assertNotNull($registered, 'POST /api/v1/auth/register must be registered by the shared Laravel test bootstrap.');
 
-        $routeRequest = \Illuminate\Http\Request::create('/api/v1/auth/register', 'POST');
+        $routeRequest = Request::create('/api/v1/auth/register', 'POST');
         $matchedRoute = $routes->match($routeRequest);
         $this->assertSame('api/v1/auth/register', $matchedRoute->uri());
         $this->assertContains('POST', $matchedRoute->methods());
@@ -115,6 +122,78 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertContains('device_id', $tokenColumns, 'PostgreSQL personal_access_tokens.device_id column is missing.');
         $this->assertContains('device_name', $tokenColumns, 'PostgreSQL personal_access_tokens.device_name column is missing.');
         $this->assertContains('platform', $tokenColumns, 'PostgreSQL personal_access_tokens.platform column is missing.');
+    }
+
+    public function test_postgresql_verification_reset_and_device_routes_use_restricted_application_role(): void
+    {
+        Notification::fake();
+        config([
+            'services.raven23_auth.mail_enabled' => true,
+            'services.raven23_auth.action_url' => 'https://raven23.example.test/auth',
+            'mail.default' => 'array',
+            'auth.passwords.users.expire' => 60,
+            'auth.passwords.users.throttle' => 0,
+            'security.email_verification_expire_minutes' => 60,
+        ]);
+
+        $data = $this->accountPayload();
+        $data['device_id'] = 'a83d810e-d04a-4796-a7c8-61fe1e21b4a8';
+        $data['device_name'] = 'PostgreSQL Android';
+        $data['platform'] = 'android';
+
+        $registration = $this->postJson('/api/v1/auth/register', $data)->assertCreated();
+        [$userId, $accessToken] = $this->rememberSession($registration->json());
+        $user = User::on('pgsql')->findOrFail($userId);
+
+        $verificationToken = null;
+        Notification::assertSentTo(
+            $user,
+            EmailVerificationNotification::class,
+            function ($notification) use (&$verificationToken): bool {
+                $verificationToken = $notification->token;
+
+                return true;
+            },
+        );
+
+        $this->assertDatabaseHas('email_verification_tokens', [
+            'user_id' => $userId,
+            'token_hash' => hash('sha256', $verificationToken),
+        ]);
+        $this->postJson('/api/v1/auth/verify-email', [
+            'user_id' => $userId,
+            'token' => $verificationToken,
+        ])->assertOk()->assertJsonPath('verified', true);
+
+        $devices = $this->withToken($accessToken)->getJson('/api/v1/user/devices')
+            ->assertOk()->assertJsonCount(1, 'devices');
+        $this->assertSame('PostgreSQL Android', $devices->json('devices.0.device_name'));
+
+        $this->postJson('/api/v1/auth/forgot-password', ['email' => $data['email']])->assertAccepted();
+        $resetToken = null;
+        Notification::assertSentTo(
+            $user,
+            PasswordResetNotification::class,
+            function ($notification) use (&$resetToken): bool {
+                $resetToken = $notification->token;
+
+                return true;
+            },
+        );
+
+        $this->postJson('/api/v1/auth/reset-password', [
+            'email' => $data['email'],
+            'token' => $resetToken,
+            'password' => 'Raven-PG-New-Password-42!',
+            'password_confirmation' => 'Raven-PG-New-Password-42!',
+        ])->assertOk();
+
+        // Flush the in-process auth guard so the next request verifies the
+        // revoked Sanctum token against PostgreSQL instead of a cached user.
+        Auth::forgetGuards();
+
+        $this->withToken($accessToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $data['email']]);
     }
 
     protected function tearDown(): void
@@ -189,7 +268,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $data = $this->accountPayload();
         $registration = $this->postJson('/api/v1/auth/register', $data);
 
-        $this->assertSame(201, $registration->status(), 'Email registration response: ' . $registration->getContent());
+        $this->assertSame(201, $registration->status(), 'Email registration response: '.$registration->getContent());
         $registration->assertJsonPath('success', true);
         [$userId, $firstToken] = $this->rememberSession($registration->json());
 
@@ -222,7 +301,7 @@ class PostgresAuthLifecycleTest extends TestCase
     public function test_postgresql_guest_creation_and_session_are_successful(): void
     {
         $response = $this->postJson('/api/v1/auth/guest');
-        $this->assertSame(200, $response->status(), 'Guest registration response: ' . $response->getContent());
+        $this->assertSame(200, $response->status(), 'Guest registration response: '.$response->getContent());
 
         [$userId, $token] = $this->rememberSession($response->json());
         $this->assertDatabaseHas('users', [
@@ -244,7 +323,7 @@ class PostgresAuthLifecycleTest extends TestCase
             'device_name' => 'PostgreSQL Integration Device',
             'platform' => 'android',
         ]);
-        $this->assertSame(201, $first->status(), 'Device registration response: ' . $first->getContent());
+        $this->assertSame(201, $first->status(), 'Device registration response: '.$first->getContent());
         [$userId, $firstToken] = $this->rememberSession($first->json());
 
         $second = $this->postJson('/api/v1/auth/login', [
@@ -262,5 +341,71 @@ class PostgresAuthLifecycleTest extends TestCase
 
         $this->withToken($secondToken)->postJson('/api/v1/auth/logout')->assertOk();
         $this->assertNull(PersonalAccessToken::findToken($secondToken));
+    }
+
+    public function test_postgresql_preferences_and_data_exports_are_scoped_to_the_authenticated_owner(): void
+    {
+        $firstData = $this->accountPayload();
+        $firstData['device_id'] = '66666666-6666-4666-8666-666666666666';
+        $firstData['device_name'] = 'PostgreSQL owner one';
+        $firstData['platform'] = 'android';
+        $first = $this->postJson('/api/v1/auth/register', $firstData)->assertCreated();
+        [$firstUserId, $firstToken] = $this->rememberSession($first->json());
+
+        $secondData = $this->accountPayload();
+        $secondData['device_id'] = '77777777-7777-4777-8777-777777777777';
+        $secondData['device_name'] = 'PostgreSQL owner two';
+        $secondData['platform'] = 'tv';
+        $second = $this->postJson('/api/v1/auth/register', $secondData)->assertCreated();
+        [$secondUserId, $secondToken] = $this->rememberSession($second->json());
+
+        $this->withToken($firstToken)
+            ->putJson('/api/v1/user/preferences', [
+                'locale' => 'ar',
+                'timezone' => 'Africa/Khartoum',
+            ])
+            ->assertOk()
+            ->assertJsonPath('preferences.locale', 'ar')
+            ->assertJsonPath('preferences.timezone', 'Africa/Khartoum');
+
+        Auth::forgetGuards();
+        $this->withToken($secondToken)
+            ->getJson('/api/v1/user/preferences')
+            ->assertOk()
+            ->assertJsonPath('preferences.locale', null)
+            ->assertJsonPath('preferences.timezone', 'UTC');
+
+        Auth::forgetGuards();
+        $firstExport = $this->withToken($firstToken)
+            ->getJson('/api/v1/user/data-export')
+            ->assertOk()
+            ->assertJsonPath('data.account.id', $firstUserId)
+            ->assertJsonPath('data.preferences.locale', 'ar')
+            ->assertJsonCount(1, 'data.devices');
+
+        $firstExportData = $firstExport->json('data');
+        $this->assertSame('66666666-6666-4666-8666-666666666666', $firstExportData['devices'][0]['device_id']);
+        $this->assertArrayNotHasKey('password', $firstExportData['account']);
+        $this->assertArrayNotHasKey('google_id', $firstExportData['account']);
+        $this->assertStringNotContainsString($secondData['email'], $firstExport->getContent());
+        $this->assertStringNotContainsString('77777777-7777-4777-8777-777777777777', $firstExport->getContent());
+
+        Auth::forgetGuards();
+        $this->withToken($secondToken)
+            ->getJson('/api/v1/user/data-export')
+            ->assertOk()
+            ->assertJsonPath('data.account.id', $secondUserId)
+            ->assertJsonCount(1, 'data.devices');
+
+        $this->assertDatabaseHas('user_profiles', ['user_id' => $firstUserId]);
+        $this->assertDatabaseHas('user_preferences', [
+            'user_id' => $firstUserId,
+            'locale' => 'ar',
+            'timezone' => 'Africa/Khartoum',
+        ]);
+        $this->assertDatabaseHas('user_devices', [
+            'user_id' => $firstUserId,
+            'device_id' => '66666666-6666-4666-8666-666666666666',
+        ]);
     }
 }

@@ -56,15 +56,16 @@ class HealthController extends Controller
 
             $missingSchema = [];
             foreach (self::REQUIRED_COLUMNS as $table => $columns) {
-                if (!Schema::connection($connectionName)->hasTable($table)) {
+                if (! Schema::connection($connectionName)->hasTable($table)) {
                     $missingSchema[] = $table;
+
                     continue;
                 }
 
                 $actualColumns = Schema::connection($connectionName)->getColumnListing($table);
                 foreach ($columns as $column) {
-                    if (!in_array($column, $actualColumns, true)) {
-                        $missingSchema[] = $table . '.' . $column;
+                    if (! in_array($column, $actualColumns, true)) {
+                        $missingSchema[] = $table.'.'.$column;
                     }
                 }
             }
@@ -78,7 +79,6 @@ class HealthController extends Controller
                         'database' => 'ok',
                         'schema' => 'incomplete',
                     ],
-                    'source_commit' => $this->sourceCommit(),
                 ], 503);
             }
 
@@ -90,7 +90,6 @@ class HealthController extends Controller
                     'database' => 'ok',
                     'schema' => 'ready',
                 ],
-                'source_commit' => $this->sourceCommit(),
             ]);
         } catch (Throwable $exception) {
             // Use PHP's native error log here: readiness must still return
@@ -114,7 +113,6 @@ class HealthController extends Controller
                     'database' => 'unavailable',
                     'schema' => 'unknown',
                 ],
-                'source_commit' => $this->sourceCommit(),
             ], 503);
         }
     }
@@ -139,18 +137,6 @@ class HealthController extends Controller
             'schema' => ($checks['schema'] ?? null) === 'ready'
                 ? 'ready'
                 : (($checks['schema'] ?? null) === 'incomplete' ? 'incomplete' : 'unknown'),
-            'runtime_target' => [
-                'source_commit' => $this->sourceCommit(),
-                'instance_id' => substr((string) (getenv('HOSTNAME') ?: 'unknown'), 0, 32),
-            ],
-            'google_auth' => filled(config('services.google.client_id'))
-                ? 'configured'
-                : 'not_configured',
         ], $response->getStatusCode());
-    }
-
-    private function sourceCommit(): string
-    {
-        return substr((string) (getenv('RAVEN23_SOURCE_COMMIT') ?: 'unknown'), 0, 40);
     }
 }

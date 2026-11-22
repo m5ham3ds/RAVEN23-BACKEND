@@ -6,6 +6,35 @@ use Pdo\Mysql;
 // Keep DB_URL available in long-running web workers even if Laravel's Env
 // repository does not expose it through env() in that process.
 $dbUrl = env('DB_URL') ?: (getenv('DB_URL') ?: ($_SERVER['DB_URL'] ?? null));
+$dbUrlParts = is_string($dbUrl) && $dbUrl !== '' ? parse_url($dbUrl) : false;
+$dbUrlOptions = [];
+
+if (is_array($dbUrlParts)) {
+    parse_str((string) ($dbUrlParts['query'] ?? ''), $dbUrlOptions);
+}
+
+$appEnvironment = (string) env('APP_ENV', 'local');
+$dbUrlHost = is_array($dbUrlParts) ? ($dbUrlParts['host'] ?? null) : null;
+$dbHost = (string) ($dbUrlHost ?: env('DB_HOST', '127.0.0.1'));
+$dbSslmode = (string) ($dbUrlOptions['sslmode'] ?? env(
+    'DB_SSLMODE',
+    $appEnvironment === 'production' ? 'require' : 'prefer',
+));
+$isLoopbackDatabase = in_array(strtolower(trim($dbHost, '[]')), [
+    'localhost',
+    '127.0.0.1',
+    '::1',
+], true);
+
+if (
+    $appEnvironment === 'production'
+    && ! $isLoopbackDatabase
+    && ! in_array($dbSslmode, ['require', 'verify-ca', 'verify-full'], true)
+) {
+    throw new RuntimeException(
+        'Remote PostgreSQL connections in production must use DB_SSLMODE=require, verify-ca, or verify-full.',
+    );
+}
 
 return [
 
@@ -103,7 +132,7 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
-            'sslmode' => env('DB_SSLMODE', 'prefer'),
+            'sslmode' => $dbSslmode,
         ],
 
         'sqlsrv' => [

@@ -28,7 +28,7 @@
 
 ## الحالة الحالية
 
-Phase 00 و01 و02 و03 COMPLETE وفق تقارير الإغلاق المعتمدة. Phase 03 اجتازت Docker #291/Pint #27/Security #29 على SHA موحد، مع بقاء تكوين مزود الإنتاج واختبار backup/restore ضمن متطلبات ما قبل الإنتاج. Phase 04 IN_PROGRESS على الفرع feature/phase-04-authentication-completion وPR #5. راجع STATUS.md وآخر تقرير في reports/ للحالة الحالية.
+Phase 00–03 اجتازت معايير الكود وCI وفق أدلة كل مرحلة؛ تبقى متطلبات التشغيل الخارجي لـPhase 03 قبل الإنتاج. Phase 04 اجتازت code/CI على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f: Docker #320 وPint #52 وSecurity #54 — SUCCESS. PR #4 وPR #5 ما زالا Draft/Open؛ Google Android الحقيقي والبريد الحقيقي في staging لم يثبتا، لذا Phase 04 PARTIAL على مستوى المنتج/الحوكمة. Phase 05 IN_PROGRESS على feature/phase-05-user-data-foundation؛ لم تظهر نتائج CI لها بعد. راجع STATUS.md وMASTER_PLAN.md وآخر تقرير في reports/.
 
 ## قواعد هذا المجلد
 

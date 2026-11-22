@@ -11,6 +11,15 @@ if [ -z "${APP_KEY:-}" ]; then
     exit 1
 fi
 
+case "$(printf '%s' "$APP_DEBUG" | tr '[:upper:]' '[:lower:]')" in
+    1|true|yes|on)
+        if [ "$APP_ENV" = "production" ]; then
+            echo "APP_DEBUG must be false in production." >&2
+            exit 1
+        fi
+        ;;
+esac
+
 case "$PORT" in
     ''|*[!0-9]*)
         echo "PORT must be a numeric TCP port." >&2

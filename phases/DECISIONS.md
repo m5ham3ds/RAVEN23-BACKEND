@@ -80,3 +80,26 @@
 - **القرار:** تظل `RAVEN23_AUTH_MAIL_ENABLED=false` افتراضيًا. لا ترسل رسائل التحقق/إعادة التعيين إلا بعد ضبط مزود حقيقي ورابط `RAVEN23_AUTH_ACTION_URL` عبر بيئة runtime آمنة؛ لا يُختار مزود ولا نطاق أو deep link بالافتراض.
 - **السبب:** منع إرسال روابط حساسة إلى عنوان أو قناة غير صحيحة، وعدم اعتبار Mail log/array تسليمًا حقيقيًا في الإنتاج.
 - **الأثر:** اختبارات CI تستخدم notification fake/array فقط؛ يجب اختبار وصول الرسائل والروابط في staging قبل التفعيل.
+
+## D-012 — فصل بيانات الملف والتفضيلات وتثبيت الجهاز عن هوية الحساب
+
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** معتمد في Phase 05 — pending CI verification
+- **القرار:** يبقى users مصدر هوية الحساب والمصادقة. تنشأ جداول user_profiles وuser_preferences وuser_devices؛ جميعها تملك user_id FK إلى users.id مع ON DELETE CASCADE. لكل مستخدم سجل profile واحد وسجل preferences واحد؛ installation فريد بالمفتاح (user_id, device_id).
+- **التوافق:** تبقى users.profile_id وusers.photo_url وJSON الحالي لـ user/profile كما هو. migration تعمل backfill، وتغييرات profile تزامن الحقول القديمة إلى user_profiles.
+- **نطاق التفضيلات:** locale وIANA timezone فقط إعدادات حساب مشتركة في هذه المرحلة. إعدادات المشغل والثيم والصوت والترجمة وترتيب المصادر تبقى محلية على تثبيت التطبيق.
+- **الأثر:** سجلات Sanctum تبقى في personal_access_tokens؛ user_devices سجل installations وليس بديلاً عن جلسات المصادقة. bookmarks/history/playlists/wellness تؤجل إلى مراحلها اللاحقة.
+
+## D-013 — استثناء اعتماد غير مانع لبدء schema في Phase 05
+
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** يسمح بعمل CI معزول فقط؛ لا يغيّر بوابات الإنتاج
+- **القرار:** اجتازت Phase 04 code/CI على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f عبر Docker #320 وPint #52 وSecurity #54. تبقى Phase 04 PARTIAL بسبب PR governance واختبارات Google Android والبريد الحقيقي غير المنفذة.
+- **الاستثناء:** يجوز متابعة Phase 05 schema/API work على قواعد SQLite/PostgreSQL مؤقتة لأن هذا النطاق لا يحتاج Google live أو mail delivery. لا يجيز ذلك merge أو production rollout أو migration إنتاجية، ولا يعني أن Phase 04 COMPLETE.
+
+## D-014 — عقد تفضيلات الحساب وتصدير البيانات v1
+
+- **التاريخ:** 22 نوفمبر 2026
+- **الحالة:** معتمد في Phase 05؛ pending CI
+- **القرار:** تبقى API تحت /api/v1 وبغلاف success المتوافق مع Flutter. يتطلب PUT /user/preferences حقلاً واحداً على الأقل من locale/timezone ويستخدم أخطاء Laravel القياسية مع request_id. يصدّر GET /user/data-export بيانات Backend الشخصية المتاحة بإصدار format_version=1، ولا يتضمن password أو google_id أو remember_token أو Sanctum token/token hash أو recovery/verification secrets.
+- **الحدود:** هذا export لا يدّعي تصدير بيانات المكتبة أو wellness أو الاشتراكات غير المنفذة في Backend؛ تلحق بها المراحل التي تبني تلك المجالات.

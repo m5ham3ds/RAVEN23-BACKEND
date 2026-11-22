@@ -1,54 +1,85 @@
-# المرحلة 04 — إكمال المصادقة والحسابات وإدارة الأجهزة
+# Phase 04 — Authentication, account lifecycle and devices
 
-**الحالة:** IN_PROGRESS — بدأت في 22 نوفمبر 2026 على PR #5  
-**الاعتماديات:** المراحل 01–03 COMPLETE
+**Status:** CI gates passed; phase implementation verified in isolated CI. PR remains open/draft pending repository workflow and review.
+**Verified head:** `459fee8019228828013600fd7a6b13a4a3aa4f4f`
+**Verified:** 22 November 2026
+**Parent:** Phase 03 branch `feature/phase-03-security-observability` at `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`
 
-## الهدف
-إكمال دورة حياة الحساب مع الحفاظ على معرّف المستخدم وسجلاته وجلساته الصحيحة وسلوك Google/Guest الحالي.
+## Scope delivered
 
-## الأعمال
-1. وضع عقد نهائي لتسجيل Email/Password وGoogle وGuest وفق تطبيق RAVEN23.
-2. اختبار Google ID token حقيقي من نسخة Android: issuer/audience/signature/expiry/email_verified وربط OAuth client IDs.
-3. إكمال email verification برمز محدود العمر ومخزن بشكل آمن.
-4. تنفيذ password reset برمز one-time، مخزن hashed-at-rest، محدود العمر، مع rate limit ومنع كشف وجود البريد.
-5. اختيار مزود إرسال البريد بعد مقارنة الدعم والتكلفة والتوفر وموافقة المستخدم.
-6. بناء API لقائمة الأجهزة النشطة واسم الجهاز وآخر استخدام وإلغاء جلسة محددة أو الكل.
-7. ضبط استبدال token للجهاز نفسه مع الحفاظ على الجلسات الخاصة بالأجهزة الأخرى.
-8. إضافة اختبارات التزامن وreplay وانتهاء الرموز ومحاولات التخمين.
-9. توثيق أثر تغيير البريد/كلمة المرور على الجلسات وحالة التحقق.
-10. اختبار ترقية Guest إلى حساب دائم دون إنشاء هوية جديدة أو فقد بيانات مرتبطة.
+- Email registration and email-change verification flow with short-lived, one-time tokens stored as SHA-256 hashes.
+- Password reset via Laravel PasswordBroker, expiry/throttling, generic non-enumerating responses, reset notification, and revocation of existing sessions after successful reset.
+- Account-scoped device/session listing and exact-session or all-session revocation.
+- Per-IP and per-account throttles for verification and device management.
+- Mail delivery remains opt-in and disabled until provider and action URL are explicitly configured.
+- Google ID-token verification remains dependent on correct production Android OAuth client configuration.
 
-## معايير القبول
-- تدفقات Email/Google/Guest تجتاز Feature وPostgreSQL Integration tests.
-- Google sign-in مثبت على جهاز Android حقيقي، لا mock فقط.
-- رسائل verification/reset تصل وتُختبر في staging بعد اختيار مزود.
-- الرموز one-time وآمنة ومحدودة العمر.
-- جلسات الأجهزة قابلة للعرض والإلغاء دون التأثير في حساب آخر.
-- عقد Android الحالي محفوظ أو تغييره موثق ومتوافق.
+## Verified CI gates on the exact same head
 
-## انتظار خارجي محتمل
-قد يتوقف اختبار البريد أو Google الحي على حساب أو credentials أو نطاق أو موافقة المستخدم. افصل اكتمال الكود عن الاختبار الخارجي.
+| Gate | Workflow run | Result |
+|---|---:|---|
+| Docker Validation | #320 | SUCCESS |
+| Pint Format | #52 | SUCCESS |
+| Security Scans | #54 | SUCCESS |
 
+### Docker Validation #320 detail
 
-## حالة التنفيذ — 22 نوفمبر 2026
+- Production FrankenPHP image build: passed.
+- PHP syntax and Composer validation/audit: passed.
+- SQLite Feature suite: **40 passed, 269 assertions**.
+- PostgreSQL 16 integration suite: **4 passed, 99 assertions**.
+- Restricted PostgreSQL application/migration role checks: passed.
+- Application liveness/readiness, non-root runtime, and PHP asset blocking checks: passed.
+- Docker job: all steps completed successfully.
 
-- فرع التنفيذ: `feature/phase-04-authentication-completion`.
-- PR #5: Draft/Open، stacked على `feature/phase-03-security-observability`، ولا يدمج PR #4 أو يعيد تنفيذ Phase 00–03.
-- SHA الجاري اختباره عند آخر تحديث: `6a7bc6efa8660783b38109815036ef22088a7bad`.
-- أضيفت تدفقات hashed one-time email verification، password reset عبر Laravel password broker، وواجهات device listing/session revoke مع rate limits.
-- أضيفت اختبارات Feature وPostgreSQL للتوكن المنتهي/المعاد استخدامه، hash-at-rest، عدم كشف وجود البريد، إبطال الجلسات، وصلاحيات حساب التطبيق.
-- إرسال البريد مغلق افتراضيًا عبر `RAVEN23_AUTH_MAIL_ENABLED=false`؛ يلزم مزود حقيقي ورابط `RAVEN23_AUTH_ACTION_URL` واعتماد إعدادات staging قبل إثبات التسليم.
-- Google verifier والربط الحالي محفوظان؛ إثبات Google ID token حقيقي من نسخة Android ما زال WAITING_EXTERNAL.
+### Security and formatting
 
-لا تسجل Phase 04 COMPLETE قبل نجاح Docker/Pint/Security على SHA موحد، واختبارات PostgreSQL، واكتمال ما يمكن اختباره من الكود. افصل تكامل staging الحقيقي للبريد وGoogle عن نتائج mocks/notifications fake.
+- Pint #52: job and all steps successful.
+- Security #54: Gitleaks, filesystem scan, production-image scan, vulnerability gate, and report publication successful.
 
+## Failure history and resolution
 
-## سجل إصلاحات CI — 22 نوفمبر 2026
+Earlier failures referenced in progress notes (#308 Docker and #42 Pint, and #44 Security) are not the current result set. The latest completed runs are #320, #52, and #54, all attached to the exact verified head above. The Docker log confirms the successful SQLite and PostgreSQL test totals.
 
-- `e46d4005`: أظهر PHP lint أن `AuthLifecycleTest::setUp()` لم تُغلق قبل helper، فتم إصلاحها في `f66e0ea1`.
-- `f66e0ea1`: كشف lint قوس إغلاق مبكرًا للصنف قبل اختبار email-change، وتم إصلاح نطاق الصنف في `6b7211af`.
-- `6b7211af`: أظهرت SQLite اختبارات reset/device failures؛ تم عزل سلوك guard المؤقت في test harness عبر `Auth::forgetGuards()`، وتتبع 500 في reset إلى نقص `password` من credentials المرسلة إلى Laravel 13 PasswordBroker (مصدره PasswordBroker.php:134).
-- `434f5f10`: أضيف password إلى broker credentials واستُخدم callback signature الرسمي. SQLite أصبحت **40 passed / 269 assertions**. Security scans وPint workflow نجحا، لكن Docker Pint gate الداخلي رفض 7 style issues في 6 ملفات.
-- `6a7bc6ef`: طُبق تنسيق Pint على ملفات PHP المتأثرة. التشغيلات الحالية Docker #308، Pint #42، Security #44 ما زالت `pending` عند آخر فحص، ولم تُسجل نتائج Jobs بعد. لا تعلن Phase 04 مكتملة حتى تنتهي هذه التشغيلات على هذا SHA نفسه.
+The earlier test corrections include PasswordBroker validation payload, refreshing Laravel auth guards before token-revocation assertions, PHP syntax corrections, and Pint formatting. Do not replay these fixes unless a later regression reproduces them.
 
-الاختبارات الملغاة على commits الوسيطة لا تعد فشلًا إضافيًا ولا نجاحًا. SHA الحالي ونتائج هذه البوابات هما نقطة الاستئناف.
+## External checks not claimed as complete
+
+CI does not prove production provider configuration. The following remain pre-production tasks:
+- Configure and test real mail delivery and the externally hosted verification/reset action URL.
+- Verify real Google sign-in with the production Android OAuth client on a real device.
+- Verify provider-side database roles, TLS and trusted proxy settings.
+- Approve and test centralized log collection/retention and backup/restore policy.
+- Conduct production/staging deployment checks only after explicit configuration and authorization.
+
+No production database, secrets, provider settings, or deployments were accessed or changed during this verification.
+
+## Phase 04 exit assessment
+
+**Code and CI exit criteria: PASS.** All three mandatory CI workflows passed on one SHA, with SQLite Feature and PostgreSQL integration suites green.
+
+**Repository governance / phase-chain exit: NOT YET CLOSED.** PR #5 remains open and draft. Its parent PR #4 (Phase 03) also remains open and draft; Phase 03 production-operational items are still explicitly outstanding in PR #4. Do not merge Phase 04 into a base that has not passed the project's phase governance.
+
+## Continuity checkpoint
+
+- Current Phase 04 branch: `feature/phase-04-authentication-completion`
+- Current verified head: `459fee8019228828013600fd7a6b13a4a3aa4f4f`
+- PR: #5
+- Latest CI: Docker #320, Pint #52, Security #54 — all SUCCESS.
+- No Phase 04 CI rerun is needed unless the branch head changes.
+
+## Next phase handoff
+
+Phase 05 must start from the agreed phase-chain base after Phase 03/04 governance is resolved. This repository snapshot does not contain an approved Phase 05 specification. Before implementation, add a reviewed Phase 05 scope document describing requirements, exclusions, acceptance criteria, dependencies, tests, migrations, security implications, and CI gates. Do not infer a production feature scope from the Phase 04 implementation.
+
+## تحديث إثبات CI وتسليم النطاق — 22 نوفمبر 2026
+
+**النتيجة الصحيحة لبوابات Phase 04:** SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f.
+- Docker Validation #320 — SUCCESS: SQLite 40/269، PostgreSQL 16 4/99، image build، lint/Composer، restricted DB roles وHTTP runtime smoke.
+- Pint Format #52 — SUCCESS.
+- Security Scans #54 — SUCCESS؛ Gitleaks وTrivy filesystem/image وfixable HIGH/CRITICAL gate.
+كل الوظائف وخطواتها انتهت completed/success. التشغيلات #308/#42/#44 كانت نتائج وسيطة قديمة وليست النتائج النهائية.
+
+**تقييم الخروج:** code/CI = PASS؛ مرحلة المنتج والحوكمة = PARTIAL. PR #4 وPR #5 Draft/Open وغير مدمجين. Google OAuth الحقيقي من Android والبريد الفعلي في staging لم يختبرا. كما تبقى متطلبات Phase 03 لدى مزود الإنتاج (TLS/proxy/log retention/backup/restore/RPO/RTO) قبل rollout.
+
+يجوز استمرار Phase 05 schema/API على قواعد اختبار معزولة وفق الاستثناء غير المانع في MASTER_PLAN وDECISIONS. لا يعني ذلك دمج PRs أو إجراء migration إنتاجية أو نشرًا.

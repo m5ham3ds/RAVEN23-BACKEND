@@ -49,7 +49,7 @@
 
 تخرج سجلات Laravel إلى stderr وسجلات Caddy بصيغة JSON إلى stdout. الحاوية لا تحتفظ بسجل تشغيلي دائم على قرص محلي.
 
-الحقول التشخيصية المسموحة محدودة إلى request/correlation ID، method، route template، exception type، source file/line، وSQLSTATE عند الحاجة. يحظر تسجيل:
+يتم تعطيل Laravel default exception reporter لطلبات API؛ أخطاء API تسجل مرة واحدة فقط عبر renderer مخصص منقح. كما لا يتم الإبلاغ الافتراضي عن QueryException في أي route لتجنب SQL/bindings. الحقول التشخيصية المسموحة محدودة إلى request/correlation ID، method، route template، exception type، source file/line، وSQLSTATE عند الحاجة. يحظر تسجيل:
 - كلمات المرور أو رموز الوصول أو رموز التحقق/إعادة التعيين.
 - البريد الإلكتروني أو أسماء المستخدمين أو request bodies.
 - SQL statements أو bindings أو DB URL أو hostname/schema.

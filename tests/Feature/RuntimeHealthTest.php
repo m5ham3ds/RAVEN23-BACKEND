@@ -114,20 +114,24 @@ class RuntimeHealthTest extends TestCase
         $this->assertStringNotContainsString('password', strtolower($body));
     }
 
-    public function test_api_health_exposes_generic_source_metadata_only(): void
+    public function test_api_health_does_not_expose_source_instance_or_oauth_configuration(): void
     {
         $this->prepareReadyDatabase();
 
-        putenv('RAVEN23_SOURCE_COMMIT=phase02-test-commit');
+        putenv('RAVEN23_SOURCE_COMMIT=phase03-private-commit');
         try {
             $response = $this->getJson('/api/v1/health')
                 ->assertOk()
-                ->assertJsonPath('runtime_target.source_commit', 'phase02-test-commit');
+                ->assertJsonPath('success', true)
+                ->assertJsonPath('database', 'connected')
+                ->assertJsonPath('schema', 'ready');
 
-            $target = $response->json('runtime_target');
-            $this->assertArrayNotHasKey('render_git_commit', $target);
-            $this->assertArrayNotHasKey('configured_host', $target);
-            $this->assertArrayNotHasKey('configured_database', $target);
+            $payload = $response->json();
+            $this->assertArrayNotHasKey('source_commit', $payload);
+            $this->assertArrayNotHasKey('runtime_target', $payload);
+            $this->assertArrayNotHasKey('google_auth', $payload);
+            $this->assertStringNotContainsString('phase03-private-commit', $response->getContent());
+            $this->assertNotEmpty($response->headers->get('X-Request-ID'));
         } finally {
             putenv('RAVEN23_SOURCE_COMMIT');
         }

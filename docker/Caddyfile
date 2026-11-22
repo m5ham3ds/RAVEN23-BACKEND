@@ -11,7 +11,12 @@ http://:{$PORT} {
     header {
         -Server
         X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-Permitted-Cross-Domain-Policies none
         Referrer-Policy strict-origin-when-cross-origin
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+        Cache-Control no-store
     }
 
     log {
