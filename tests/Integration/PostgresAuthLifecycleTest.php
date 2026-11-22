@@ -170,7 +170,7 @@ class PostgresAuthLifecycleTest extends TestCase
 
         $this->postJson('/api/v1/auth/forgot-password', ['email' => $data['email']])->assertAccepted();
         $resetToken = null;
-        \Illuminate\Support\Facades\Notification::assertSentTo(
+        Notification::assertSentTo(
             $user,
             PasswordResetNotification::class,
             function ($notification) use (&$resetToken): bool {
