@@ -80,6 +80,8 @@ class AuthLifecycleTest extends TestCase
             $table->timestamp('created_at')->nullable();
         });
     
+    }
+
     private function enableTestAuthMail(): void
     {
         config([
