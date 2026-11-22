@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — Phase 01 وPhase 02 مكتملتان؛ Phase 03 بدأت  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 00 و01 و02 مكتملات؛ Phase 03 اجتازت بوابات الكود على Trixie وما زالت IN_PROGRESS تشغيليًا  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -15,7 +15,7 @@
 | 00 — جرد المستودع والعقود | COMPLETE | Backend tree (34 files) وFlutter client contracts وDB source inventory وenv/workflows/features وثقوا في ملفات مستقلة؛ تقرير الإغلاق موجود |
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
-| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مفتوح كمسودة على feature/phase-03-security-observability؛ أحدث SHA في تقرير التقدم 50780ce…، وDocker #272/Security #15/Pint #13 كانت PENDING وقت التوثيق |
+| 03 — الأمن والرصد | IN_PROGRESS | PR #4 مسودة مفتوحة؛ SHA الحالي `096ad1d…`؛ Docker #282 (18/18) وPint #20 (8/8) نجحا؛ Security #22 نجح على digest Trixie نفسه، وSecurity #23 يعيد التحقق على SHA المثبت؛ بقايا أقل صلاحية DB وسياسات TLS/retention/backup الإنتاجية غير مختبرة |
 | 04 — إكمال المصادقة | NOT_STARTED | تنتظر 01–03 |
 | 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
@@ -68,10 +68,14 @@
 ## تنفيذ Phase 03 — 22 نوفمبر 2026
 
 - الاعتماديات 01 و02 مكتملة.
-- فرع التنفيذ: feature/phase-03-security-observability، PR #4 مفتوح كمسودة وغير مدمج؛ أساسه Phase02 SHA أعلاه.
-- آخر SHA موثق: 50780ce27e410b890a7f2535172e86cbfe5565a8.
-- Docker Validation #272 وSecurity Scans #15 وPint #13 كانت PENDING وقت التقرير؛ راجع reports/PHASE-03-PROGRESS-REPORT-2026-11-22.md ولا تعتبر أي تشغيل على SHA أقدم دليلًا نهائيًا.
-- تم تشخيص فشل CORS واختبار Pint في التشغيلات السابقة وإصلاحهما على فرع PR #4؛ ينتظر إثبات البوابات على SHA الحالي.
+- فرع التنفيذ: `feature/phase-03-security-observability`، PR #4 مفتوح كمسودة وغير مدمج؛ أساسه Phase 02 SHA أعلاه.
+- آخر SHA في فرع التنفيذ: `096ad1d31033a0af75f173f537410ddf3f6cb6bf`.
+- صورة التشغيل: `dunglas/frankenphp:1.13.6-php8.4-trixie@sha256:bbe6057527f8dd9e270d9e2a33315f26b264ce8b0dbd19b67b0855a7899960ec` (multi-platform index digest).
+- Docker Validation #282 (run 44974897172): SUCCESS، جميع 18 خطوة، بما فيها SQLite وPostgreSQL وPint وAPP_DEBUG guard وno-DB readiness وnon-root HTTP smoke وPHP-asset blocking.
+- Pint Format Report #20 (run 44974897523): SUCCESS، 8 خطوات.
+- Security Scans #22 (run 44974402053): SUCCESS، 12 خطوة على صورة Trixie المطابقة للـdigest؛ تقرير Trivy image سجّل 121 finding (1 CRITICAL و120 HIGH) دون FixedVersion متاح وقت الفحص، ونجحت بوابة الثغرات القابلة للإصلاح. التقرير محفوظ كـartifact باسم `raven23-security-reports-22`.
+- Security Scans #23 (run 44974897193) أعيد على SHA المثبت نفسه؛ كان IN_PROGRESS عند آخر تحديث. لا تعتبر #22 بديلًا عن إكمال هذا التشغيل على الـSHA الحالي.
+- تفاصيل الإصلاحات ومقارنة Bookworm/Trixie وحدود التحقق في `reports/PHASE-03-PROGRESS-REPORT-2026-11-22.md`.
 - لا production DB changes أو secrets reads أو deploy ضمن هذه المرحلة.
 
 
@@ -97,4 +101,4 @@
 
 ## العمل التالي المسموح
 
-أكمل إصلاح Phase 02 أولًا، ولا تعتبرها مكتملة قبل نجاح Docker وSQLite وPostgreSQL وHTTP readiness/no-DB/non-root/PHP-asset checks على commit واحد. بعد ذلك فقط ابدأ Phase 03 وفق `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`. لا تبدأ AWS أو production data migration.
+استمر من رأس فرع Phase 03 الحالي وPR #4 دون إعادة Phase 00–02. أكمل Security #23 على SHA `096ad1d…`، ثم راجع نتائج Trivy المتبقية وسجّل خطة المعالجة/القبول. بعد ذلك عالج ما يمكن إثباته داخل CI من least-privilege لمستخدم التطبيق، وأكمل توثيق متطلبات retention والنسخ الاحتياطية. لا تغلق Phase 03 ولا تبدأ Phase 04 قبل توثيق هذه المتطلبات وحدود ما لا يمكن اختباره دون صلاحية وموافقة إنتاجية. لا تبدأ AWS أو production data migration أو نشرًا أو تغييرات على Render/Neon.

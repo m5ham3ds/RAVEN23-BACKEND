@@ -86,3 +86,43 @@
 ## 9. تعليمات الاستمرارية
 
 ابدأ بقراءة هذا التقرير، ثم phases/STATUS.md وphases/EXECUTION_PROTOCOL.md وphases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md. تابع نفس الفرع وPR #4 وآخر SHA؛ لا تعِد Phase 00–02 أو الاختبارات التي اجتازت SHA موحدًا سابقًا ما لم يتغير مصدرها أو تتطلبها بوابة commit الجديد.
+
+
+---
+
+## تحديث الحالة — 22 نوفمبر 2026 (بعد فحص Trixie وتثبيت الـdigest)
+
+هذا التحديث أحدث من حالة التشغيلات المذكورة في المتن أعلاه، ويعتمد على رأس فرع PR #4 الحالي `096ad1d31033a0af75f173f537410ddf3f6cb6bf`.
+
+### صورة الإنتاج ونتائج CI
+
+- تم نقل صورة التشغيل من Debian Bookworm إلى Debian Trixie باستخدام FrankenPHP 1.13.6 / PHP 8.4.28.
+- تم حل digest متعدد المعماريات من Docker Buildx ثم تثبيته في Dockerfile:
+  `sha256:bbe6057527f8dd9e270d9e2a33315f26b264ce8b0dbd19b67b0855a7899960ec`.
+- أضيف تحقق داخل Docker workflow يفشل إذا لم يتطابق digest المثبت في Dockerfile مع digest المحسوم من registry.
+- Docker Validation #280 على وسم Trixie قبل التثبيت: SUCCESS (18 خطوة).
+- Docker Validation #282 على SHA المثبت `096ad1d…`: SUCCESS (18 خطوة، بما فيها SQLite، PostgreSQL 16، migration task، readiness/no-DB، مستخدم غير root، ورفض تنفيذ PHP assets).
+- Pint #19 على مرحلة Trixie وPint #20 على SHA المثبت: SUCCESS (8 خطوات لكل تشغيل).
+- Security Scans #21 على صورة Bookworm المثبتة: SUCCESS، 122 finding (3 CRITICAL و119 HIGH، بلا FixedVersion في قاعدة Trivy حينها).
+- Security Scans #22 على صورة Trixie: SUCCESS، 121 finding (1 CRITICAL و120 HIGH، جميعها بلا FixedVersion معلن في التقرير)، واجتازت بوابة HIGH/CRITICAL القابلة للإصلاح. أزيلت نتيجتا SQLite وzlib الحرجتان بالمقارنة مع Bookworm، وبقيت CVE-2026-6653 في libxml2 دون FixedVersion في Debian 13.8 وقت الفحص.
+- Security Scans #23 على SHA المثبت `096ad1d…`: كان IN_PROGRESS وقت آخر مراجعة؛ لا يوصف بأنه ناجح حتى ينتهي.
+
+### تفسير نتائج الأمن
+
+نجاح بوابة `--ignore-unfixed` لا يعني خلو الصورة من الثغرات؛ بل يعني أن قاعدة Trivy لم تعرض إصدارًا ثابتًا للنتائج التي ظلت في تقرير Trixie. يجب الاحتفاظ بـartifact ومراجعة هذه النتائج عند تحديث قاعدة Trivy أو إصدار Debian/FrankenPHP جديد. لا توجد نتيجة تدعم ادعاء “صفر ثغرات”.
+
+### ما لا يزال يمنع إغلاق Phase 03
+
+1. التحقق من صلاحيات DB user الفعلي في بيئة الاستضافة ومبدأ أقل صلاحية لم يُنفذ؛ الاختبارات الحالية تستخدم PostgreSQL مؤقتة في GitHub Actions فقط.
+2. لم نتحقق من TLS الطرفي/إعدادات proxy الفعلية في الاستضافة.
+3. سياسة الاحتفاظ بالسجلات والنسخ الاحتياطية، وrehearsal الاستعادة الفعلية، غير مثبتة على مزود الاستضافة.
+4. Google OAuth والبريد وجلسات Android الحقيقية ليست جزءًا من اختبارات CI الحالية.
+
+هذه القيود مقصودة: لم يتم الاتصال بقاعدة الإنتاج، أو قراءة الأسرار، أو تعديل Render/Neon، أو تنفيذ migrations إنتاجية، أو النشر. لذلك تبقى Phase 03 `IN_PROGRESS` وPhase 04 `NOT_STARTED` إلى أن تغلق المتطلبات المتبقية بموافقة صريحة وأدلة قابلة للتحقق.
+
+### الخطوة التالية
+
+- أكمل Security #23 على SHA المثبت الحالي.
+- إذا نجح، لا تعِد Docker/Pint؛ فقد اجتازا على نفس SHA.
+- راجع المخاطر غير القابلة للإصلاح في artifact، ثم وثّق متطلبات least-privilege وretention/backup وما يستلزم صلاحية بيئة الإنتاج.
+- لا تبدأ Phase 04 ولا تدمج PR #4 أو تنشر دون إكمال شروط المرحلة وموافقة المستخدم.
