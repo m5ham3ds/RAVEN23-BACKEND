@@ -1,6 +1,6 @@
 # حالة مراحل RAVEN23 Backend
 
-**آخر تحديث:** 22 نوفمبر 2026 — Phase 00 و01 و02 مكتملات؛ Phase 03 اجتازت بوابات الكود على Trixie وما زالت IN_PROGRESS تشغيليًا  
+**آخر تحديث:** 22 نوفمبر 2026 — Phase 00–03 اجتازت code/CI؛ Phase 04 PARTIAL بعد نجاح CI مع بقاء Google/mail والحوكمة؛ Phase 05 IN_PROGRESS  
 **SHA خط الأساس:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
 **فرع الخطة والجرد:** docs/backend-phased-roadmap
 
@@ -16,8 +16,8 @@
 | 01 — Laravel مستقل | COMPLETE | Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72 وDocker build نجحت |
 | 02 — Runtime محمول | COMPLETE | Docker Validation #249 SUCCESS على SHA `ae311d1dced43b10f96849abfbd3c0a3460dcc3d`؛ FrankenPHP/Caddy build وSQLite 20/138 وPostgreSQL 16 3/72 وno-DB readiness وlive readiness وnon-root وPHP asset blocking كلها PASS |
 | 03 — الأمن والرصد | COMPLETE (code/CI) | PR #4 مفتوح كمسودة؛ Phase 03 اجتازت على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`: Docker #291 (SQLite 34/210 وPostgreSQL 3/72)، Pint #27، Security #29. فصل DB app/migrator، TLS remote guard، log redaction، FrankenPHP/readiness PASS. إعدادات مزود الإنتاج وTLS/proxy/log retention/backup-restore وRPO/RTO تظل شروطًا قبل الإنتاج، لا ادعاء نجاح مزود فعلي |
-| 04 — إكمال المصادقة | IN_PROGRESS | PR #5 draft/open فوق فرع Phase 03؛ email verification/password reset/device APIs قيد التنفيذ والاختبار. البريد الحقيقي وGoogle Android الحقيقي ينتظران إعداد مزود/حساب staging وجهازًا فعليًا |
-| 05 — أساس بيانات المستخدم | NOT_STARTED | تنتظر 00–04 |
+| 04 — إكمال المصادقة | PARTIAL (CODE/CI PASS) | Docker #320 وPint #52 وSecurity #54 نجحت على SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f؛ SQLite 40/269 وPostgreSQL 4/99. PR #4 و#5 ما زالا Draft/Open؛ Google Android الحقيقي والبريد الحقيقي وإعداد مزود الإنتاج تنتظر. |
+| 05 — أساس بيانات المستخدم | IN_PROGRESS | فرع feature/phase-05-user-data-foundation؛ النماذج وmigration وpreferences/export واختبارات Feature/PostgreSQL مكتوبة؛ لا توجد نتائج CI بعد. يسمح استثناء غير مانع بعمل schema/API المعزول فقط. |
 | 06 — المكتبة وسجل المشاهدة | NOT_STARTED | تنتظر 05 وعقد Android |
 | 07 — المزامنة | NOT_STARTED | تنتظر 05 و06 |
 | 08 — التخزين والإشعارات والمهام | NOT_STARTED | تنتظر 02–05 وقرار مزود الخدمات |
@@ -123,3 +123,27 @@
 - الفرع: `feature/phase-04-authentication-completion`
 - PR #5: draft/open، يستهدف `feature/phase-03-security-observability`.
 - حالة التنفيذ: IN_PROGRESS. راجع `reports/PHASE-04-PROGRESS-REPORT-2026-11-22.md` لمعرفة SHA ونتائج CI.
+
+## تسليم Phase 04 وبدء Phase 05 — 22 نوفمبر 2026
+
+### Phase 04 — إثبات CI
+
+- SHA الذي اجتاز البوابات: 459fee8019228828013600fd7a6b13a4a3aa4f4f.
+- Docker Validation #320: SUCCESS؛ SQLite **40 tests / 269 assertions**، PostgreSQL 16 **4 tests / 99 assertions**.
+- Pint #52: SUCCESS.
+- Security Scans #54: SUCCESS.
+- جميع خطوات الوظائف الثلاث انتهت completed/success.
+- PR #4 وPR #5 ما زالا Draft/Open وغير مدمجين.
+- Google OAuth الحقيقي على Android والبريد الحقيقي في staging لم يُختبرا؛ Phase 04 code/CI PASS فقط، وحالة المنتج/الحوكمة PARTIAL.
+- تقرير الأدلة: reports/PHASE-04-CI-VERIFICATION-ADDENDUM-2026-11-22.md.
+
+### Phase 05 — نقطة الاستئناف
+
+- الفرع: feature/phase-05-user-data-foundation.
+- الأساس: Phase04 handoff SHA 3d302f8e5a24d4ed762d15f8e1b9f34c346eab70.
+- آخر SHA محفوظ قبل تحديث وثائق الحالة: 13618442cdfd4b0a0f7eaab03b92d8b5cbb8679d.
+- تمت استعادة وثائق phases التاريخية والمواصفات والجرد والتقارير؛ شجرة phases تضم الآن ملفات الخطة والمراحل 00–13 والتقارير السابقة.
+- أضيفت user_profiles/user_preferences/user_devices، وتسجيل photo_url مع الحفاظ على users legacy fields، وواجهات preferences وdata export.
+- migration additive/forward-only وتعمل backfill من users وpersonal_access_tokens، وتتحقق من owner FK cascade وunique keys في أي جداول موجودة.
+- أضيفت اختبارات Feature وmigration وPostgreSQL؛ **لم تظهر نتائج CI على هذا الفرع بعد**.
+- لا يوجد اتصال إنتاجي أو secrets read أو migration إنتاجية أو deploy أو تغيير إعدادات مزود.
