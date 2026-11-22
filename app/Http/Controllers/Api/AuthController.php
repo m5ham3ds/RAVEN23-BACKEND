@@ -55,56 +55,24 @@ class AuthController extends Controller
         $connectionDriver = DB::connection($connectionName)->getDriverName();
         if ($connectionDriver === 'pgsql') {
             $this->markStage($request, 'session.reset_database_connection');
-            $beforeConnection = DB::connection($connectionName);
-            $beforeIdentity = $beforeConnection->selectOne("
-                SELECT current_database() AS database_name,
-                       current_schema() AS schema_name,
-                       current_setting('search_path') AS search_path
-            ");
-            $beforeVisible = User::on($connectionName)->whereKey($user->getKey())->exists();
-            Log::info('RAVEN23 session persistence probe', [
-                'stage' => 'before_connection_reset',
-                'user_id' => (int) $user->getKey(),
-                'row_visible' => $beforeVisible,
-                'transaction_level' => $beforeConnection->transactionLevel(),
-                'database_name' => $beforeIdentity->database_name ?? null,
-                'schema_name' => $beforeIdentity->schema_name ?? null,
-                'search_path' => $beforeIdentity->search_path ?? null,
-            ]);
-
+            // Recreate the connection after the account write before issuing a
+            // bearer token. Do not log database/schema names or user identifiers.
             DB::purge($connectionName);
             $afterConnection = DB::connection($connectionName);
             $afterConnection->selectOne('select 1');
-            $afterIdentity = $afterConnection->selectOne("
-                SELECT current_database() AS database_name,
-                       current_schema() AS schema_name,
-                       current_setting('search_path') AS search_path
-            ");
             $persistedUser = User::on($connectionName)->find($user->getKey());
-            Log::info('RAVEN23 session persistence probe', [
-                'stage' => 'after_connection_reset',
-                'user_id' => (int) $user->getKey(),
-                'row_visible' => $persistedUser !== null,
-                'stored_is_guest' => $persistedUser?->is_guest,
-                'stored_provider' => $persistedUser ? (string) $persistedUser->provider : null,
-                'transaction_level' => $afterConnection->transactionLevel(),
-                'database_name' => $afterIdentity->database_name ?? null,
-                'schema_name' => $afterIdentity->schema_name ?? null,
-                'search_path' => $afterIdentity->search_path ?? null,
-            ]);
+
             if ($persistedUser === null) {
                 Log::critical('RAVEN23 account persistence could not be verified after reconnect', [
-                    'user_id' => (int) $user->getKey(),
-                    'database_name' => $afterIdentity->database_name ?? null,
-                    'schema_name' => $afterIdentity->schema_name ?? null,
-                    'transaction_level' => $afterConnection->transactionLevel(),
+                    'request_id' => $request->attributes->get('raven23_request_id'),
+                    'db_driver' => 'pgsql',
+                    'stage' => 'session.reset_database_connection',
                 ]);
 
                 // Never issue a bearer token for an Eloquent instance whose
                 // account row is not visible through a fresh PostgreSQL
-                // connection. This prevents successful-looking responses and
-                // orphaned Sanctum tokens when a pooled write was not durable.
-                throw new \RuntimeException(
+                // connection.
+                throw new \\RuntimeException(
                     'The account could not be verified after refreshing the database connection.'
                 );
             }
@@ -310,31 +278,11 @@ class AuthController extends Controller
         $user = $emailRow && !$emailRow->is_guest ? $emailRow : null;
         $passwordMatches = $user !== null && Hash::check($data['password'], $user->password);
         if (!$user || !$passwordMatches) {
-            // Safe diagnostic only: never log the email, submitted password,
-            // stored hash, SQL or bearer token. PostgreSQL identity functions
-            // are deliberately skipped for SQLite feature tests.
-            $loginConnection = DB::connection((string) config('database.default'));
-            $loginDatabaseName = null;
-            $loginSchemaName = null;
-            if ($loginConnection->getDriverName() === 'pgsql') {
-                $loginIdentity = $loginConnection->selectOne(
-                    'SELECT current_database() AS database_name, current_schema() AS schema_name'
-                );
-                $loginDatabaseName = $loginIdentity->database_name ?? null;
-                $loginSchemaName = $loginIdentity->schema_name ?? null;
-            }
-
-            Log::warning('RAVEN23 login credentials rejected', [
-                'request_id' => (string) Str::uuid(),
-                'account_found' => $user !== null,
-                'email_row_found' => $emailRow !== null,
-                'stored_is_guest' => $emailRow ? $emailRow->is_guest : null,
-                'password_hash_matches' => $passwordMatches,
-                'stored_provider' => $emailRow ? (string) $emailRow->provider : null,
-                'database_driver' => $loginConnection->getDriverName(),
-                'database_name' => $loginDatabaseName,
-                'schema_name' => $loginSchemaName,
-                'transaction_level' => $loginConnection->transactionLevel(),
+            // Keep the log independent of account existence and submitted PII.
+            // The API response is identical for an unknown email and bad password.
+            Log::warning('RAVEN23 login rejected', [
+                'request_id' => $request->attributes->get('raven23_request_id'),
+                'reason' => 'invalid_credentials',
             ]);
 
             return response()->json([
