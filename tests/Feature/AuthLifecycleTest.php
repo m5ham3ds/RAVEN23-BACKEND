@@ -81,7 +81,7 @@ class AuthLifecycleTest extends TestCase
             $table->timestamp('expires_at')->index();
             $table->timestamp('created_at')->nullable();
         });
-    
+
     }
 
     private function enableTestAuthMail(): void
