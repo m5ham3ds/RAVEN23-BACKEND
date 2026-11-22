@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,5 +33,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/user/change-email', [AuthController::class, 'changeEmail']);
         Route::post('/user/change-password', [AuthController::class, 'changePassword']);
         Route::delete('/user/account', [AuthController::class, 'deleteAccount']);
+
+        Route::post('/sync/bookmarks', [BookmarkSyncController::class, 'sync']);
+        Route::delete('/sync/bookmarks/{type}/{id}', [BookmarkSyncController::class, 'delete'])
+            ->where('type', 'movie|tv')
+            ->whereNumber('id');
     });
 });
