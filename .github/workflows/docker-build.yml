@@ -158,7 +158,7 @@ jobs:
       - name: Create restricted PostgreSQL application and migration roles
         run: |
           set -eu
-          docker run --rm --network host \
+          docker run --rm -i --network host \
             -e PGPASSWORD=raven23_test \
             postgres:16-alpine \
             psql -h 127.0.0.1 -U raven23_test -d raven23_test -v ON_ERROR_STOP=1 <<'SQL'
