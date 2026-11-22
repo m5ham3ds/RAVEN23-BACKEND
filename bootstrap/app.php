@@ -37,7 +37,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
                 if ($prefix !== null) {
                     $maxPrefix = str_contains($address, ':') ? 128 : 32;
-                    if (!ctype_digit($prefix) || (int) $prefix > $maxPrefix) {
+                    if (! ctype_digit($prefix) || (int) $prefix > $maxPrefix) {
                         throw new RuntimeException('TRUSTED_PROXIES contains an invalid CIDR prefix.');
                     }
                 }
@@ -93,7 +93,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) use ($requestId, $withCorrelationHeaders) {
-            if (!$request->is('api/*')) {
+            if (! $request->is('api/*')) {
                 return null;
             }
 
@@ -136,7 +136,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $applicationCallSite = null;
             foreach ($exception->getTrace() as $frame) {
                 $file = (string) ($frame['file'] ?? '');
-                if ($file === '' || str_contains($file, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                if ($file === '' || str_contains($file, DIRECTORY_SEPARATOR.'vendor'.DIRECTORY_SEPARATOR)) {
                     continue;
                 }
 
@@ -160,7 +160,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'request_id' => $id,
                 'method' => $request->method(),
                 'route' => is_object($route) && method_exists($route, 'uri') ? $route->uri() : 'unmatched',
-                'db_driver' => config('database.connections.' . config('database.default') . '.driver'),
+                'db_driver' => config('database.connections.'.config('database.default').'.driver'),
                 ...$diagnostic,
             ]);
 
