@@ -155,7 +155,27 @@ jobs:
 
           echo "PASS: the web process starts and /up is healthy without DB_URL; /ready correctly returns 503."
 
-      - name: Run PostgreSQL migrations and authentication lifecycle suite on isolated CI database
+      - name: Create restricted PostgreSQL application and migration roles
+        run: |
+          set -eu
+          docker run --rm --network host \
+            -e PGPASSWORD=raven23_test \
+            postgres:16-alpine \
+            psql -h 127.0.0.1 -U raven23_test -d raven23_test -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE raven23_migrator_test LOGIN PASSWORD 'raven23_migrator_test'
+              NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          CREATE ROLE raven23_app_test LOGIN PASSWORD 'raven23_app_test'
+              NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          GRANT CONNECT ON DATABASE raven23_test TO raven23_migrator_test, raven23_app_test;
+          GRANT USAGE, CREATE ON SCHEMA public TO raven23_migrator_test;
+          GRANT USAGE ON SCHEMA public TO raven23_app_test;
+          ALTER DEFAULT PRIVILEGES FOR ROLE raven23_migrator_test IN SCHEMA public
+              GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO raven23_app_test;
+          ALTER DEFAULT PRIVILEGES FOR ROLE raven23_migrator_test IN SCHEMA public
+              GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO raven23_app_test;
+          SQL
+
+      - name: Apply PostgreSQL schema with the restricted migration role
         run: |
           set -eu
           docker run --rm --network host \
@@ -163,12 +183,52 @@ jobs:
             -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
             -e DB_CONNECTION=pgsql \
             -e DB_SSLMODE=disable \
-            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
-            --entrypoint sh \
-            raven23-backend:postgres-test \
-            -c 'set -eu; php artisan migrate --force; php artisan test tests/Integration/PostgresAuthLifecycleTest.php'
+            -e DB_URL='postgresql://raven23_migrator_test:raven23_migrator_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            --entrypoint php \
+            raven23-backend:postgres-test artisan migrate --force
 
-      - name: Apply the schema through an explicit one-off runtime migration command
+      - name: Verify the application PostgreSQL role cannot administer the database
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_privileges="$(docker run --rm --network host \
+            -e PGPASSWORD=raven23_app_test postgres:16-alpine \
+            psql -h 127.0.0.1 -U raven23_app_test -d raven23_test -Atc \
+              "SELECT r.rolsuper::text || ':' || r.rolcreatedb::text || ':' || r.rolcreaterole::text || ':' || has_database_privilege(current_user, current_database(), 'CREATE')::text || ':' || has_schema_privilege(current_user, 'public', 'CREATE')::text || ':' || has_schema_privilege(current_user, 'public', 'USAGE')::text || ':' || has_table_privilege(current_user, 'public.users', 'SELECT')::text || ':' || has_sequence_privilege(current_user, 'public.users_id_seq', 'USAGE')::text FROM pg_roles r WHERE r.rolname = current_user")"
+          test "$runtime_privileges" = "f:f:f:f:f:t:t:t" || {
+            echo "::error::Unexpected PostgreSQL application-role privileges: $runtime_privileges"
+            exit 1
+          }
+
+          if docker run --rm --network host -e PGPASSWORD=raven23_app_test postgres:16-alpine \
+            psql -h 127.0.0.1 -U raven23_app_test -d raven23_test -v ON_ERROR_STOP=1 \
+              -c 'CREATE ROLE raven23_escalation_test LOGIN' >/dev/null 2>&1; then
+            echo "::error::The application role unexpectedly created another PostgreSQL role."
+            exit 1
+          fi
+
+          if docker run --rm --network host -e PGPASSWORD=raven23_app_test postgres:16-alpine \
+            psql -h 127.0.0.1 -U raven23_app_test -d raven23_test -v ON_ERROR_STOP=1 \
+              -c 'CREATE DATABASE raven23_escalation_test' >/dev/null 2>&1; then
+            echo "::error::The application role unexpectedly created another database."
+            exit 1
+          fi
+
+          echo "PASS: PostgreSQL app role is non-superuser, cannot create roles/databases/schema objects, and has only application CRUD/sequence access."
+
+      - name: Run PostgreSQL authentication lifecycle suite with restricted application role
+        run: |
+          set -eu
+          docker run --rm --network host \
+            -e APP_ENV=testing \
+            -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
+            -e DB_CONNECTION=pgsql \
+            -e DB_SSLMODE=disable \
+            -e DB_URL='postgresql://raven23_app_test:raven23_app_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            --entrypoint php \
+            raven23-backend:postgres-test artisan test tests/Integration/PostgresAuthLifecycleTest.php
+
+      - name: Apply the schema through an explicit one-off migration role
         run: |
           set -eu
           docker run --rm --network host \
@@ -176,7 +236,7 @@ jobs:
             -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
             -e DB_CONNECTION=pgsql \
             -e DB_SSLMODE=disable \
-            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            -e DB_URL='postgresql://raven23_migrator_test:raven23_migrator_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
             --entrypoint php \
             raven23-backend:ci artisan migrate --force
 
@@ -191,7 +251,7 @@ jobs:
             -e APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
             -e DB_CONNECTION=pgsql \
             -e DB_SSLMODE=disable \
-            -e DB_URL='postgresql://raven23_test:raven23_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
+            -e DB_URL='postgresql://raven23_app_test:raven23_app_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
             -e RAVEN23_SOURCE_COMMIT="${GITHUB_SHA}" \
             raven23-backend:ci
 
