@@ -18,6 +18,11 @@ return [
         'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
         'scheme' => 'https',
     ],
+    'raven23_auth' => [
+        // Keep disabled until a mail provider and application/deep-link URL are configured.
+        'mail_enabled' => (bool) env('RAVEN23_AUTH_MAIL_ENABLED', false),
+        'action_url' => env('RAVEN23_AUTH_ACTION_URL', ''),
+    ],
     'google' => [
         // Same public Web OAuth client ID used by the Flutter GoogleSignIn client.
         // An empty/missing Render value falls back to this matching client ID.
