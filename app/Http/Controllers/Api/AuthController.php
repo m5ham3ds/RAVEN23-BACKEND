@@ -237,11 +237,14 @@ class AuthController extends Controller
                     'username' => Str::lower(trim($data['username'])),
                     'password' => $data['password'],
                     'profile_id' => $data['profile_id'] ?? 0,
+                ]);
+                $user->forceFill([
                     'provider' => 'email',
+                    'google_id' => null,
                     'is_verified' => false,
                     'is_account_verified' => false,
                     'is_guest' => false,
-                ]);
+                ])->save();
             }
 
             return [
@@ -411,13 +414,15 @@ class AuthController extends Controller
                     'email' => $email,
                     'username' => $this->googleUsername($email),
                     'password' => Str::random(64),
+                ]);
+                $user->forceFill([
                     'provider' => 'google',
                     'google_id' => $googleId,
                     'email_verified_at' => now(),
                     'is_verified' => true,
                     'is_account_verified' => false,
                     'is_guest' => false,
-                ]);
+                ])->save();
             }
 
             $this->discardGuest($guest, $user);
@@ -445,9 +450,11 @@ class AuthController extends Controller
             'email' => 'guest-' . Str::lower(Str::random(16)) . '@guest.raven23.invalid',
             'username' => 'guest_' . Str::lower(Str::random(16)),
             'password' => Str::random(64),
+        ]);
+        $user->forceFill([
             'provider' => 'guest',
             'is_guest' => true,
-        ]);
+        ])->save();
 
         $this->markStage($request, 'guest.issue_session');
         return $this->session($user, $request);
