@@ -151,17 +151,9 @@ class SecurityResponseTest extends TestCase
     {
         $capturedContext = null;
 
-        Log::shouldReceive('error')
-            ->once()
-            ->withArgs(function (string $message, array $context) use (&$capturedContext): bool {
-                if ($message !== 'RAVEN23 API request failed') {
-                    return false;
-                }
-
-                $capturedContext = $context;
-
-                return true;
-            });
+        // Spy rather than replace the logger: RequestCorrelationId also calls
+        // withContext()/withoutContext() around every request.
+        Log::spy();
 
         Route::post('/api/v1/security-test-log-redaction', static function () {
             throw new \RuntimeException('private-exception-message-must-not-be-logged');
@@ -174,6 +166,18 @@ class SecurityResponseTest extends TestCase
         ], [
             'Authorization' => 'Bearer private-bearer-token-value',
         ])->assertStatus(500);
+
+        Log::shouldHaveReceived('error')
+            ->once()
+            ->withArgs(function (string $message, array $context) use (&$capturedContext): bool {
+                if ($message !== 'RAVEN23 API request failed') {
+                    return false;
+                }
+
+                $capturedContext = $context;
+
+                return true;
+            });
 
         $this->assertIsArray($capturedContext);
         $this->assertArrayHasKey('request_id', $capturedContext);
