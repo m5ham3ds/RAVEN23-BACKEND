@@ -129,7 +129,7 @@ class SecurityResponseTest extends TestCase
             if ($originalProcessValue === false) {
                 putenv($name);
             } else {
-                putenv($name . '=' . $originalProcessValue);
+                putenv($name.'='.$originalProcessValue);
             }
 
             if ($hadEnvValue) {
