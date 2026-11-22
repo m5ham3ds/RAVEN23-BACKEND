@@ -3,15 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Support\GoogleIdTokenVerifier;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\PasswordResetNotification;
+use App\Support\GoogleIdTokenVerifier;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
