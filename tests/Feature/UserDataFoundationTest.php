@@ -47,10 +47,10 @@ class UserDataFoundationTest extends TestCase
 
     public function test_profile_and_preference_models_use_their_user_id_primary_keys(): void
     {
-        $this->assertSame('user_id', (new UserProfile())->getKeyName());
-        $this->assertFalse((new UserProfile())->getIncrementing());
-        $this->assertSame('user_id', (new UserPreference())->getKeyName());
-        $this->assertFalse((new UserPreference())->getIncrementing());
+        $this->assertSame('user_id', (new UserProfile)->getKeyName());
+        $this->assertFalse((new UserProfile)->getIncrementing());
+        $this->assertSame('user_id', (new UserPreference)->getKeyName());
+        $this->assertFalse((new UserPreference)->getIncrementing());
     }
 
     public function test_account_preferences_are_private_validated_and_idempotent(): void
