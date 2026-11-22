@@ -27,7 +27,7 @@
 
 ## الحالة الحالية
 
-Phase 00 COMPLETE على مستوى الجرد المصدري. المرحلة التالية المسموح بها Phase 01 — Reproducible Laravel Project.
+Phase 00 و01 و02 COMPLETE وفق تقارير الإغلاق المعتمدة. Phase 03 IN_PROGRESS على الفرع feature/phase-03-security-observability وPR #4؛ لا تبدأ Phase 04 حتى إغلاق Phase 03 بدليل CI على SHA موحد. راجع STATUS.md وآخر تقرير في reports/ للحالة الحالية.
 
 ## قواعد هذا المجلد
 
