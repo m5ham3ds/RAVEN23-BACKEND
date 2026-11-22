@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserProfile extends Model
 {
+    protected $primaryKey = 'user_id';
+
+    public $incrementing = false;
+
     protected $fillable = ['profile_id', 'photo_url'];
 
     protected function casts(): array
