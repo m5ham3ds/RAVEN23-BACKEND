@@ -68,9 +68,36 @@ class SecurityResponseTest extends TestCase
         $this->assertNotSame('true', $allowed->headers->get('Access-Control-Allow-Credentials'));
     }
 
-    public function test_cors_preflight_rejects_an_unlisted_origin(): void
+    public function test_cors_preflight_does_not_authorize_an_unlisted_origin_with_one_static_origin(): void
     {
+        // Fruitcake's single-origin optimization returns the configured
+        // origin, not the caller's Origin. Browsers reject the mismatch.
         config(['cors.allowed_origins' => ['https://raven.example.test']]);
+
+        $blocked = $this->call('OPTIONS', '/api/v1/auth/login', [], [], [], [
+            'HTTP_ORIGIN' => 'https://untrusted.example.test',
+            'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+            'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'authorization,content-type',
+        ]);
+
+        $blocked->assertNoContent();
+        $this->assertSame(
+            'https://raven.example.test',
+            $blocked->headers->get('Access-Control-Allow-Origin'),
+        );
+        $this->assertNotSame(
+            'https://untrusted.example.test',
+            $blocked->headers->get('Access-Control-Allow-Origin'),
+        );
+        $this->assertNotSame('*', $blocked->headers->get('Access-Control-Allow-Origin'));
+    }
+
+    public function test_cors_preflight_omits_allow_origin_for_unlisted_origin_with_multiple_static_origins(): void
+    {
+        config(['cors.allowed_origins' => [
+            'https://raven.example.test',
+            'https://raven-admin.example.test',
+        ]]);
 
         $blocked = $this->call('OPTIONS', '/api/v1/auth/login', [], [], [], [
             'HTTP_ORIGIN' => 'https://untrusted.example.test',
