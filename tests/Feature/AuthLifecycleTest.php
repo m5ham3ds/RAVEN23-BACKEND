@@ -283,6 +283,40 @@ class AuthLifecycleTest extends TestCase
     }
 }
 
+
+    public function test_email_change_revokes_old_recovery_tokens_and_reissues_verification(): void
+    {
+        Notification::fake();
+        $this->enableTestAuthMail();
+
+        $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
+        $user = User::findOrFail($registration->json('user.id'));
+
+        $this->assertDatabaseHas('email_verification_tokens', ['user_id' => $user->id]);
+        DB::table('password_reset_tokens')->insert([
+            'email' => $user->email,
+            'token' => Hash::make('old-password-reset-token'),
+            'created_at' => now(),
+        ]);
+
+        $this->withToken($registration->json('token'))
+            ->postJson('/api/v1/user/change-email', [
+                'current_password' => 'Raven-Test-Password-42!',
+                'email' => 'raven-new-email@example.test',
+            ])
+            ->assertOk()
+            ->assertJsonPath('user.email', 'raven-new-email@example.test')
+            ->assertJsonPath('email_verification_required', true);
+
+        $updatedUser = User::findOrFail($user->id);
+        $this->assertNull($updatedUser->email_verified_at);
+        $this->assertFalse($updatedUser->is_verified);
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+        $this->assertDatabaseHas('email_verification_tokens', ['user_id' => $user->id]);
+
+        Notification::assertSentTo($updatedUser, EmailVerificationNotification::class);
+    }
+
     private function registrationData(array $overrides = []): array
     {
         return array_merge([
@@ -639,10 +673,24 @@ class AuthLifecycleTest extends TestCase
         $secondToken = $second->json('token');
         $userId = $first->json('user.id');
 
+        DB::table('email_verification_tokens')->insert([
+            'user_id' => $userId,
+            'token_hash' => hash('sha256', 'pending-verification-token'),
+            'expires_at' => now()->addHour(),
+            'created_at' => now(),
+        ]);
+        DB::table('password_reset_tokens')->insert([
+            'email' => 'raven-test@example.test',
+            'token' => Hash::make('pending-password-reset-token'),
+            'created_at' => now(),
+        ]);
+
         $this->withToken($firstToken)->deleteJson('/api/v1/user/account')->assertOk();
         $this->assertDatabaseMissing('users', ['id' => $userId]);
         $this->assertDatabaseCount('personal_access_tokens', 0);
         $this->assertNull(PersonalAccessToken::findToken($firstToken));
         $this->assertNull(PersonalAccessToken::findToken($secondToken));
+        $this->assertDatabaseMissing('email_verification_tokens', ['user_id' => $userId]);
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => 'raven-test@example.test']);
     }
 }
