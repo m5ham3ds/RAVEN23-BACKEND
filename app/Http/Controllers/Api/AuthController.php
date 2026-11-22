@@ -316,6 +316,7 @@ class AuthController extends Controller
             'username' => ['required', 'string', 'min:5', 'max:30', 'regex:/^[A-Za-z0-9_]+$/', 'unique:users,username'],
             'password' => ['required', 'string', 'min:8', 'max:128'],
             'profile_id' => ['sometimes', 'integer', 'min:0', 'max:143'],
+            'photo_url' => ['sometimes', 'nullable', 'url', 'max:2048'],
             'guest_token' => ['sometimes', 'nullable', 'string', 'max:512'],
         ]);
 
@@ -333,6 +334,7 @@ class AuthController extends Controller
                     'username' => Str::lower(trim($data['username'])),
                     'password' => $data['password'],
                     'profile_id' => $data['profile_id'] ?? 0,
+                    'photo_url' => $data['photo_url'] ?? $guest->photo_url,
                     'provider' => 'email',
                     'google_id' => null,
                     'email_verified_at' => null,
@@ -349,6 +351,7 @@ class AuthController extends Controller
                     'username' => Str::lower(trim($data['username'])),
                     'password' => $data['password'],
                     'profile_id' => $data['profile_id'] ?? 0,
+                    'photo_url' => $data['photo_url'] ?? null,
                 ]);
                 $user->forceFill([
                     'provider' => 'email',
@@ -640,24 +643,17 @@ class AuthController extends Controller
 
     public function updatePreferences(Request $request): JsonResponse
     {
-        if (! $request->exists('locale') && ! $request->exists('timezone')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'At least one preference field must be supplied.',
-                'errors' => ['preferences' => ['Supply locale or timezone.']],
-            ], 422);
-        }
-
+        // Requiring at least one field routes empty updates through Laravel's
+        // standard API validation renderer, preserving the common 422 envelope.
         $data = $request->validate([
             'locale' => [
-                'sometimes',
-                'required',
+                'required_without:timezone',
                 'string',
                 'min:2',
                 'max:16',
                 'regex:/^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/',
             ],
-            'timezone' => ['sometimes', 'required', 'string', 'max:64', 'timezone'],
+            'timezone' => ['required_without:locale', 'string', 'max:64', 'timezone'],
         ]);
 
         $user = $request->user();
