@@ -83,7 +83,8 @@ class UserDataFoundationTest extends TestCase
 
         $this->withToken($first['token'])
             ->putJson('/api/v1/user/preferences', [])
-            ->assertUnprocessable();
+            ->assertUnprocessable()
+            ->assertJsonStructure(['success', 'message', 'errors', 'request_id']);
 
         $this->assertDatabaseHas('user_preferences', [
             'user_id' => $first['id'],
@@ -98,6 +99,33 @@ class UserDataFoundationTest extends TestCase
         $this->assertNotNull($saved->json('preferences.updated_at'));
         $this->assertNotNull($replayed->json('preferences.updated_at'));
         $this->assertSame('UTC', $default->json('preferences.timezone'));
+    }
+
+    public function test_registration_preserves_the_flutter_profile_photo_contract(): void
+    {
+        $photoUrl = 'https://cdn.example.test/register-avatar.webp';
+        $account = $this->registerAccount([
+            'profile_id' => 19,
+            'photo_url' => $photoUrl,
+        ]);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $account['id'],
+            'profile_id' => 19,
+            'photo_url' => $photoUrl,
+        ]);
+        $this->assertDatabaseHas('user_profiles', [
+            'user_id' => $account['id'],
+            'profile_id' => 19,
+            'photo_url' => $photoUrl,
+        ]);
+    }
+
+    public function test_preferences_and_export_require_an_authenticated_owner(): void
+    {
+        $this->getJson('/api/v1/user/preferences')->assertUnauthorized();
+        $this->putJson('/api/v1/user/preferences', ['locale' => 'ar'])->assertUnauthorized();
+        $this->getJson('/api/v1/user/data-export')->assertUnauthorized();
     }
 
     public function test_profile_updates_mirror_legacy_fields_without_changing_existing_response_contract(): void
