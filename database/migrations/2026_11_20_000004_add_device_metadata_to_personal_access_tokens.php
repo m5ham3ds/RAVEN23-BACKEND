@@ -26,8 +26,9 @@ return new class extends Migration
             }
         });
 
-        if (DB::connection()->getDriverName() !== 'pgsql') {
-            throw new RuntimeException('RAVEN23 Sanctum device metadata requires PostgreSQL.');
+        $driver = DB::connection()->getDriverName();
+        if (!in_array($driver, ['pgsql', 'sqlite'], true)) {
+            throw new RuntimeException('RAVEN23 Sanctum device metadata supports PostgreSQL and SQLite test databases.');
         }
 
         DB::statement(

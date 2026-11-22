@@ -21,7 +21,7 @@ return [
     |
     */
 
-    'default' => 'pgsql', // RAVEN23 always uses Neon PostgreSQL.
+    'default' => env('DB_CONNECTION', 'pgsql'), // PostgreSQL in production; SQLite only in isolated tests.
 
     /*
     |--------------------------------------------------------------------------
