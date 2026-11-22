@@ -28,8 +28,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 01 | مشروع Laravel مستقل وقابل لإعادة البناء — COMPLETE (Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72) | 00 |
 | 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — COMPLETE (Docker #249 SUCCESS؛ SQLite 20/138، PostgreSQL 3/72، HTTP/non-root/readiness/PHP asset block PASS) | 01 |
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
-| 04 | إكمال المصادقة والحسابات والأجهزة — IN_PROGRESS (PR #5 draft/open، `feature/phase-04-authentication-completion`) | 01–03 COMPLETE |
-| 05 | أساس بيانات المستخدم وعقود الحساب | 00–04 |
+| 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
+| 05 | أساس بيانات المستخدم وعقود الحساب — IN_PROGRESS (schema/API في CI معزول؛ لا CI result بعد) | 00–04؛ استثناء غير مانع لنطاق schema/API مستقل عن Google/mail الحي |
 | 06 | المفضلة والقوائم وسجل المشاهدة والتقدم | 05 |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
@@ -132,3 +132,15 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 لا تعني هذه النتيجة أن إعدادات مزود الإنتاج قد اختبرت. تظل مراجعة حساب DB الفعلي، TLS الطرفي/proxy الفعلي، log retention، backup/PITR وrestore rehearsal وRPO/RTO متطلبات ما قبل الإنتاج كما في `SECURITY-OPERATIONS-POLICY.md`.
 
 **Phase 04 IN_PROGRESS.** PR #5 مفتوح كمسودة فوق فرع Phase 03. بدأ تنفيذ verification/reset/device APIs مع إبقاء البريد معطلاً افتراضيًا حتى يختار المستخدم مزودًا ويحدد رابط التطبيق؛ ولا يثبت mock email أو Google verifier اختبار تكامل Android حقيقي.
+
+## 12. تسليم Phase 04 وبدء Phase 05 — 22 نوفمبر 2026
+
+**Phase 04 — code/CI exit: PASS؛ حالة المنتج والحوكمة: PARTIAL.** تم التحقق من SHA 459fee8019228828013600fd7a6b13a4a3aa4f4f مع ثلاث عمليات على SHA واحد:
+- Docker Validation #320: SUCCESS — SQLite 40 tests / 269 assertions، PostgreSQL 16 4 tests / 99 assertions، وصورة FrankenPHP وفحوص DB roles وreadiness وnon-root وPHP asset blocking.
+- Pint Format #52: SUCCESS.
+- Security Scans #54: SUCCESS — Gitleaks وTrivy filesystem/image وبوابة fixable HIGH/CRITICAL.
+PR #4 وPR #5 ما زالا Draft/Open وغير مدمجين. لم يتم اختبار Google OAuth الحقيقي من Android أو تسليم البريد الحقيقي في staging، كما تبقى متطلبات مزود Phase 03 قبل الإنتاج. لذلك لا توصف Phase 04 بأنها مكتملة على مستوى المنتج أو الإنتاج. تقرير الإثبات: phases/reports/PHASE-04-CI-VERIFICATION-ADDENDUM-2026-11-22.md.
+
+**استثناء اعتماد غير مانع لـPhase 05:** يجوز متابعة schema/API work على PostgreSQL وSQLite المؤقتتين، لأنها لا تعتمد على mail delivery أو Google OAuth الحي. لا يسمح الاستثناء بدمج PRs أو النشر أو migration إنتاجية، ولا يرفع Phase 04 إلى COMPLETE. يجب إغلاق بوابات الحوكمة والتكاملات الخارجية قبل rollout.
+
+**Phase 05 IN_PROGRESS** على feature/phase-05-user-data-foundation. لم تظهر نتائج CI لهذه المرحلة بعد؛ لا تسجل PASS حتى تنجح Docker وPint وSecurity على SHA واحد بعد فتح PR #6 إلى فرع Phase 04.
