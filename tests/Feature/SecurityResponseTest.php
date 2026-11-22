@@ -118,7 +118,7 @@ class SecurityResponseTest extends TestCase
         $hadServerValue = array_key_exists($name, $_SERVER);
         $originalServerValue = $_SERVER[$name] ?? null;
 
-        putenv($name . '=https://*.example.test');
+        putenv($name.'=https://*.example.test');
         $_ENV[$name] = 'https://*.example.test';
         $_SERVER[$name] = 'https://*.example.test';
 
