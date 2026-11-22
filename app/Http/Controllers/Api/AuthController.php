@@ -440,7 +440,6 @@ class AuthController extends Controller
 
         // Keep token issuance outside the account/linking transaction so an
         // isolated session failure cannot poison the account transaction.
-
         return $this->session($user, $request);
     }
 
