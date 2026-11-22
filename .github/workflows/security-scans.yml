@@ -57,10 +57,10 @@ jobs:
 
       - name: Fail on fixable HIGH and CRITICAL production-image vulnerabilities
         run: |
-          docker run --rm \\
-            -v /var/run/docker.sock:/var/run/docker.sock \\
-            aquasec/trivy:0.76.2 \\
-            image --scanners vuln --ignore-unfixed --severity HIGH,CRITICAL \\
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.76.2 \
+            image --scanners vuln --ignore-unfixed --severity HIGH,CRITICAL \
             --exit-code 1 --format table raven23-backend:security
 
       - name: Publish scan report summary

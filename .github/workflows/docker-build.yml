@@ -48,8 +48,8 @@ jobs:
           set -euo pipefail
           image="dunglas/frankenphp:1.13.6-php8.4-bookworm"
           inspect="$(docker buildx imagetools inspect "$image")"
-          printf '%s\\n' "$inspect"
-          digest="$(printf '%s\\n' "$inspect" | awk '$1 == "Digest:" { print $2; exit }')"
+          printf '%s\n' "$inspect"
+          digest="$(printf '%s\n' "$inspect" | awk '$1 == "Digest:" { print $2; exit }')"
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           echo "image=$image" >> "$GITHUB_OUTPUT"
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
@@ -233,7 +233,7 @@ jobs:
 
           # Create an actual temporary PHP asset in the disposable CI container.
           # The HTTP request must be rejected before the PHP interpreter runs it.
-          docker exec --user 0 "$container_name" sh -c "printf '%s\\n' '<?php echo \"UNTRUSTED_PHP_WAS_EXECUTED\";' > /var/www/html/public/untrusted-upload.php"
+          docker exec --user 0 "$container_name" sh -c "printf '%s\n' '<?php echo \"UNTRUSTED_PHP_WAS_EXECUTED\";' > /var/www/html/public/untrusted-upload.php"
 
           asset_body_file="$(mktemp)"
           asset_status="$(curl --silent --show-error --output "$asset_body_file" --write-out '%{http_code}' --max-time 5 http://127.0.0.1:10000/untrusted-upload.php)"
