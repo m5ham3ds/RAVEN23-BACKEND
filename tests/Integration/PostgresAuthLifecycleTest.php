@@ -125,7 +125,7 @@ class PostgresAuthLifecycleTest extends TestCase
 
     public function test_postgresql_verification_reset_and_device_routes_use_restricted_application_role(): void
     {
-        \Illuminate\Support\Facades\Notification::fake();
+        Notification::fake();
         config([
             'services.raven23_auth.mail_enabled' => true,
             'services.raven23_auth.action_url' => 'https://raven23.example.test/auth',
@@ -145,7 +145,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $user = User::on('pgsql')->findOrFail($userId);
 
         $verificationToken = null;
-        \Illuminate\Support\Facades\Notification::assertSentTo(
+        Notification::assertSentTo(
             $user,
             EmailVerificationNotification::class,
             function ($notification) use (&$verificationToken): bool {
@@ -263,7 +263,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $data = $this->accountPayload();
         $registration = $this->postJson('/api/v1/auth/register', $data);
 
-        $this->assertSame(201, $registration->status(), 'Email registration response: ' . $registration->getContent());
+        $this->assertSame(201, $registration->status(), 'Email registration response: '.$registration->getContent());
         $registration->assertJsonPath('success', true);
         [$userId, $firstToken] = $this->rememberSession($registration->json());
 
@@ -296,7 +296,7 @@ class PostgresAuthLifecycleTest extends TestCase
     public function test_postgresql_guest_creation_and_session_are_successful(): void
     {
         $response = $this->postJson('/api/v1/auth/guest');
-        $this->assertSame(200, $response->status(), 'Guest registration response: ' . $response->getContent());
+        $this->assertSame(200, $response->status(), 'Guest registration response: '.$response->getContent());
 
         [$userId, $token] = $this->rememberSession($response->json());
         $this->assertDatabaseHas('users', [
@@ -318,7 +318,7 @@ class PostgresAuthLifecycleTest extends TestCase
             'device_name' => 'PostgreSQL Integration Device',
             'platform' => 'android',
         ]);
-        $this->assertSame(201, $first->status(), 'Device registration response: ' . $first->getContent());
+        $this->assertSame(201, $first->status(), 'Device registration response: '.$first->getContent());
         [$userId, $firstToken] = $this->rememberSession($first->json());
 
         $second = $this->postJson('/api/v1/auth/login', [
