@@ -1,9 +1,10 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
 **آخر تحديث:** 23 نوفمبر 2026
-**main — Phase06 code SHA:** `fea7045178e603a7b54150e75475f5d27960d306`
-**RAVEN23-BACKEND-TEST:** `15369516309ddd6122a358a82063a48ca6e8b7d3`
-**RAVEN23-BACKEND-USERS:** `c789b333574b140d1aed23ce9982dbe6a5c945e0`
+**main — Phase06 implementation SHA:** `fea7045178e603a7b54150e75475f5d27960d306`
+**main documentation validation SHA:** `f1d33e4bdb6085d567c55e25e77f20892787e40b`
+**TEST validation SHA:** `1940c758c76cebc18451d4d8879912589524950f`
+**USERS validation SHA:** `0f8fe357e1333f75660e8f8338f72a2a2143adfd`
 **الفروع الدائمة الوحيدة:** `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`.
 
 ## 1. ملخص حالة المراحل
@@ -37,9 +38,9 @@
 
 ## 3. حالة GitHub Actions على رؤوس الفروع
 
-- main `fea7045178e603a7b54150e75475f5d27960d306`: Docker #360 (run 45083888323)، Pint #96 (45083888275)، Security #98 (45083888350) — conclusion failure.
-- TEST `15369516309ddd6122a358a82063a48ca6e8b7d3`: Docker #361 (run 45083923781)، Pint #97 (45083923772)، Security #99 (45083923791) — conclusion failure.
-- USERS `c789b333574b140d1aed23ce9982dbe6a5c945e0`: Auth #8 (run 45083951166)، Pint #98 (45083951162)، Security #100 (45083951138) — conclusion failure.
+- main docs validation `f1d33e4bdb6085d567c55e25e77f20892787e40b`: Docker #362 (run 45084507399)، Pint #99 (45084507307)، Security #101 (45084507272) — conclusion failure.
+- TEST `1940c758c76cebc18451d4d8879912589524950f`: Docker #363 (run 45084564611)، Pint #100 (45084564563)، Security #102 (45084564548) — conclusion failure.
+- USERS `0f8fe357e1333f75660e8f8338f72a2a2143adfd`: Auth #9 (run 45084570722)، Pint #101 (45084570707)، Security #103 (45084570669) — conclusion failure.
 - فحص تفاصيل job لآخر Docker على main، وآخر Docker على TEST، وآخر Auth على USERS كشف `runner_id=0`, `runner_name=""`, و`steps=[]`. لم يتم تخصيص runner، ولذلك لم يبدأ PHP أو الاختبارات. جلب سجلات الوظائف يعيد BlobNotFound.
 - تكرر هذا بعد إعادة المحاولة في الرؤوس السابقة. لا يوجد دليل على فشل اختبار كود محدد، ولا توجد نتيجة PASS للرؤوس الحالية.
 - الاحتمال التشغيلي هو حصة/فوترة GitHub Actions للمستودع الخاص أو منع تخصيص runner، لكنه غير مؤكد دون صلاحية صفحة Billing لدى مالك المستودع.

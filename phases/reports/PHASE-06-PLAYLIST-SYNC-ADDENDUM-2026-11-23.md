@@ -33,9 +33,9 @@
 
 ## 4. نتائج CI
 
-- main: Docker #360 / run 45083888323، Pint #96 / run 45083888275، Security #98 / run 45083888350.
-- TEST: Docker #361 / run 45083923781، Pint #97 / run 45083923772، Security #99 / run 45083923791.
-- USERS: Auth #8 / run 45083951166، Pint #98 / run 45083951162، Security #100 / run 45083951138.
+- main documentation snapshot: Docker #362 / run 45084507399، Pint #99 / run 45084507307، Security #101 / run 45084507272.
+- TEST: Docker #363 / run 45084564611، Pint #100 / run 45084564563، Security #102 / run 45084564548.
+- USERS: Auth #9 / run 45084570722، Pint #101 / run 45084570707، Security #103 / run 45084570669.
 - jobs المفحوصة على main/TEST/USERS أظهرت runner_id=0، runner_name=""، steps=[]؛ لم تبدأ أي خطوة تنفيذ. جلب logs يعيد BlobNotFound.
 - هذا ليس دليلاً على فشل اختبار PHP؛ ولا هو PASS. السبب المحتمل quota/billing أو عدم توفر runner غير مؤكد دون صلاحية Billing الخاصة بمالك المستودع.
 

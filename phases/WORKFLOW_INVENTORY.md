@@ -68,9 +68,9 @@
 ## 5. أحدث حالة تشغيل — 23 نوفمبر 2026
 
 ### رؤوس الفروع ونتائج GitHub Actions
-- main implementation SHA fea7045178e603a7b54150e75475f5d27960d306: Docker #360 (run 45083888323)، Pint #96 (45083888275)، Security #98 (45083888350).
-- TEST SHA 15369516309ddd6122a358a82063a48ca6e8b7d3: Docker #361 (run 45083923781)، Pint #97 (45083923772)، Security #99 (45083923791).
-- USERS SHA c789b333574b140d1aed23ce9982dbe6a5c945e0: Auth #8 (run 45083951166)، Pint #98 (45083951162)، Security #100 (45083951138).
+- main docs validation SHA f1d33e4bdb6085d567c55e25e77f20892787e40b: Docker #362 (run 45084507399)، Pint #99 (45084507307)، Security #101 (45084507272).
+- TEST validation SHA 1940c758c76cebc18451d4d8879912589524950f: Docker #363 (run 45084564611)، Pint #100 (45084564563)، Security #102 (45084564548).
+- USERS validation SHA 0f8fe357e1333f75660e8f8338f72a2a2143adfd: Auth #9 (run 45084570722)، Pint #101 (45084570707)، Security #103 (run 45084570669).
 
 ### نتيجة فحص تخصيص runner
 - آخر Docker job على main وTEST وآخر Auth job على USERS: runner_id=0، runner_name فارغ، steps=[].
