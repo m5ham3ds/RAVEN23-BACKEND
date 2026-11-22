@@ -9,7 +9,7 @@ class SecurityResponseTest extends TestCase
 {
     public function test_request_id_is_generated_and_not_copied_from_client_input(): void
     {
-        $response = $this->get('/up', [], [
+        $response = $this->get('/up', [
             'X-Request-ID' => 'caller-controlled-id',
         ])->assertOk();
 
