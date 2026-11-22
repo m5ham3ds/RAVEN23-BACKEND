@@ -35,3 +35,31 @@
 ## 5. الاستمرارية
 
 استمر من آخر SHA على الفرع نفسه. اقرأ سجلات أي CI فاشل، أصلح السبب المثبت فقط، ولا تعِد Phase 00–03 أو الأعمال التي اجتازت بواباتها. لا تفعّل mail أو تغيّر provider أو app URL بالافتراض.
+
+
+---
+
+## تحديث استمرارية — 22 نوفمبر 2026
+
+**رأس PR #5 الآن:** `6a7bc6efa8660783b38109815036ef22088a7bad`.
+
+### نتائج الإصلاحات المثبتة
+
+1. تم إصلاح أخطاء PHP lint في `AuthLifecycleTest.php` بإغلاق `setUp()` ثم إبقاء اختبار email-change داخل الصنف.
+2. سبب 500 في reset كان نسيان `password` ضمن مصفوفة Laravel 13 `PasswordBroker::reset()`; يشير سجل API المنقّح إلى `PasswordBroker.php:134`. أضيف الحقل واستُقبلت كلمة المرور عبر callback broker الرسمي.
+3. اختبار revoke-all أصبح يفرغ Auth guards بعد الحذف ليختبر token lookup في طلب تالٍ بدل استخدام المستخدم المخبأ داخل نفس test process.
+4. على SHA `434f5f10e5d4821524822e0525e9954c54a67dac`: SQLite **40 passed / 269 assertions**، وSecurity Scans #38 SUCCESS، وPint #36 SUCCESS، لكن Docker #? فشل فقط في gate Pint الصارم بسبب 7 style issues عبر 6 ملفات PHP.
+5. سُحبت مخرجات Pint artifact `raven23-pint-formatted-36` وطبّقنا التنسيق على الملفات السبعة المتأثرة.
+
+### الحالة الحالية
+
+- Docker Validation #308: `pending`
+- Pint Format Report #42: `pending`
+- Security Scans #44: `pending`
+- SHA المشترك: `6a7bc6efa8660783b38109815036ef22088a7bad`
+
+لا توجد حتى الآن نتيجة يمكن اعتمادها على SHA الحالي؛ التشغيلات الوسيطة التي ألغيت بعد كل commit لا تحتسب. لا يبدأ Phase 05 حتى تجتاز Phase 04 جميع الاختبارات المطلوبة على SHA موحد، بما فيها PostgreSQL integration.
+
+### حدود التحقق الخارجي
+
+لا يزال تفعيل بريد staging/إثبات delivery وربط Google OAuth بجهاز Android حقيقي خارج CI وينتظر بيانات مزود معتمدة. البريد معطل افتراضيًا؛ لا تُنشأ إعدادات provider أو deep-link بالافتراض.
