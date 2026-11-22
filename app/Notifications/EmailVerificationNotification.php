@@ -28,7 +28,7 @@ class EmailVerificationNotification extends Notification
         ], '', '&', PHP_QUERY_RFC3986);
         $url = $base.(str_contains($base, '?') ? '&' : '?').$query;
 
-        return (new MailMessage())
+        return (new MailMessage)
             ->subject('Verify your RAVEN23 email address')
             ->greeting('Welcome to RAVEN23')
             ->line('Verify your email address to complete your account setup.')
