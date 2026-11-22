@@ -34,10 +34,12 @@ jobs:
           --health-retries 12
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Build portable FrankenPHP production image and run SQLite tests
         run: |
@@ -47,6 +49,25 @@ jobs:
 
       - name: Build reusable PostgreSQL integration-test image
         run: docker build --pull --target postgres-test -t raven23-backend:postgres-test .
+
+      - name: Verify Laravel Pint style on Phase 03 changed PHP files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref="${GITHUB_BASE_REF:-feature/phase-02-portable-runtime}"
+          git fetch origin "$base_ref"
+          mapfile -t changed_php < <(git diff --name-only "origin/$base_ref...HEAD" -- '*.php')
+          if [ "${#changed_php[@]}" -eq 0 ]; then
+            echo "No changed PHP files require Pint validation."
+            exit 0
+          fi
+
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            --entrypoint php \
+            raven23-backend:postgres-test \
+            /opt/raven/vendor/bin/pint --test "${changed_php[@]}"
 
       - name: Verify production refuses APP_DEBUG=true
         run: |
