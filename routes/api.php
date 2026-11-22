@@ -15,10 +15,15 @@ Route::prefix('v1')->group(function (): void {
     Route::post('/auth/guest', [AuthController::class, 'guest'])->middleware('throttle:auth-guest');
     Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:auth-password-reset');
     Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:auth-password-reset');
+    Route::post('/auth/verify-email', [AuthController::class, 'verifyEmail'])->middleware('throttle:auth-email-verification');
     Route::get('/users/check-username', [AuthController::class, 'usernameAvailable'])->middleware('throttle:auth-username-check');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/auth/email/verification-notification', [AuthController::class, 'sendEmailVerification'])->middleware('throttle:auth-email-verification');
+        Route::get('/user/devices', [AuthController::class, 'devices'])->middleware('throttle:auth-device-management');
+        Route::delete('/user/devices', [AuthController::class, 'revokeAllDevices'])->middleware('throttle:auth-device-management');
+        Route::delete('/user/devices/{tokenId}', [AuthController::class, 'revokeDevice'])->whereNumber('tokenId')->middleware('throttle:auth-device-management');
         Route::get('/user/profile', [AuthController::class, 'profile']);
         Route::put('/user/profile', [AuthController::class, 'updateProfile']);
         Route::post('/user/change-email', [AuthController::class, 'changeEmail']);

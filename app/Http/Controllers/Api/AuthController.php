@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Notifications\EmailVerificationNotification;
 use App\Support\GoogleIdTokenVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
+use Illuminate\Auth\Passwords\PasswordBroker;
 use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
 
@@ -31,6 +35,64 @@ class AuthController extends Controller
             'platform' => ['sometimes', 'nullable', 'in:android,ios,tv'],
             'replace_device_id' => ['sometimes', 'integer', 'min:1'],
         ]);
+    }
+
+
+    private function authMailReady(): bool
+    {
+        if (! (bool) config('services.raven23_auth.mail_enabled', false)) {
+            return false;
+        }
+
+        $actionUrl = trim((string) config('services.raven23_auth.action_url', ''));
+        $parts = $actionUrl !== '' ? parse_url($actionUrl) : false;
+        if (! is_array($parts) || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['https', 'raven23'], true)) {
+            return false;
+        }
+
+        if (app()->environment('production') && in_array((string) config('mail.default'), ['log', 'array'], true)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function issueEmailVerification(User $user, ?Request $request = null): bool
+    {
+        if (! $this->authMailReady() || $user->is_guest || $user->is_verified || $user->email_verified_at) {
+            return false;
+        }
+
+        $plainToken = Str::random(64);
+        $tokenHash = hash('sha256', $plainToken);
+        $expiresInMinutes = max(1, (int) config('security.email_verification_expire_minutes', 60));
+
+        DB::table('email_verification_tokens')->updateOrInsert(
+            ['user_id' => $user->getKey()],
+            [
+                'token_hash' => $tokenHash,
+                'expires_at' => now()->addMinutes($expiresInMinutes),
+                'created_at' => now(),
+            ],
+        );
+
+        try {
+            $user->notify(new EmailVerificationNotification((int) $user->getKey(), $plainToken, $expiresInMinutes));
+        } catch (Throwable $exception) {
+            DB::table('email_verification_tokens')
+                ->where('user_id', $user->getKey())
+                ->where('token_hash', $tokenHash)
+                ->delete();
+
+            Log::warning('RAVEN23 email verification delivery failed', [
+                'request_id' => $request?->attributes->get('raven23_request_id'),
+                'exception_type' => get_class($exception),
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -187,6 +249,7 @@ class AuthController extends Controller
         return $candidate;
     }
 
+
     public function register(Request $request): JsonResponse
     {
         $this->markStage($request, 'register.normalize_input');
@@ -212,8 +275,6 @@ class AuthController extends Controller
         $payload = DB::transaction(function () use ($data, $guest, $request): array {
             if ($guest) {
                 $this->markStage($request, 'register.upgrade_guest_user');
-                // Upgrade the existing guest row so its identity and linked
-                // data remain stable. Every old anonymous token is revoked.
                 $guest->tokens()->delete();
                 $guest->forceFill([
                     'name' => trim($data['name']),
@@ -223,6 +284,7 @@ class AuthController extends Controller
                     'profile_id' => $data['profile_id'] ?? 0,
                     'provider' => 'email',
                     'google_id' => null,
+                    'email_verified_at' => null,
                     'is_verified' => false,
                     'is_account_verified' => false,
                     'is_guest' => false,
@@ -240,25 +302,27 @@ class AuthController extends Controller
                 $user->forceFill([
                     'provider' => 'email',
                     'google_id' => null,
+                    'email_verified_at' => null,
                     'is_verified' => false,
                     'is_account_verified' => false,
                     'is_guest' => false,
                 ])->save();
             }
 
-            return [
-                'user' => $user,
-                'response_status' => 201,
-            ];
+            return ['user' => $user, 'response_status' => 201];
         });
 
-        // Session issuance is deliberately outside the account transaction.
-        // If the token/device write fails, the user remains recoverable and a
-        // retry does not get misreported as a failed user-row transaction.
+        // Email delivery is deliberately outside the account transaction.
         $this->markStage($request, 'register.reload_user');
+        /** @var User $user */
         $user = $payload['user'];
+        $response = $this->session($user, $request, $payload['response_status']);
+        $verificationSent = $this->issueEmailVerification($user, $request);
+        $responseData = $response->getData(true);
+        $responseData['email_verification_required'] = true;
+        $responseData['verification_email_sent'] = $verificationSent;
 
-        return $this->session($user, $request, $payload['response_status']);
+        return response()->json($responseData, $response->getStatusCode());
     }
 
     public function login(Request $request): JsonResponse
@@ -494,6 +558,7 @@ class AuthController extends Controller
         return response()->json(['success' => true, 'user' => $user->fresh()->toRavenArray()]);
     }
 
+
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -502,16 +567,33 @@ class AuthController extends Controller
             'current_password' => ['required', 'string'],
             'email' => ['required', 'email:rfc', 'max:190', 'unique:users,email,'.$user->id],
         ]);
+
         if (! Hash::check($data['current_password'], $user->password)) {
             return response()->json(['success' => false, 'message' => 'Current password is incorrect.'], 422);
         }
-        $user->forceFill([
-            'email' => Str::lower(trim($data['email'])),
-            'email_verified_at' => null,
-            'is_verified' => false,
-        ])->save();
 
-        return response()->json(['success' => true, 'user' => $user->fresh()->toRavenArray()]);
+        $newEmail = Str::lower(trim($data['email']));
+        if (! hash_equals(Str::lower((string) $user->email), $newEmail)) {
+            DB::transaction(function () use ($user, $newEmail): void {
+                $user->forceFill([
+                    'email' => $newEmail,
+                    'email_verified_at' => null,
+                    'is_verified' => false,
+                ])->save();
+
+                DB::table('email_verification_tokens')->where('user_id', $user->getKey())->delete();
+            });
+        }
+
+        $user = $user->fresh();
+        $verificationSent = $this->issueEmailVerification($user, $request);
+
+        return response()->json([
+            'success' => true,
+            'user' => $user->toRavenArray(),
+            'email_verification_required' => ! (bool) $user->is_verified,
+            'verification_email_sent' => $verificationSent,
+        ]);
     }
 
     public function changePassword(Request $request): JsonResponse
@@ -550,6 +632,123 @@ class AuthController extends Controller
         return response()->json(['success' => true, 'message' => 'Account deleted.']);
     }
 
+
+    public function sendEmailVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->is_guest) {
+            return response()->json(['success' => false, 'message' => 'A guest account cannot verify an email address.'], 422);
+        }
+
+        if ($user->is_verified || $user->email_verified_at) {
+            return response()->json(['success' => true, 'verified' => true, 'message' => 'This email address is already verified.']);
+        }
+
+        if (! $this->authMailReady()) {
+            return response()->json(['success' => false, 'message' => 'Email verification is temporarily unavailable.'], 503);
+        }
+
+        if (! $this->issueEmailVerification($user, $request)) {
+            return response()->json(['success' => false, 'message' => 'Email verification could not be sent. Please try again later.'], 503);
+        }
+
+        return response()->json(['success' => true, 'verified' => false, 'message' => 'A verification link has been sent if delivery is available.'], 202);
+    }
+
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'user_id' => ['required', 'integer', 'min:1'],
+            'token' => ['required', 'string', 'min:32', 'max:128'],
+        ]);
+
+        $userId = (int) $data['user_id'];
+        $tokenHash = hash('sha256', $data['token']);
+        $verified = DB::transaction(function () use ($userId, $tokenHash): bool {
+            $verification = DB::table('email_verification_tokens')
+                ->where('user_id', $userId)
+                ->lockForUpdate()
+                ->first();
+
+            if (
+                ! $verification
+                || Carbon::parse($verification->expires_at)->isPast()
+                || ! hash_equals((string) $verification->token_hash, $tokenHash)
+            ) {
+                return false;
+            }
+
+            $user = User::query()->lockForUpdate()->find($userId);
+            if (! $user || $user->is_guest) {
+                return false;
+            }
+
+            $user->forceFill(['email_verified_at' => now(), 'is_verified' => true])->save();
+            DB::table('email_verification_tokens')
+                ->where('user_id', $userId)
+                ->where('token_hash', $tokenHash)
+                ->delete();
+
+            return true;
+        });
+
+        if (! $verified) {
+            return response()->json(['success' => false, 'message' => 'The email verification token is invalid or expired.'], 422);
+        }
+
+        $user = User::findOrFail($userId);
+
+        return response()->json(['success' => true, 'verified' => true, 'user' => $user->toRavenArray()]);
+    }
+
+    public function devices(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $currentTokenId = $user->currentAccessToken()?->getKey();
+
+        $devices = $user->tokens()
+            ->where(static function ($query): void {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->orderByDesc('last_used_at')
+            ->orderByDesc('created_at')
+            ->get(['id', 'name', 'device_id', 'device_name', 'platform', 'created_at', 'last_used_at', 'expires_at'])
+            ->map(static fn (PersonalAccessToken $token): array => [
+                'id' => (int) $token->getKey(),
+                'device_id' => $token->device_id,
+                'device_name' => $token->device_name,
+                'platform' => $token->platform,
+                'created_at' => optional($token->created_at)->toISOString(),
+                'last_used_at' => optional($token->last_used_at)->toISOString(),
+                'expires_at' => optional($token->expires_at)->toISOString(),
+                'current' => $currentTokenId !== null && (int) $currentTokenId === (int) $token->getKey(),
+            ])
+            ->values();
+
+        return response()->json(['success' => true, 'devices' => $devices]);
+    }
+
+    public function revokeDevice(Request $request, int $tokenId): JsonResponse
+    {
+        if ($request->user()->tokens()->whereKey($tokenId)->delete() === 0) {
+            return response()->json(['success' => false, 'message' => 'The requested device session was not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Device session revoked.']);
+    }
+
+    public function revokeAllDevices(Request $request): JsonResponse
+    {
+        $revoked = $request->user()->tokens()->delete();
+
+        return response()->json([
+            'success' => true,
+            'revoked_count' => $revoked,
+            'message' => 'All device sessions have been revoked.',
+        ]);
+    }
+
     public function usernameAvailable(Request $request): JsonResponse
     {
         $request->merge(['username' => Str::lower(trim((string) $request->input('username')))]);
@@ -563,19 +762,73 @@ class AuthController extends Controller
         ]);
     }
 
-    public function forgotPassword(): JsonResponse
+
+    public function forgotPassword(Request $request): JsonResponse
     {
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        $data = $request->validate(['email' => ['required', 'email:rfc', 'max:190']]);
+
+        if (! $this->authMailReady()) {
+            return response()->json(['success' => false, 'message' => 'Password recovery is temporarily unavailable.'], 503);
+        }
+
+        $email = Str::lower(trim($data['email']));
+        $eligible = User::query()
+            ->where('email', $email)
+            ->where(static function ($query): void {
+                $query->whereNull('is_guest')->orWhere('is_guest', false);
+            })
+            ->exists();
+
+        if ($eligible) {
+            try {
+                Password::sendResetLink(['email' => $email]);
+            } catch (Throwable $exception) {
+                DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
+                    ->where('email', $email)
+                    ->delete();
+
+                Log::warning('RAVEN23 password reset delivery failed', [
+                    'request_id' => $request->attributes->get('raven23_request_id'),
+                    'exception_type' => get_class($exception),
+                ]);
+            }
+        }
+
         return response()->json([
-            'success' => false,
-            'message' => 'Password reset email delivery is not configured yet.',
-        ], 503);
+            'success' => true,
+            'message' => 'If the account exists, a password reset link has been sent.',
+        ], 202);
     }
 
-    public function resetPassword(): JsonResponse
+
+    public function resetPassword(Request $request): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'message' => 'Password reset is unavailable until email delivery is configured.',
-        ], 503);
+        $request->merge(['email' => Str::lower(trim((string) $request->input('email')))]);
+        $data = $request->validate([
+            'email' => ['required', 'email:rfc', 'max:190'],
+            'token' => ['required', 'string', 'min:32', 'max:512'],
+            'password' => ['required', 'string', 'min:8', 'max:128', 'confirmed'],
+        ]);
+
+        $status = Password::reset([
+            'email' => Str::lower(trim($data['email'])),
+            'token' => $data['token'],
+        ], function (User $user) use ($data): void {
+            DB::transaction(function () use ($user, $data): void {
+                $user->forceFill([
+                    'password' => $data['password'],
+                    'remember_token' => Str::random(60),
+                ])->save();
+                $user->tokens()->delete();
+            });
+        });
+
+        if ($status === PasswordBroker::PASSWORD_RESET) {
+            return response()->json(['success' => true, 'message' => 'Password updated. Please sign in again.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'The password reset token is invalid or expired.'], 422);
     }
+
 }
