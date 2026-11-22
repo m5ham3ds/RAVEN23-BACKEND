@@ -368,6 +368,7 @@ class PostgresAuthLifecycleTest extends TestCase
             ->assertJsonPath('preferences.locale', 'ar')
             ->assertJsonPath('preferences.timezone', 'Africa/Khartoum');
 
+        Auth::forgetGuards();
         $this->withToken($secondToken)
             ->getJson('/api/v1/user/preferences')
             ->assertOk()
@@ -388,6 +389,7 @@ class PostgresAuthLifecycleTest extends TestCase
         $this->assertStringNotContainsString($secondData['email'], $firstExport->getContent());
         $this->assertStringNotContainsString('77777777-7777-4777-8777-777777777777', $firstExport->getContent());
 
+        Auth::forgetGuards();
         $this->withToken($secondToken)
             ->getJson('/api/v1/user/data-export')
             ->assertOk()
