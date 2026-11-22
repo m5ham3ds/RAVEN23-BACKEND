@@ -123,7 +123,7 @@ class SecurityResponseTest extends TestCase
         $_SERVER[$name] = 'https://*.example.test';
 
         try {
-            $this->expectException(\\InvalidArgumentException::class);
+            $this->expectException(\InvalidArgumentException::class);
             require base_path('config/cors.php');
         } finally {
             if ($originalProcessValue === false) {
