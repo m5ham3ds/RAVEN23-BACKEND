@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Notifications\PasswordResetNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -37,6 +39,21 @@ class User extends Authenticatable
             'is_account_verified' => 'boolean',
             'is_guest' => 'boolean',
         ];
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    public function preferences(): HasOne
+    {
+        return $this->hasOne(UserPreference::class);
+    }
+
+    public function devices(): HasMany
+    {
+        return $this->hasMany(UserDevice::class);
     }
 
     public function sendPasswordResetNotification($token): void
