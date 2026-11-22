@@ -679,6 +679,7 @@ class AuthController extends Controller
     public function exportUserData(Request $request): JsonResponse
     {
         $user = $request->user();
+        $userId = (int) $user->getKey();
         $this->ensureAccountData($user);
         $profile = $user->profile()->firstOrFail();
         $preferences = $user->preferences()->firstOrFail();
@@ -694,13 +695,57 @@ class AuthController extends Controller
             ])
             ->values();
 
+        $bookmarkRows = DB::table('user_bookmarks')
+            ->where('user_id', $userId)
+            ->orderBy('media_type')
+            ->orderBy('media_id')
+            ->get(['media_type', 'media_id', 'metadata', 'created_at']);
+        $bookmarks = ['movies' => [], 'tvShows' => []];
+        foreach ($bookmarkRows as $row) {
+            $metadata = json_decode((string) $row->metadata, true);
+            $metadata = is_array($metadata) ? $metadata : [];
+            $metadata['id'] = (int) $row->media_id;
+            $metadata['date_added'] = $metadata['date_added'] ?? (string) $row->created_at;
+            if ($row->media_type === 'movie') {
+                $bookmarks['movies'][] = $metadata;
+            } elseif ($row->media_type === 'tv') {
+                $bookmarks['tvShows'][] = $metadata;
+            }
+        }
+
+        $recentRows = DB::table('user_recent_media')
+            ->where('user_id', $userId)
+            ->orderBy('media_type')
+            ->orderBy('media_id')
+            ->get(['media_type', 'media_id', 'metadata', 'elapsed', 'remaining', 'updated_at_utc', 'deleted_at_utc', 'revision']);
+        $recentlyWatched = ['movies' => [], 'episodes' => []];
+        foreach ($recentRows as $row) {
+            $metadata = json_decode((string) $row->metadata, true);
+            $metadata = is_array($metadata) ? $metadata : [];
+            $record = [
+                ...$metadata,
+                'id' => (int) $row->media_id,
+                ($row->media_type === 'movie' ? 'movie_id' : 'episode_id') => (int) $row->media_id,
+                'elapsed' => (int) $row->elapsed,
+                'remaining' => (int) $row->remaining,
+                'updated_at_utc' => (int) $row->updated_at_utc,
+                'deleted_at_utc' => $row->deleted_at_utc === null ? null : (int) $row->deleted_at_utc,
+                'sync_revision' => (int) $row->revision,
+            ];
+            if ($row->media_type === 'movie') {
+                $recentlyWatched['movies'][] = $record;
+            } elseif ($row->media_type === 'episode') {
+                $recentlyWatched['episodes'][] = $record;
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
-                'format_version' => 1,
+                'format_version' => 2,
                 'exported_at' => now()->utc()->toISOString(),
                 'account' => [
-                    'id' => (int) $user->getKey(),
+                    'id' => $userId,
                     'name' => $user->name,
                     'email' => $user->email,
                     'username' => $user->username,
@@ -721,10 +766,11 @@ class AuthController extends Controller
                     'updated_at' => optional($preferences->updated_at)->toISOString(),
                 ],
                 'devices' => $devices,
+                'bookmarks' => $bookmarks,
+                'recently_watched' => $recentlyWatched,
             ],
         ]);
     }
-
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();

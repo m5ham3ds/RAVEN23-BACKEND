@@ -216,7 +216,7 @@ jobs:
 
           echo "PASS: PostgreSQL app role is non-superuser, cannot create roles/databases/schema objects, and has only application CRUD/sequence access."
 
-      - name: Run PostgreSQL authentication lifecycle suite with restricted application role
+      - name: Run PostgreSQL auth and media-sync integration suites with restricted application role
         run: |
           set -eu
           docker run --rm --network host \
@@ -226,7 +226,7 @@ jobs:
             -e DB_SSLMODE=disable \
             -e DB_URL='postgresql://raven23_app_test:raven23_app_test@127.0.0.1:5432/raven23_test?sslmode=disable' \
             --entrypoint php \
-            raven23-backend:postgres-test artisan test tests/Integration/PostgresAuthLifecycleTest.php
+            raven23-backend:postgres-test artisan test tests/Integration
 
       - name: Apply the schema through an explicit one-off migration role
         run: |

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -38,5 +39,6 @@ Route::prefix('v1')->group(function (): void {
         Route::delete('/sync/bookmarks/{type}/{id}', [BookmarkSyncController::class, 'delete'])
             ->where('type', 'movie|tv')
             ->whereNumber('id');
+        Route::post('/sync/recently-watched', [RecentlyWatchedSyncController::class, 'sync']);
     });
 });
