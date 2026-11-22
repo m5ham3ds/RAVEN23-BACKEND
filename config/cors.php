@@ -5,11 +5,13 @@ $allowedOrigins = array_values(array_filter(array_map(
     explode(',', (string) env('CORS_ALLOWED_ORIGINS', '')),
 ), static fn (string $origin): bool => $origin !== ''));
 
-if (in_array('*', $allowedOrigins, true)) {
-    throw new InvalidArgumentException('CORS_ALLOWED_ORIGINS must list exact origins; wildcard origins are not allowed.');
-}
-
 foreach ($allowedOrigins as $origin) {
+    // Fruitcake converts any asterisk in allowedOrigins into a wildcard
+    // pattern, so reject embedded wildcards as well as a standalone "*".
+    if (str_contains($origin, '*')) {
+        throw new InvalidArgumentException('CORS_ALLOWED_ORIGINS must list exact origins; wildcard origins are not allowed.');
+    }
+
     $parts = parse_url($origin);
     if (
         !is_array($parts)
