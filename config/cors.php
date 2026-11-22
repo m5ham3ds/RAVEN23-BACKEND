@@ -14,9 +14,9 @@ foreach ($allowedOrigins as $origin) {
 
     $parts = parse_url($origin);
     if (
-        !is_array($parts)
-        || !isset($parts['scheme'], $parts['host'])
-        || !in_array($parts['scheme'], ['http', 'https'], true)
+        ! is_array($parts)
+        || ! isset($parts['scheme'], $parts['host'])
+        || ! in_array($parts['scheme'], ['http', 'https'], true)
         || isset($parts['path'])
         || isset($parts['query'])
         || isset($parts['fragment'])
