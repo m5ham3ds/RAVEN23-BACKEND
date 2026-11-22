@@ -154,12 +154,6 @@ class AuthController extends Controller
         $deviceId = $device['device_id'] ?? null;
         $platform = $device['platform'] ?? 'client';
 
-        // Seed normalized profile/preferences and record the stable install ID
-        // before issuing a token. Existing sessions and legacy profile columns
-        // remain authoritative for the current API contract.
-        $this->markStage($request, 'session.ensure_account_data');
-        $this->ensureAccountData($user, $device);
-
         // Registration persists the account in its own transaction. Recreate
         // the PDO connection before issuing Sanctum credentials so a failed or
         // stale transaction state from the previous write cannot leak into the
@@ -193,6 +187,11 @@ class AuthController extends Controller
             $user = $persistedUser;
             $user->setConnection($connectionName);
         }
+
+        // Persist normalized account data only after PostgreSQL has been
+        // refreshed, matching the established Phase 04 connection lifecycle.
+        $this->markStage($request, 'session.ensure_account_data');
+        $this->ensureAccountData($user, $device);
 
         // Issue and persist the replacement session before revoking older
         // device credentials. Each statement commits independently, so a
