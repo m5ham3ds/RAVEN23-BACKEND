@@ -7,6 +7,7 @@ use App\Notifications\EmailVerificationNotification;
 use App\Notifications\PasswordResetNotification;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -186,6 +187,10 @@ class PostgresAuthLifecycleTest extends TestCase
             'password' => 'Raven-PG-New-Password-42!',
             'password_confirmation' => 'Raven-PG-New-Password-42!',
         ])->assertOk();
+
+        // Flush the in-process auth guard so the next request verifies the
+        // revoked Sanctum token against PostgreSQL instead of a cached user.
+        Auth::forgetGuards();
 
         $this->withToken($accessToken)->getJson('/api/v1/user/profile')->assertUnauthorized();
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $data['email']]);
