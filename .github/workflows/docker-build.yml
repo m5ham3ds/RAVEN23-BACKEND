@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, feature/phase-01-laravel-project, feature/phase-02-portable-runtime]
+    branches: [main, feature/phase-01-laravel-project, feature/phase-02-portable-runtime, feature/phase-03-security-observability]
 
 permissions:
   contents: read
