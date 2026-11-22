@@ -132,7 +132,6 @@ class AppServiceProvider extends ServiceProvider
             return $limits;
         });
 
-
         RateLimiter::for('auth-device-management', function (Request $request) use ($limit, $ipFingerprint, $fingerprint): array {
             $perMinute = (int) config('security.rate_limits.device_management_per_minute', 30);
             $limits = [$limit('device-management:'.$ipFingerprint($request), $perMinute)];
