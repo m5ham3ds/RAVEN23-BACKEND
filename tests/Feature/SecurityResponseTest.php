@@ -53,7 +53,7 @@ class SecurityResponseTest extends TestCase
         }
     }
 
-    public function test_cors_preflight_only_allows_explicit_origins_and_no_credentials(): void
+    public function test_cors_preflight_allows_an_explicit_origin_without_credentials(): void
     {
         config(['cors.allowed_origins' => ['https://raven.example.test']]);
 
@@ -66,6 +66,11 @@ class SecurityResponseTest extends TestCase
         $allowed->assertNoContent();
         $this->assertSame('https://raven.example.test', $allowed->headers->get('Access-Control-Allow-Origin'));
         $this->assertNotSame('true', $allowed->headers->get('Access-Control-Allow-Credentials'));
+    }
+
+    public function test_cors_preflight_rejects_an_unlisted_origin(): void
+    {
+        config(['cors.allowed_origins' => ['https://raven.example.test']]);
 
         $blocked = $this->call('OPTIONS', '/api/v1/auth/login', [], [], [], [
             'HTTP_ORIGIN' => 'https://untrusted.example.test',
