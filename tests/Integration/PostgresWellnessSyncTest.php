@@ -172,6 +172,55 @@ class PostgresWellnessSyncTest extends TestCase
         $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
     }
 
+    public function test_postgresql_wellness_upload_replay_after_lost_response_is_idempotent(): void
+    {
+        $owner = $this->createAccount();
+        $sessionId = '99999999-9999-4999-8999-999999999999';
+        $session = $this->wellnessSession($sessionId, 5000);
+        $daily = [
+            'local_day' => '2026-11-23',
+            'timezone_offset_minutes' => 0,
+            'watched_ms' => 60000,
+            'movie_ms' => 0,
+            'episode_ms' => 60000,
+            'live_ms' => 0,
+            'completed_movies' => 0,
+            'completed_episodes' => 0,
+            'session_count' => 1,
+            'updated_at_utc' => 5000,
+        ];
+        $payload = [
+            'client_time_utc' => $this->clientTime(),
+            'sessions' => [$session],
+            'daily' => [$daily],
+            'limit' => 450,
+        ];
+
+        $first = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', $payload)
+            ->assertOk()
+            ->assertJsonPath('server_revision', 2);
+
+        Auth::forgetGuards();
+        // Simulate a request whose response was lost: the next sync cycle
+        // replays the persisted upload with the exact same entity payloads.
+        $retry = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', $payload)
+            ->assertOk()
+            ->assertJsonPath('server_revision', 2);
+
+        $this->assertSame($first->json('server_revision'), $retry->json('server_revision'));
+        $this->assertDatabaseCount('user_wellness_sessions', 1);
+        $this->assertDatabaseCount('user_wellness_daily', 1);
+        $this->assertDatabaseCount('user_wellness_changes', 2);
+        $this->assertDatabaseCount('user_wellness_upload_receipts', 2);
+        $this->assertDatabaseHas('user_sync_revisions', [
+            'user_id' => $owner['id'],
+            'domain' => 'wellness',
+            'revision' => 2,
+        ]);
+    }
+
     public function test_postgresql_wellness_sync_is_owner_scoped_revisioned_and_tombstone_safe(): void
     {
         $owner = $this->createAccount();
