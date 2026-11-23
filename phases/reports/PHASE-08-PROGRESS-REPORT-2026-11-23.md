@@ -1,8 +1,8 @@
 # Phase08 Progress Report — 23 November 2026
 
-**Status:** IN_PROGRESS — first queue/mail slice is implemented and CI-verified; storage, push and external mail integration remain open.
+**Status:** IN_PROGRESS — Phase08A–08D implemented and CI-verified on 24 November 2026; S3-compatible integration, push, external mail, outbox/idempotency and retention policy remain open.
 **Repository:** `m5ham3ds/RAVEN23-BACKEND`
-**CI-verified SHA:** `dd861fa9afd6f876ff300f65aae58a35b16f3112`
+**CI-verified SHA:** `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`
 **Permanent branch:** `main` only.
 
 ## 1. Scope decision
@@ -51,13 +51,13 @@ Docker additionally passed strict Pint, queue worker guard tests, production APP
 
 ## 6. What has not been proven / remaining
 
-- Queue tests use Laravel Queue fake; they do not start a long-lived worker and do not send SMTP messages.
-- No Mail sink/rendered-template test yet; no real provider or action URL has been selected/configured.
-- `RAVEN23_AUTH_MAIL_ENABLED=false` and `MAIL_MAILER=log` remain unchanged; delivery is disabled.
-- No S3-compatible storage adapter, private upload/download authorization, object metadata API, MIME/content validation, orphan cleanup or retention policy.
-- No FCM/OneSignal push adapter; inspect and match Flutter contract before implementing.
-- At-least-once delivery can produce a duplicate if an external mail server accepts a message and the worker crashes before acknowledging it. Provider idempotency/outbox semantics remain to be designed and tested.
-- Worker was not started against production or staging. No secrets, cloud resources, production database, deployment or DNS were accessed.
+- No S3-compatible adapter/integration run has been performed against MinIO or staging; the tested adapter currently uses Laravel's local fake/private filesystem. No AWS SDK adapter, bucket, secrets or paid resource was added.
+- `RAVEN23_AUTH_MAIL_ENABLED=false` and `MAIL_MAILER=log` remain unchanged. Mail templates and queue behavior are tested locally, but external SMTP/provider delivery and Android deep links are not.
+- No FCM/OneSignal push adapter exists; the Flutter contract must be confirmed before implementing one.
+- At-least-once mail delivery can duplicate after provider acceptance followed by worker crash; provider idempotency/outbox semantics remain open.
+- The per-account media quota is opt-in and remains unlimited at default 0. Orphan cleanup runs dry-run by default and scheduled apply is disabled by default. No physical objects were deleted in CI.
+- Retention duration, capacity policy, cost limits and alert thresholds have not been approved or configured.
+- No production/staging secrets, cloud resources, production DB, DNS or deployment were accessed.
 
 ## 7. Next permitted Phase08 work
 
@@ -78,3 +78,20 @@ Docker additionally passed strict Pint, queue worker guard tests, production APP
 - composer.lock currently contains Flysystem core/local only; no AWS S3 Flysystem adapter is installed. S3 is not activated and no credentials, bucket, cloud resources or paid services were added. A real S3-compatible integration remains a later staging/provider task.
 - Upload endpoints, PostgreSQL object metadata/ownership, signed URLs, MIME/content validation and orphan cleanup remain unimplemented.
 
+
+
+## 9. Phase08C — User media API and optional quota (24 November 2026)
+
+- Added `UserMedia` metadata and owner FK migration `2026_11_23_000014`, with MIME/content validation, size/dimension bounds, server-generated UUID object keys and SHA-256 checksum.
+- Added Sanctum-authenticated upload, owner-scoped read/delete, account export metadata and short-lived signed capability URLs. The private filesystem disk remains separate from the public disk; the old profile `photo_url` contract remains unchanged.
+- Avatar files: JPEG/PNG/WebP, max 5 MiB, max dimensions 4096×4096. Attachments: PDF/TXT, max 10 MiB.
+- Optional quota uses `RAVEN23_USER_MEDIA_QUOTA_BYTES`; 0 is unlimited. The owner row is locked inside the upload transaction before current usage is measured and the object is written.
+- Account deletion and media deletion queue encrypted after-commit cleanup jobs; no production storage was accessed.
+
+## 10. Phase08D — Safe orphan media cleanup
+
+- Added streaming object metadata listing to the storage contract and Flysystem adapter.
+- Added `media:cleanup-orphans` command with dry-run as the default, UUID media key allowlist, metadata comparison in 250-key batches, 7-day default grace (minimum one day), and configurable bounded queue limit.
+- `--apply` requires explicit `RAVEN23_PRIVATE_MEDIA_ORPHAN_CLEANUP_ENABLED=true`; scheduler registration is also conditional and uses daily 03:30 plus `withoutOverlapping`.
+- Tests confirm referenced media is not queued and only stale unreferenced media is sent to `DeletePrivateObjectJob` under SQLite and PostgreSQL.
+- CI on SHA `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`: Docker 109/1,196 SQLite and 15/295 PostgreSQL; Auth, Pint and Security all SUCCESS.

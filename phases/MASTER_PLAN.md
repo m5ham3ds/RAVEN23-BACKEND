@@ -32,7 +32,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ اجتازت اختبارات device convergence (2 devices)، out-of-order، idempotent retry، full resync، token revoke per-device وdaily aggregates؛ بقي 3-device/concurrent cursor/device-ID rotation/latency | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ mail notifications مشفرة ومجدولة عبر database queue، worker منفصل وCI guards؛ storage/push/mail provider ما زالت مفتوحة | 02–05 (Phase04 external mail/Google staging remains partial) |
+| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08D: encrypted mail queue/worker، private storage contract، media upload/metadata/owner authorization/signed URLs، optional quota، وdry-run-first orphan cleanup؛ Docker 109/1,196 SQLite و15/295 PostgreSQL على SHA `f4a64407`. ما زال S3 integration/push/external mail/outbox/retention مفتوحًا | 02–05 (Phase04 external mail/Google staging remains partial) |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
@@ -149,7 +149,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 ## 12. متابعة CI والتنفيذ — Phase07/08، 23 نوفمبر 2026
 
-- Current main SHA: `dd861fa9afd6f876ff300f65aae58a35b16f3112`.
+- Current main SHA: `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`.
 - Docker Validation [45204060525](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060525): SUCCESS — SQLite Feature 92/1,046؛ PostgreSQL Integration 12/265؛ queue worker configuration guards وruntime smoke وleast-privilege PASS.
 - Authentication Regression [45204060572](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060572): SUCCESS — SQLite 20/151؛ PostgreSQL 4/99.
 - Pint [45204060578](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060578): SUCCESS.
@@ -164,3 +164,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 تم التحقق من اكتمال تشغيلات CI الأربعة التي كانت قيد التنفيذ على الرأس التوثيقي: Docker #45205731260 وSecurity #45205731207 وPint #45205731265 وAuthentication #45205731245. كلها SUCCESS؛ Pint تخطى فقط خطوات الملفات المتغيرة لعدم وجود PHP changes، بينما strict Pint ضمن Docker نجح.
 
 خلال جرد workflows اكتشفت ستة workflows lifecycle تنشئ وتحذف حسابات اصطناعية على Render production وworkflow route probe. أزيلت الملفات السبعة من main لأنها ليست بوابات CI آمنة. لا يتم حذف/تعديل قاعدة الإنتاج أو أسرارها. Phase07 وPhase08 تظلان IN_PROGRESS ولا ينتقل العمل إلى Phase09.
+
+
+### تحديث Phase08 — 24 نوفمبر 2026
+
+- آخر SHA موثق: `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`.
+- CI الأربعة ناجحة: Docker Validation #45288019564، Authentication #45288019611، Pint #45288020088، Security #45288019627.
+- Docker يثبت 109 Feature tests / 1,196 assertions على SQLite و15 Integration tests / 295 assertions على PostgreSQL.
+- Phase08 لم تُغلق؛ S3-compatible test/staging وpush وmail provider وoutbox/idempotency وretention ما زالت شروطًا مفتوحة.
+- orphan cleanup لا ينفذ حذفًا فعليًا افتراضيًا: يلزم `--apply` مع إعداد تفعيل صريح. لم تُنشأ موارد تشغيل أو تُستخدم credentials.

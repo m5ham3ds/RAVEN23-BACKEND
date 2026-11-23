@@ -1,6 +1,6 @@
 # المرحلة 08 — تخزين الملفات والإشعارات والمهام الخلفية
 
-**الحالة:** IN_PROGRESS — شريحتا queue/mail وعقد التخزين الخاص نُفذتا؛ رفع الملفات وmetadata والصلاحيات وpush والتكامل الخارجي ما زالت مفتوحة.  
+**الحالة:** IN_PROGRESS — 08A–08D منفذة ومختبرة (queue/mail baseline، private storage contract، media upload/metadata/owner access/temporary signed URLs، optional quota، وorphan cleanup آمن). ما زالت S3-compatible integration وpush وmail provider وoutbox/retention policy مفتوحة.  
 **الاعتماديات:** 02 و03 و05 COMPLETE؛ Phase04 PARTIAL في تكامل البريد/Google الخارجي. تسمح الاعتمادية الحالية بتطوير queue abstraction وإبقاء الإرسال معطلاً إلى حين staging/provider approval.
 
 ## الهدف
@@ -89,3 +89,44 @@
 - لا يوجد جدول metadata/ownership أو signed URL أو authorization للتنزيل.
 - لا يوجد profile-photo migration أو تغيير إلى photo_url؛ الحقل القديم متوافق كما هو.
 - لا يوجد S3 credentials أو bucket أو تكاليف أو موارد cloud تم إنشاؤها.
+
+
+## آخر نقطة تنفيذ موثقة — 24 نوفمبر 2026
+
+### 08C — رفع الملفات وmetadata والحصة الاختيارية
+
+- أضيف `UserMedia` وmigration `2026_11_23_000014_create_user_media_table` مع UUID metadata وowner FK وchecksum SHA-256.
+- `POST /api/v1/user/media` محمي بـSanctum. الصور المقبولة JPEG/PNG/WebP بحد 5 MiB وأبعاد أقصى 4096×4096؛ المرفقات PDF/TXT بحد 10 MiB. يتم التحقق من MIME من المحتوى، وتوليد object key على الخادم.
+- `GET /api/v1/user/media/{media}` و`DELETE /api/v1/user/media/{media}` يفرضان ملكية المستخدم. تنزيل الصورة inline والمرفق attachment، مع private/no-store وnosniff.
+- مسار temporary signed download هو `GET /api/v1/user/media/{owner}/{media}/temporary`; TTL الافتراضي 5 دقائق وبحد أقصى 15، ولا يحتاج Bearer لكنه يثبت توقيع الرابط ومالكه وانتهاء صلاحيته.
+- حذف الملف وجدولة cleanup بعد حذف الحساب يستخدمان `DeletePrivateObjectJob` المشفر، بعد commit، مع retry/backoff؛ ويظل حذف metadata owner-scoped.
+- export يتضمن metadata ورابط تنزيل محميًا ولا يكشف object keys. لم يُكسر عقد `photo_url` القديم ولم تُغيّر ملفات الفيديو إلى تخزين التطبيق.
+- الحصة الاختيارية عبر `RAVEN23_USER_MEDIA_QUOTA_BYTES`؛ القيمة الافتراضية 0 تعني غير محدود. يتم قفل سجل الحساب داخل transaction قبل احتساب usage والكتابة حتى لا تتجاوز الرفعات المتزامنة الحصة عند تفعيلها.
+
+### 08D — كشف الملفات اليتيمة وتنظيفها
+
+- أضيف `PrivateObjectStorage::listObjects()` كـiterable streaming فوق Flysystem listing لتجنب تحميل قائمة التخزين بالكامل إلى الذاكرة.
+- الأمر `php artisan media:cleanup-orphans` يعمل dry-run افتراضيًا ويعرض عدد العناصر المرشحة دون طباعة مسارات الملفات.
+- `--apply` وحده غير كافٍ: يجب أيضًا تفعيل `RAVEN23_PRIVATE_MEDIA_ORPHAN_CLEANUP_ENABLED=true` صراحةً. عندها فقط تُرسل jobs للحذف؛ لا ينفذ الأمر حذف bytes مباشرة.
+- لا يُفحص إلا المسار `users/{id}/media/{uuid}.{jpg|jpeg|png|webp|pdf|txt}`، وتُستبعد objects الأحدث من فترة السماح. الافتراضي 7 أيام والحد الأدنى يوم واحد.
+- الحد الافتراضي 500 orphan لكل تشغيل، ويمكن تقليله أو زيادته حتى 5000. الاستعلام عن metadata يتم على دفعات 250 object.
+- الجدولة اليومية 03:30 و`withoutOverlapping` تُسجل فقط إذا كان التفعيل الصريح صحيحًا؛ الإعداد الافتراضي في `.env.example` هو false.
+
+### إثبات CI على SHA `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`
+
+| Gate | Run | النتيجة |
+|---|---:|---|
+| Docker Validation | [45288019564](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45288019564) | SUCCESS — SQLite Feature 109 tests / 1,196 assertions؛ PostgreSQL Integration 15 tests / 295 assertions |
+| Authentication Regression | [45288019611](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45288019611) | SUCCESS |
+| Pint Format | [45288020088](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45288020088) | SUCCESS |
+| Security Scans | [45288019627](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45288019627) | SUCCESS — Gitleaks/Trivy وصورة الإنتاج؛ لا نتائج HIGH/CRITICAL قابلة للإصلاح |
+
+### ما بقي مفتوحًا في Phase08
+
+1. S3-compatible adapter/integration اختبار حقيقي على خدمة اختبار مؤقتة مثل MinIO أو staging؛ لم يُثبت اتصال S3 ولا تُوجد AWS credentials أو bucket.
+2. اختيار مزود mail حقيقي وعنوان action/deep link وإجراء staging verification/reset. `RAVEN23_AUTH_MAIL_ENABLED=false` ما زال يمنع الإرسال الخارجي.
+3. مطابقة Flutter push contract ثم إضافة adapter واختبارات FCM/OneSignal دون تفعيل أسرار أو provider غير معتمد.
+4. تصميم outbox/idempotency لحالة قبول SMTP ثم تعطل worker، واختبار تسليم at-least-once.
+5. اعتماد سياسة retention والسعة والتكلفة. الحصة ما زالت غير محدودة افتراضيًا، والتنظيف معطل افتراضيًا؛ لم تُحذف ملفات فعلية في CI.
+
+**المرحلة 08 تبقى IN_PROGRESS.** نجاح هذه الشرائح لا يعني جاهزية S3 أو البريد أو push للإنتاج.

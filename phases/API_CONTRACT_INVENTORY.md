@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
-**تاريخ الجرد:** 23 نوفمبر 2026
-**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306
+**تاريخ الجرد:** 24 نوفمبر 2026
+**Backend implementation SHA:** f4a64407b3c5ca5b8de72def9e7e13009eca57d0
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -15,7 +15,7 @@
 
 ## 2. المسارات الموجودة في Backend الحالي
 
-المصدر: routes/api.php على main implementation SHA fea7045178e603a7b54150e75475f5d27960d306.
+المصدر: routes/api.php على main implementation SHA f4a64407b3c5ca5b8de72def9e7e13009eca57d0.
 
 | الطريقة | المسار | المصادقة | وضع التنفيذ |
 |---|---|---|---|
@@ -29,6 +29,10 @@
 | POST | /api/v1/auth/reset-password | عام | المسار موجود لكن يعيد 503؛ غير مكتمل |
 | GET | /api/v1/users/check-username | عام | التحقق من توفر اسم المستخدم |
 | POST | /api/v1/auth/logout | Bearer | إلغاء token الحالي |
+| GET | /api/v1/user/media/{owner}/{media}/temporary | رابط signed مؤقت | قراءة ملف يملكه المسار؛ التوقيع ووقت الانتهاء إلزاميان، TTL الافتراضي 5 دقائق (حد أقصى 15) |
+| POST | /api/v1/user/media | Bearer | رفع avatar أو attachment؛ validation للمحتوى والنوع والحجم والحصة الاختيارية |
+| GET | /api/v1/user/media/{media} | Bearer | تنزيل/عرض ملف المالك فقط |
+| DELETE | /api/v1/user/media/{media} | Bearer | حذف metadata للمالك وجدولة object cleanup مشفر after-commit |
 | GET | /api/v1/user/profile | Bearer | قراءة ملف المستخدم |
 | PUT | /api/v1/user/profile | Bearer | تحديث الاسم وusername وprofile_id وphoto_url |
 | POST | /api/v1/user/change-email | Bearer | تغيير البريد مع تحقق كلمة المرور |
@@ -38,6 +42,15 @@
 | DELETE | /api/v1/sync/bookmarks/{type}/{id} | Bearer | حذف bookmark idempotent للمستخدم الحالي |
 | POST | /api/v1/sync/recently-watched | Bearer | مزامنة movie/episode progress مع revision/tombstones |
 | POST | /api/v1/sync/playlists | Bearer | مزامنة القوائم والعناصر بالعمليات والإصدارات والصفحات الثابتة |
+
+### User media
+
+- الصور: JPEG/PNG/WebP بحد أقصى 5 MiB وأبعاد لا تتجاوز 4096×4096.
+- المرفقات: PDF/TXT بحد أقصى 10 MiB.
+- object keys تُنشأ على الخادم، وتبقى الملفات على private disk؛ download responses تستخدم private/no-store وnosniff.
+- `temporary_download_url` رابط signed قصير العمر للاستخدام دون Bearer header؛ `download_url` يتطلب Bearer وملكية المستخدم.
+- `RAVEN23_USER_MEDIA_QUOTA_BYTES=0` يعني عدم وضع حصة؛ أي قيمة موجبة تفرض quota واحدة مجمعة للصور والمرفقات لكل حساب.
+- `media:cleanup-orphans` dry-run افتراضيًا؛ الحذف المجدول يبقى معطلاً إلا بعد تفعيل `RAVEN23_PRIVATE_MEDIA_ORPHAN_CLEANUP_ENABLED` صراحةً.
 
 ## 3. عقد المصادقة كما يستهلكه تطبيق Flutter
 
@@ -119,7 +132,7 @@
 الأمور التالية ليست نواقص في جرد source، وإنما اختبارات تشغيل لاحقة:
 - تشغيل العقد end-to-end على disposable staging بعد تنفيذ routes المطلوبة؛ لا توجد staging URL مثبتة حاليًا.
 - Google OAuth الحقيقي على Android، وإرسال verification/reset email؛ هذه تتبع المرحلة 04.
-- Push/OneSignal وObject Storage واختبار الملفات؛ هذه تتبع المرحلة 08 بعد اختيار مزود.
+- Push/OneSignal وS3-compatible integration ما زالا ضمن Phase08؛ private local upload/metadata/authorization/cleanup اجتازت اختبارات SQLite وPostgreSQL، لكن لم يتم اختبار bucket أو مزود سحابي حقيقي.
 - Billing provider/webhooks؛ تتبع المرحلة 09 بعد اعتماد قواعد المنتج والمزود.
 - مقارنة client build production الفعلي مع SHA الإصدار قبل النشر.
 - عدم الوصول إلى قاعدة Neon الإنتاجية أو قراءة بياناتها كان مقصودًا وفق قواعد حماية البيانات؛ جرد المخطط الموجود هنا source-level فقط.
@@ -199,3 +212,10 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - no-store وعدم إعادة إرسال POST تلقائيًا بصورة قد تكرر كتابة المستخدم.
 
 هذه متطلبات contract مستخرجة من مصدر العميل وليست capabilities موجودة في Backend الحالي.
+
+
+## 11. تحقق Backend المحدث — 24 نوفمبر 2026
+
+- SHA الحالي الموثق `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`.
+- CI الأربعة ناجحة؛ Docker: SQLite Feature 109 tests / 1,196 assertions، PostgreSQL Integration 15 tests / 295 assertions.
+- لا توجد PRs مفتوحة والفرع الدائم الوحيد هو `main`.
