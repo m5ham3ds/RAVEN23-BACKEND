@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use App\Http\Controllers\Api\PlaylistSyncController;
 use App\Http\Controllers\Api\PreferenceSyncController;
 use App\Http\Controllers\Api\WellnessSyncController;
+use App\Http\Controllers\Api\UserMediaController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -29,6 +30,12 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/user/devices', [AuthController::class, 'devices'])->middleware('throttle:auth-device-management');
         Route::delete('/user/devices', [AuthController::class, 'revokeAllDevices'])->middleware('throttle:auth-device-management');
         Route::delete('/user/devices/{tokenId}', [AuthController::class, 'revokeDevice'])->whereNumber('tokenId')->middleware('throttle:auth-device-management');
+        Route::get('/user/media/{media}', [UserMediaController::class, 'show'])
+            ->whereUuid('media')
+            ->name('api.v1.user.media.show')
+            ->middleware('throttle:60,1');
+        Route::post('/user/media', [UserMediaController::class, 'store'])->middleware('throttle:12,1');
+        Route::delete('/user/media/{media}', [UserMediaController::class, 'destroy'])->whereUuid('media')->middleware('throttle:12,1');
         Route::get('/user/profile', [AuthController::class, 'profile']);
         Route::put('/user/profile', [AuthController::class, 'updateProfile']);
         Route::get('/user/preferences', [AuthController::class, 'preferences']);

@@ -56,6 +56,11 @@ class User extends Authenticatable
         return $this->hasMany(UserDevice::class);
     }
 
+    public function media(): HasMany
+    {
+        return $this->hasMany(UserMedia::class);
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new PasswordResetNotification((string) $token));

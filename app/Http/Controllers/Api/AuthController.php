@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\DeletePrivateObjectJob;
 use App\Models\User;
 use App\Notifications\EmailVerificationNotification;
 use App\Support\GoogleIdTokenVerifier;
@@ -694,6 +695,21 @@ class AuthController extends Controller
         $this->ensureAccountData($user);
         $profile = $user->profile()->firstOrFail();
         $preferences = $user->preferences()->firstOrFail();
+        $media = $user->media()
+            ->orderBy('created_at')
+            ->orderBy('id')
+            ->get(['id', 'purpose', 'original_name', 'mime_type', 'size_bytes', 'checksum_sha256', 'created_at'])
+            ->map(static fn ($item): array => [
+                'id' => (string) $item->getKey(),
+                'purpose' => $item->purpose,
+                'original_name' => $item->original_name,
+                'mime_type' => $item->mime_type,
+                'size_bytes' => (int) $item->size_bytes,
+                'checksum_sha256' => $item->checksum_sha256,
+                'created_at' => optional($item->created_at)->toISOString(),
+                'download_url' => route('api.v1.user.media.show', ['media' => $item->getKey()]),
+            ])
+            ->values();
         $devices = $user->devices()
             ->orderBy('first_seen_at')
             ->get(['device_id', 'device_name', 'platform', 'first_seen_at', 'last_seen_at'])
@@ -827,6 +843,7 @@ class AuthController extends Controller
                     'updated_at' => optional($preferences->updated_at)->toISOString(),
                 ],
                 'devices' => $devices,
+                'media' => $media,
                 'bookmarks' => $bookmarks,
                 'recently_watched' => $recentlyWatched,
                 'playlists' => $playlists,
@@ -901,6 +918,12 @@ class AuthController extends Controller
         ]);
 
         DB::transaction(function () use ($user): void {
+            // Encrypted cleanup jobs retain only server-generated object keys.
+            // afterCommit prevents deletion before the account transaction commits.
+            foreach ($user->media()->orderBy('id')->pluck('object_key') as $objectKey) {
+                DeletePrivateObjectJob::dispatch((string) $objectKey);
+            }
+
             // Tokens are deliberately cleaned before removing the account row:
             // neither Sanctum nor temporary auth-token tables have a user FK.
             $user->tokens()->delete();

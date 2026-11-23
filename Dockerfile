@@ -24,6 +24,8 @@ RUN set -eu; \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
       app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
       app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
+      app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Http/Controllers/Api/UserMediaController.php \
+      database/migrations/2026_11_23_000014_create_user_media_table.php \
       config/cors.php config/security.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
       database/migrations/0001_01_01_000000_create_users_table.php \
@@ -38,7 +40,7 @@ RUN set -eu; \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
       tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php \
+      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
       tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/queue-worker.sh docker/php-production.ini; do \
         test -s "$file" || { echo "Required project file missing or empty: $file" >&2; exit 1; }; \
@@ -66,7 +68,7 @@ RUN set -eu; \
       php artisan test tests/Feature --display-warnings; \
     php artisan route:list --except-vendor > /tmp/raven23-routes.txt; \
     for route in 'auth/register' 'auth/login' 'auth/google' \
-      'auth/guest' 'user/profile' 'user/change-password' 'ready' 'api/v1/health'; do \
+      'auth/guest' 'user/profile' 'user/media' 'user/change-password' 'ready' 'api/v1/health'; do \
         grep -Fq "$route" /tmp/raven23-routes.txt || { echo "Missing route: $route" >&2; exit 1; }; \
     done
 
