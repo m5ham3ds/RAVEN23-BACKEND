@@ -173,3 +173,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Docker يثبت 109 Feature tests / 1,196 assertions على SQLite و15 Integration tests / 295 assertions على PostgreSQL.
 - Phase08 لم تُغلق؛ S3-compatible test/staging وpush وmail provider وoutbox/idempotency وretention ما زالت شروطًا مفتوحة.
 - orphan cleanup لا ينفذ حذفًا فعليًا افتراضيًا: يلزم `--apply` مع إعداد تفعيل صريح. لم تُنشأ موارد تشغيل أو تُستخدم credentials.
+
+
+## 14. تحديث حالة التنفيذ — 24 نوفمبر 2026 (Phase08D / queue worker)
+
+- رأس `main` المرصود: `d0aa6d4a0e467fe6d72619858b13ef30a466722e`.
+- أضيف تنفيذ اختباري مباشر لـdatabase queue worker لمعالجة `DeletePrivateObjectJob`، والتحقق من اختفاء object وعدم تسجيل failed job، ثم تكرار job بأمان بعد اختفاء object.
+- بوابات CI الأربع على SHA نفسه ناجحة: Docker #45289473199، Authentication #45289472959، Pint #45289473303، Security #45289472973.
+- Phase08 ما زالت IN_PROGRESS؛ S3-compatible integration وexternal mail/push وoutbox/idempotency وretention policy ما زالت مفتوحة.
+- لا ينتقل العمل إلى Phase09 قبل قرارات المنتج والدفع، ولا إلى AWS/deployment قبل Phase10 والموافقات المطلوبة.
