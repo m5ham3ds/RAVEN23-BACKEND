@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 23 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest CI-verified implementation SHA:** `ef3db49dea53c33622a716f8f46aa1dadccd5109`
+**Latest CI-verified implementation SHA:** `dd861fa9afd6f876ff300f65aae58a35b16f3112`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -16,8 +16,8 @@
 | 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
-| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | Wellness API اجتاز 85 Feature/925 assertions و10 PostgreSQL/240 assertions؛ بقيت multi-device convergence وoffline/account-switch وdaily-summary conflict. |
-| 08 — التخزين والإشعارات والمهام | NOT_STARTED | تعتمد على عقود storage/mail/push/queue وموافقة المزود. |
+| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | أضيفت اختبارات جهازين، جلسات out-of-order، tombstones، lost-response retry على SQLite/PostgreSQL، full resync، token revocation per-device وعبور منتصف الليل؛ بقيت three-device/concurrent cursor وdevice-ID change وقياس retry/latency. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | شريحة queue/mail الأولى منفذة: إشعارات verification/reset مشفرة وبعد commit، retry/backoff ثابت، worker منفصل وفحوص CI؛ storage/S3 وpush وmail sink/provider ما زالت مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
@@ -71,3 +71,15 @@
 - جميع بوابات CI الأربع ناجحة على `ef3db49dea53c33622a716f8f46aa1dadccd5109`; التفاصيل في `phases/reports/PHASE-07-PROGRESS-REPORT-2026-11-23.md`.
 - Phase07 ما زالت IN_PROGRESS: endpoint وowner isolation وrevisions وtombstones وstable pagination مختبرة، لكن multi-device convergence وoffline recovery وaccount switching وdaily-summary conflict لم تغلق بعد.
 - لم يتم الاتصال بقاعدة الإنتاج أو قراءة الأسرار أو تنفيذ migration إنتاجية أو deploy.
+
+
+## 7. تحديث التنفيذ — 23 نوفمبر 2026، Phase07/08
+
+- آخر SHA اجتاز بوابات CI الأربع: `dd861fa9afd6f876ff300f65aae58a35b16f3112`.
+- Docker: 92 Feature / 1,046 assertions على SQLite، و12 PostgreSQL Integration / 265 assertions؛ جميع خطوات runtime وleast-privilege وqueue-worker guards نجحت.
+- Authentication Regression: 20 SQLite / 151 assertions، و4 PostgreSQL / 99 assertions.
+- Pint وSecurity كلاهما SUCCESS؛ Security image scan لم يسجل findings في صورة الإنتاج ضمن تقرير Trivy.
+- Phase07 ما زالت IN_PROGRESS مع تغطية إضافية للـretry/full-resync/device-revoke/daily aggregation؛ تبقى اختبارات 3 أجهزة والتزامن المتداخل وdevice-ID rotation وقياس sync latency/retry.
+- Phase08 بدأت بشريحة mail queue فقط؛ لا يوجد مزود بريد فعلي ولا تخزين S3 أو push adapter مكتمل.
+- البريد ما زال معطلاً في الإعدادات النموذجية: `RAVEN23_AUTH_MAIL_ENABLED=false` و`MAIL_MAILER=log`.
+- لا production DB/secrets/deploy/DNS/AWS resources.

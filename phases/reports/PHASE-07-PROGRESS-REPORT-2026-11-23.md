@@ -61,3 +61,36 @@ The final PostgreSQL suite passed all 10 tests / 240 assertions. These were test
 - No GitHub Secrets, `.env` or APP_KEY values read.
 - No Render/Neon changes, deployment, DNS cutover or AWS resource creation.
 - PostgreSQL tests ran against the ephemeral CI database with synthetic accounts.
+
+
+## 7. تحديث متابعة Phase07 — main SHA `dd861fa9afd6f876ff300f65aae58a35b16f3112`
+
+أضيفت التغطية التالية فوق الأساس السابق:
+- `test_two_devices_converge_daily_totals_when_an_older_session_arrives_later` على SQLite.
+- `test_postgresql_daily_aggregates_converge_for_two_devices_out_of_order` على PostgreSQL.
+- `test_identical_upload_retry_after_lost_response_does_not_advance_revisions` على SQLite.
+- `test_postgresql_wellness_upload_replay_after_lost_response_is_idempotent` على PostgreSQL.
+- `test_revision_ahead_response_allows_a_clean_full_resync`.
+- `test_revoking_one_device_token_keeps_the_second_devices_sync_authorized`.
+- `test_daily_aggregates_split_cross_midnight_segments_and_completion_day`.
+- `test_stable_cursor_snapshot_excludes_changes_committed_after_the_first_page`.
+
+### Latest complete CI suite
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45204060525](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060525) | SUCCESS — 92 Feature / 1,046 assertions; 12 PostgreSQL / 265 assertions |
+| Authentication Regression | [45204060572](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060572) | SUCCESS — 20 SQLite / 151 assertions; 4 PostgreSQL / 99 assertions |
+| Pint Format | [45204060578](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060578) | SUCCESS |
+| Security Scans | [45204060417](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060417) | SUCCESS |
+
+هذه الأرقام هي إجمالي suite الحالي بعد إدخال اختبارات Phase08؛ لا تمثل عدد assertions الخاصة بـPhase07 وحدها.
+
+### Remaining
+
+- Three-device convergence with concurrent conflicting updates.
+- Concurrent PostgreSQL pagination plus explicit corrupt/lost-cursor full recovery.
+- Full client/backend device-ID rotation and account-switch orchestration.
+- Sync retry/backoff and latency/volume/conflict metrics.
+
+**Status remains IN_PROGRESS.** No production database, secrets, provider accounts or production deployment were accessed.

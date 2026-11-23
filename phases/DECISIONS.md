@@ -151,3 +151,13 @@
 - السبب: وضع الاختبارات بجوار الوظائف يقلل تشتت المصدر وازدواج workflows ومشكلات مزامنة الفروع.
 - التنفيذ: نُقلت ثمانية ملفات اختبار من TEST إلى main في SHA `800cff70b9663815e57b47db2be8340e8c19215e`؛ اختبارات Auth كانت موجودة في main مسبقًا.
 - الأثر: Docker/Pint/Security/Auth regression workflows تستهدف main. refs TEST وUSERS متقاعدة لكن حذفها عملية منفصلة يجب التحقق منها.
+
+## D-021 — Queue contract لإشعارات التحقق وإعادة تعيين كلمة المرور
+
+- **التاريخ:** 23 نوفمبر 2026
+- **الحالة:** معتمد ومطبق على main SHA `dd861fa9afd6f876ff300f65aae58a35b16f3112`.
+- **القرار:** ترسل إشعارات `EmailVerificationNotification` و`PasswordResetNotification` عبر Laravel database queue على queue `mail`، وتنفذ بعد commit. كلا الإشعارين `ShouldBeEncrypted` حتى لا يخزن payload queue روابط التحقق/الاسترداد كنص مكشوف.
+- **سياسة المحاولات:** 5 tries، maxExceptions=3، timeout=30s، failOnTimeout، backoff=[10,30,90,180]، وretry deadline ثابت بعد 20 دقيقة من إنشاء الإشعار.
+- **العامل:** تشغيل منفصل عبر `/usr/local/bin/raven23-queue-worker`، ولا يُدمج مع HTTP process. يرفض sync/null ويمنع timeout يساوي/يتجاوز database retry_after.
+- **التوافق:** يعاد استخدام جداول Laravel القياسية jobs/job_batches/failed_jobs؛ لا migration جديدة ولا تغيير API response.
+- **حدود القرار:** mail enabled يبقى false وMAIL_MAILER=log حتى اختيار مزود وموافقة وإعداد action URL وتجربة staging. لا يجيز إنشاء موارد مدفوعة أو قراءة/إضافة secrets. ولا يثبت SMTP delivery أو exactly-once semantics.

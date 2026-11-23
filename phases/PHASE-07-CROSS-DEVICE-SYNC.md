@@ -71,13 +71,35 @@ Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restric
 3. PostgreSQL كشف username اصطناعيًا يتجاوز حد 30 حرفًا؛ تم تقصير prefix إلى `well_`، ثم اجتاز الاختبار.
 4. صُحح typo اسم جدول في assertion عزل المالك وعدد upload receipts المتوقع.
 
-### ما تبقى لإغلاق Phase07
+### ما تبقى لإغلاق Phase07 بعد الاختبارات الأخيرة
 
-1. سيناريو تقارب جهازين/ثلاثة أجهزة مع concurrent/out-of-order updates.
-2. lost HTTP response ثم retry بلا تكرار أو فقد acknowledgements.
-3. logout/account switch/token revoke/device ID change دون تسرب بيانات المالك السابق.
-4. cursor loss/full resync وpagination ثابتة مع concurrent writes.
-5. daily-summary conflict: Flutter يستمد `updated_at_utc` لليوم من أكبر session timestamp؛ إضافة جلسة أقدم من جهاز آخر قد تغير totals دون زيادة stamp، وبالتالي قد تتخطى daily upload plan الملخص المعدل. يلزم daily monotonic revision/merge contract واختبار جهازين.
-6. توثيق retry/backoff وقياس latency/volume.
+اجتازت الاختبارات التالية على main، ضمن Docker/SQLite وPostgreSQL integration:
 
-**القرار:** Phase07 تبقى IN_PROGRESS. لا تعتبر اكتمال Wellness endpoint وحده إثباتًا لاكتمال تقارب الأجهزة والعمل دون اتصال.
+- جهازان يرسلان جلسات out-of-order ويصلان إلى daily totals متطابقة.
+- tombstone يفوز على النسخة القديمة، وإعادة الرفع المطابقة لا تكرر الكتابة.
+- فقد استجابة HTTP ثم replay مطابق لا يزيد server revision ولا ينشئ change/receipt إضافياً؛ الاختبار موجود في SQLite وPostgreSQL.
+- revision محلي متقدم يرفض pull incremental غير صالح، ثم يسمح full resync من revision صفر.
+- إبطال token جهاز واحد لا يمنع جهازاً ثانياً للحساب نفسه من المزامنة.
+- cursor snapshot ثابت يستبعد التغييرات التي تمت بعد الصفحة الأولى.
+- جلسة تعبر منتصف الليل توزع المدة على اليومين وتضع completed count في يوم النهاية.
+
+تبقى متطلبات الإغلاق التالية:
+
+1. اختبار تقارب ثلاثة أجهزة مع كتابات متزامنة ومتعارضة، لا مجرد وصول out-of-order في اختبار جهازين.
+2. pagination مع كتابة متزامنة تحت PostgreSQL وفقدان/تلف cursor فعلي ثم إعادة بناء كل بيانات العميل.
+3. device-ID rotation/account switch عبر دورة عميل وخادم كاملة، مع إثبات عدم إرسال الطلبات القديمة بعد تبديل الحساب.
+4. توثيق retry/backoff الخاص بمزامنة العميل وقياس sync latency/volume/conflict rate تحت حمل اصطناعي.
+
+**القرار:** Phase07 تبقى IN_PROGRESS؛ البنود التي اجتازت اختبارات backend لا تُعاد كتابتها كأنها ما زالت غير منفذة، لكن لا تُغلق المرحلة قبل قبول العناصر الأربعة المتبقية.
+
+
+## تحديث CI — SHA `dd861fa9afd6f876ff300f65aae58a35b16f3112`
+
+اجتازت مجموعة CI الكاملة بعد إضافة queue/mail slice في Phase08، وشغّلت جميع اختبارات Phase07 على نفس الشجرة:
+
+- Docker [45204060525](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060525): SUCCESS — 92 Feature / 1,046 assertions؛ 12 PostgreSQL Integration / 265 assertions.
+- Authentication Regression [45204060572](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060572): SUCCESS.
+- Pint [45204060578](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060578): SUCCESS.
+- Security [45204060417](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060417): SUCCESS.
+
+الـCI الكلي يشمل الاختبارات السابقة والجديدة؛ لا تُنسب جميع assertions إلى Wellness وحده.

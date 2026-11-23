@@ -158,3 +158,12 @@ Sanctum bearer sessions:
 - user_playlist_changes: owner FK cascade، revision/entity_type/entity_key/payload/deleted event stream، مع indexes لدعم snapshot paging.
 - لا توجد جداول imports أو shared/public playlists؛ هذه المسارات خارج نطاق Phase06.
 - لم يتم الاتصال بقاعدة Neon الإنتاجية أو تنفيذ migrations عليها. هذا الجرد لا يثبت وجود أو حجم بيانات الإنتاج.
+
+
+## 9. Queue persistence — 23 نوفمبر 2026
+
+- Laravel queue persistence يعيد استخدام migration القائمة `database/migrations/0001_01_01_000002_create_jobs_table.php` التي تنشئ `jobs`, `job_batches`, و`failed_jobs` عند غيابها.
+- لم تنشأ جداول جديدة في شريحة Phase08A.
+- إشعارات verification/reset تُرسل كـqueued jobs مشفّرة؛ لذلك تخزن queue payloads بصورة مشفرة باستخدام Laravel queue encryption.
+- يستخدم database queue في الإعداد النموذجي؛ worker مستقل عن HTTP web process، ويجب تشغيله فقط مع `APP_KEY` ثابت وPostgreSQL المشترك بعد إعداد deployment.
+- لم يتم تشغيل worker على قاعدة إنتاج أو قراءة صفوف jobs/failed_jobs الحية.

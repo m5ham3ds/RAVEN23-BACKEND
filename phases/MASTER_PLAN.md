@@ -31,8 +31,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
-| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ Wellness API اجتاز CI على main، وبقيت multi-device convergence وoffline/account-switch وdaily-summary conflict | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
+| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ اجتازت اختبارات device convergence (2 devices)، out-of-order، idempotent retry، full resync، token revoke per-device وdaily aggregates؛ بقي 3-device/concurrent cursor/device-ID rotation/latency | 05–06 |
+| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ mail notifications مشفرة ومجدولة عبر database queue، worker منفصل وCI guards؛ storage/push/mail provider ما زالت مفتوحة | 02–05 (Phase04 external mail/Google staging remains partial) |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
@@ -145,3 +145,15 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 ### سياسة الفروع الحالية
 
 الفرع الدائم الوحيد هو `main`. تم حذف refs TEST وUSERS والتحقق من ذلك بعد الحذف. لا تنشئ فروع اختبار أو phase دائمة جديدة.
+
+
+## 12. متابعة CI والتنفيذ — Phase07/08، 23 نوفمبر 2026
+
+- Current main SHA: `dd861fa9afd6f876ff300f65aae58a35b16f3112`.
+- Docker Validation [45204060525](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060525): SUCCESS — SQLite Feature 92/1,046؛ PostgreSQL Integration 12/265؛ queue worker configuration guards وruntime smoke وleast-privilege PASS.
+- Authentication Regression [45204060572](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060572): SUCCESS — SQLite 20/151؛ PostgreSQL 4/99.
+- Pint [45204060578](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060578): SUCCESS.
+- Security [45204060417](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060417): SUCCESS؛ Gitleaks/Trivy اجتازا، وصورة الإنتاج ظهرت Clean دون security findings في ملخص Trivy.
+- Phase07 تبقى IN_PROGRESS؛ شريحة Phase08 لا تغير هذا الحكم ولا تسمح ببدء Phase09 أو AWS.
+- Phase08: إشعارات البريد مشفرة في queue database، after-commit، fixed retry deadline، bounded attempts/backoff؛ لم يتم ضبط مزود بريد أو push أو object storage.
+- لم تُقرأ secrets ولم تُشغّل worker على بيئة إنتاج؛ لا migrations أو deploy أو موارد مدفوعة.

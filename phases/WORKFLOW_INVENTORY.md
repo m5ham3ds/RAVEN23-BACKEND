@@ -1,6 +1,6 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306  
+**Latest CI-verified main SHA:** dd861fa9afd6f876ff300f65aae58a35b16f3112  
 **تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
 **الحالة:** COMPLETE على مستوى source/workflow inventory؛ لم تُنفذ workflows التي تكتب على الإنتاج.
 
@@ -92,3 +92,23 @@
 - اختبارات Phase06 الثمانية في main؛ `tests/README.md` يوضح استخدام SQLite/PostgreSQL المؤقتة فقط.
 - workflows القديمة production-account retry/smoke تحتاج توحيدًا آمنًا على staging ضمن Phase10، ولا تُشغّلها على الإنتاج.
 - لا يوجد AWS deploy workflow أو OIDC role مثبت في المستودع.
+
+## 7. CI على main — Phase08A، 23 نوفمبر 2026
+
+### SHA المعتمد
+`dd861fa9afd6f876ff300f65aae58a35b16f3112`
+
+| Workflow | Run | النتيجة |
+|---|---:|---|
+| Backend Docker Validation | [45204060525](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060525) | SUCCESS — SQLite 92/1,046؛ PostgreSQL 12/265؛ worker safety guards وruntime smoke PASS |
+| Authentication Regression | [45204060572](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060572) | SUCCESS — SQLite 20/151؛ PostgreSQL 4/99 |
+| Pint Format Report | [45204060578](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060578) | SUCCESS |
+| Security Scans | [45204060417](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060417) | SUCCESS — Gitleaks/Trivy؛ production image summary Clean |
+
+### Failure history الخاصة بهذه الشريحة
+- Docker على SHA `81127e370725e66a76199c006f788154ded10fe2` فشل قبل PostgreSQL بسبب Pint: `class_attributes_separation` في EmailVerificationNotification و`ordered_interfaces` في PasswordResetNotification.
+- تم ضبط ترتيب الواجهات وفصل الأسطر في commits `f202166` و`14ecb5c`، واجتازت جميع البوابات الأربع على `14ecb5c`.
+- أُضيف لاحقاً fixed retry deadline واختبارات worker guard في `dd861fa`، ثم اجتازت جميع البوابات الأربع عليه.
+- لا تُخفى هذه النتيجة السابقة: الفشل كان تنسيقياً، وتم إصلاحه والتحقق من SHA أحدث.
+
+لا توجد PRs أو فروع اختبار جديدة؛ GitHub branch listing أعاد `main` فقط.
