@@ -48,7 +48,7 @@ class PostgresWellnessSyncTest extends TestCase
         $user = User::create([
             'name' => 'RAVEN23 PostgreSQL Wellness',
             'email' => 'raven-wellness-'.$suffix.'@example.test',
-            'username' => 'raven_wellness_'.$suffix,
+            'username' => 'well_'.$suffix,
             'password' => 'Raven-Wellness-Postgres-42!',
         ]);
         $plainText = $user->createToken('PostgreSQL wellness sync test')->plainTextToken;
