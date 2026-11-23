@@ -12,7 +12,7 @@
 7. إذا كان المطلوب قرارًا أو حسابًا أو secret من المستخدم، سجّل WAITING_EXTERNAL وأكمل فقط العمل المستقل عنه.
 
 ## 2. قواعد التغيير
-- التزم بـ`BRANCH_POLICY.md`: ثلاثة فروع دائمة فقط. تغييرات التطبيق والـmigrations والوثائق على `main` بcommits صغيرة؛ الاختبارات العامة فقط على `RAVEN23-BACKEND-TEST` واختبارات الحسابات فقط على `RAVEN23-BACKEND-USERS`. لا تنشئ feature/phase branches أو PRs إضافية.
+- التزم بـ`BRANCH_POLICY.md`: فرع دائم واحد فقط هو `main`. جميع تغييرات التطبيق والـmigrations والوثائق والاختبارات العامة واختبارات الحسابات على `main` بcommits صغيرة. لا تنشئ TEST/USERS/feature/phase branches أو PRs إضافية.
 - اجعل commits صغيرة ومحددة.
 - لا تخلط refactoring غير المرتبط مع تغيير وظيفة للمستخدم.
 - فضّل migrations تدريجية وAPI compatibility.

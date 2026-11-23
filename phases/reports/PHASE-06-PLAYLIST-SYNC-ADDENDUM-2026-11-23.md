@@ -48,3 +48,16 @@
 ## 6. قرار المرحلة
 
 Phase06 لا تغلق حتى تخصص GitHub Actions runners وتنجح Docker/SQLite/PostgreSQL/Pint/Security على SHA موحد. بعد نجاح هذه البوابات، تنتقل الخطة مباشرة إلى Phase07. لا يُبدأ Phase07 قبل ذلك.
+
+## 7. تحديث الإغلاق بعد توحيد CI على main — 23 نوفمبر 2026
+
+**النتيجة النهائية:** Phase06 COMPLETE على main SHA `608c94fe057816ee582af7d3e578e14a2bfb3a37`.
+
+- Docker run [45111592814](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45111592814) — SUCCESS: 81 Feature tests /824 assertions، و9 PostgreSQL Integration tests /219 assertions؛ runtime non-root/readiness وPostgreSQL least-privilege checks اجتازت.
+- Authentication run [45111592724](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45111592724) — SUCCESS: 20 SQLite tests /151 assertions و4 PostgreSQL tests /99 assertions.
+- Security run [45111592767](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45111592767) — SUCCESS.
+- Pint run [45111592764](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45111592764) — SUCCESS؛ changed-file Pint steps skipped لأن commit لم يتضمن ملفات PHP، وDocker strict Pint check اجتاز.
+- ملفات اختبارات Bookmarks/RecentlyWatched/Playlists/Preferences الثمانية في main تطابق محتوى TEST blob-for-blob. USERS لا يحمل اختبارات فريدة؛ ملف scope التوثيقي هو الفرق الوظيفي الوحيد.
+- فروع TEST وUSERS متقاعدة، لكن GitHub refs ما زالت موجودة حتى هذا التحديث. لا commits جديدة عليها.
+
+**القرار:** بوابة CI التي كانت تمنع الإغلاق أصبحت ناجحة على main؛ Phase07 هي المرحلة التالية. لم يتم تنفيذ Google OAuth حقيقي أو تسليم بريد staging أو نشر إنتاجي.

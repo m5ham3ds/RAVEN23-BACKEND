@@ -1,6 +1,6 @@
 # المرحلة 06 — المكتبة الشخصية وسجل المشاهدة وتقدم التشغيل
 
-**الحالة:** IN_PROGRESS — الميزات والاختبارات الموسعة موجودة في main؛ 81 Feature و9 PostgreSQL tests اجتازت على SHA دمج الاختبارات، والبوابات main-only الأخيرة قيد الإكمال.  
+**الحالة:** COMPLETE — جميع معايير التنفيذ والاختبارات الآلية اجتازت على main SHA `608c94fe057816ee582af7d3e578e14a2bfb3a37`.  
 **الاعتماديات:** Phase05 COMPLETE؛ عقد Flutter المصدر تمت مراجعته على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`
 
 ## الهدف
@@ -112,9 +112,12 @@
 - إصلاحات CI المثبتة: Laravel rule `prohibited_with` استبدلت بـ`prohibits`؛ تصحيح registration helper؛ تحديث tombstone test timestamps؛ طلب 401 يستخدم bearer token غير صالح.
 - على إعداد main-only SHA `5a1b0d5`: Pint #45110903710 وAuth #45110903688 نجحا؛ Docker #45110903634 وSecurity #45110903620 كانا قيد التنفيذ.
 
-### ما يلزم للإغلاق
-1. تأكيد نجاح Docker وSecurity على main-only SHA.
-2. إصلاح أي فشل فعلي وإعادة جميع البوابات على SHA موحد.
-3. إنشاء تقرير إغلاق بعد تحقق جميع معايير القبول. لا تبدأ Phase07 قبل ذلك.
+### قرار الإغلاق — 23 نوفمبر 2026
+- Docker #397: 81 Feature / 824 assertions و9 PostgreSQL Integration / 219 assertions — SUCCESS.
+- Authentication #19: 20 SQLite / 151 assertions و4 PostgreSQL / 99 assertions — SUCCESS.
+- Security #143 — SUCCESS؛ Gitleaks/Trivy/image scan اجتازت.
+- Pint #141 — SUCCESS؛ خطوات Pint الخاصة بالملفات المتغيرة تخطّت لعدم وجود PHP files في commit، بينما Docker strict Pint check نجح.
+- تحقق runtime: production image non-root، `/up` liveness، `/ready` readiness، PostgreSQL app role restricted، migration role منفصل، PHP asset blocked.
+- لم يُختبر Google OAuth الحقيقي على Android أو تسليم البريد الحقيقي؛ هذه فجوات Phase04/staging وليست سببًا لإبقاء Phase06 مفتوحة.
 
-**الحالة الدقيقة:** الميزات والاختبارات كلها موجودة على main؛ دمج الاختبارات اجتاز SQLite/PostgreSQL/Pint/Security على SHA `800cff70`. الاعتماد النهائي لPhase06 ينتظر اكتمال Docker/Security/Auth على إعداد main-only.
+**القرار:** Phase06 COMPLETE. Phase07 هي المرحلة التالية المسموح ببدئها. لا يعني ذلك أن Backend جاهز للنشر الإنتاجي.
