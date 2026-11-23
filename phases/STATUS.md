@@ -92,3 +92,17 @@
 - تمت مراجعة مواصفات Phase07 وPhase08 وتقاريرهما؛ المرحلتان تبقيان IN_PROGRESS ولا يوجد أساس لبدء Phase09.
 - حُذفت سبعة workflows تستهدف Render production مباشرة: ستة workflows لإنشاء/تسجيل دخول/حذف حسابات إنتاج اصطناعية، وworkflow route probe يرسل POST إلى production. السبب منع CI من كتابة بيانات على الإنتاج عند تعديل ملفات workflow نفسها.
 - لم يتم تشغيل هذه workflows أو إرسال طلب إلى Render، ولم تُقرأ GitHub Secrets ولم يتم لمس قاعدة الإنتاج أو تنفيذ deploy.
+
+
+## 9. تحديث Phase08 والتحقق من رأس main — 24 نوفمبر 2026
+
+- رأس `main` المرصود: `d0aa6d4a0e467fe6d72619858b13ef30a466722e`، والالتزام الأب `958a8d5f369d10b4b2a4830fde4fd3882b90e897`.
+- التحقق من وجود فرع `main` وحده؛ لا توجد فروع أخرى أو PRs مفتوحة.
+- CI على SHA نفسه: Docker #45289473199 SUCCESS؛ Authentication #45289472959 SUCCESS؛ Pint #45289473303 SUCCESS؛ Security #45289472973 SUCCESS.
+- Docker: نجحت خطوات SQLite feature وPostgreSQL integration، وPint الصارم، وqueue-worker safety guards، وفحوص runtime وPostgreSQL least-privilege.
+- اختبار `test_database_worker_executes_private_media_cleanup_and_job_is_idempotent` يشغّل database queue worker مرة واحدة، ويتحقق من حذف object وعدم وجود jobs أو failed_jobs متبقية، ثم يثبت أن تكرار DeletePrivateObjectJob بعد اختفاء object عملية no-op ناجحة.
+- فشل تاريخي على SHA `dfdc82f`: Security وPint وDocker. أُصلحت صياغة الاختبار في `f4a6440`، ونجحت البوابات الأربع على `f4a64407`، ثم أضيف اختبار worker التنفيذي واجتازت البوابات الأربع مجدداً على `d0aa6d4`.
+- Phase08 تبقى IN_PROGRESS. 08A–08D منفذة ومختبرة؛ S3-compatible integration، external mail provider/staging، push adapter/Flutter contract، outbox/provider idempotency، وretention/capacity/cost policy لم تثبت بعد.
+- لا يوجد دليل على تشغيل cleanup الفعلي على تخزين مستخدمين؛ الاختبار يستخدم filesystem fake. dry-run هو الافتراضي، والتنظيف المجدول معطل ما لم يفعّل صراحة.
+- لا AWS credentials أو موارد مدفوعة أو SMTP/FCM خارجي أو قاعدة إنتاج أو deploy تم استخدامها.
+- Phase07 تبقى IN_PROGRESS ببنودها الأربعة غير المغلقة؛ Phase09 تنتظر قرارات الخطط والاستحقاقات والدفع.
