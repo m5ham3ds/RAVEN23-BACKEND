@@ -95,3 +95,35 @@ Docker additionally passed strict Pint, queue worker guard tests, production APP
 - `--apply` requires explicit `RAVEN23_PRIVATE_MEDIA_ORPHAN_CLEANUP_ENABLED=true`; scheduler registration is also conditional and uses daily 03:30 plus `withoutOverlapping`.
 - Tests confirm referenced media is not queued and only stale unreferenced media is sent to `DeletePrivateObjectJob` under SQLite and PostgreSQL.
 - CI on SHA `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`: Docker 109/1,196 SQLite and 15/295 PostgreSQL; Auth, Pint and Security all SUCCESS.
+
+
+## 11. تحديث التحقق — 24 نوفمبر 2026، SHA d0aa6d4
+
+**رأس main:** `d0aa6d4a0e467fe6d72619858b13ef30a466722e`
+
+### CI على commit واحد
+
+| Gate | Run | النتيجة |
+|---|---:|---|
+| Docker Validation | [45289473199](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289473199) | SUCCESS — SQLite/PostgreSQL suites وruntime وstrict Pint وqueue worker guards PASS |
+| Authentication Regression | [45289472959](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289472959) | SUCCESS |
+| Pint Format | [45289473303](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289473303) | SUCCESS |
+| Security Scans | [45289472973](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289472973) | SUCCESS — Gitleaks/Trivy/production-image gates PASS |
+
+### اختبار worker الجديد
+
+أضيف اختبار `test_database_worker_executes_private_media_cleanup_and_job_is_idempotent` الذي ينفذ database queue worker فعلياً مرة واحدة بعد حذف UserMedia metadata، ويتحقق من إزالة object، وعدم بقاء jobs أو failed_jobs، ثم يستدعي DeletePrivateObjectJob مجدداً لنفس المفتاح ويثبت أنه no-op آمن.
+
+### تاريخ الفشل والإصلاح
+
+- commit `dfdc82f`: فشلت بوابات Docker وPint وSecurity؛ فحص Authentication لم يكن ضمن النتائج الظاهرة لهذا الالتزام.
+- commit `f4a6440`: تصحيح صياغة الاختبار؛ البوابات الأربع SUCCESS.
+- commit `958a8d5`: تحديث توثيق النتائج؛ البوابات الأربع SUCCESS.
+- commit `d0aa6d4`: اختبار worker التنفيذي؛ البوابات الأربع SUCCESS.
+
+### الحدود المتبقية
+
+- الاختبارات لا تزال تستخدم filesystem fake، ولا تمثل اتصالاً حقيقياً بـS3-compatible service أو حذف ملفات مستخدمين فعلية.
+- لا SMTP/provider أو FCM/OneSignal أو Flutter push contract مثبت.
+- outbox/idempotency الخارجي وسياسة الاحتفاظ/السعة/التكلفة لم تُعتمد.
+- Phase08 تبقى IN_PROGRESS؛ Phase07 كذلك IN_PROGRESS. لا staging secrets أو production DB أو deploy أو موارد سحابية تم استخدامها.
