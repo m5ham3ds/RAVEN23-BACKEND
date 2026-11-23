@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Contracts\Storage\PrivateObjectStorage;
 use Illuminate\Support\Facades\Storage;
-use InvalidArgumentException;
 use Tests\TestCase;
+use InvalidArgumentException;
 
 class PrivateObjectStorageTest extends TestCase
 {
