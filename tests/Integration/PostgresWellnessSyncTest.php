@@ -157,7 +157,8 @@ class PostgresWellnessSyncTest extends TestCase
             ->assertJsonCount(2, 'sessions')
             ->assertJsonCount(1, 'daily')
             ->assertJsonPath('daily.0.watched_ms', 120000)
-            ->assertJsonPath('daily.0.movie_ms', 120000)
+            ->assertJsonPath('daily.0.movie_ms', 0)
+            ->assertJsonPath('daily.0.episode_ms', 120000)
             ->assertJsonPath('daily.0.session_count', 2)
             ->assertJsonPath('daily.0.updated_at_utc', 2000);
 
