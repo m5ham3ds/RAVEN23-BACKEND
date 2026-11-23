@@ -44,5 +44,6 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/sync/recently-watched', [RecentlyWatchedSyncController::class, 'sync']);
         Route::post('/sync/playlists', [PlaylistSyncController::class, 'sync']);
         Route::post('/sync/preferences', [PreferenceSyncController::class, 'sync']);
+        Route::post('/sync/wellness', [WellnessSyncController::class, 'sync']);
     });
 });
