@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest documented code-verification SHA: dd861fa9afd6f876ff300f65aae58a35b16f3112 — 23 نوفمبر 2026  
+> latest verified main SHA: d0aa6d4a0e467fe6d72619858b13ef30a466722e — 24 نوفمبر 2026  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
