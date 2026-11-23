@@ -11,7 +11,9 @@ use JsonException;
 class WellnessSyncController extends Controller
 {
     private const MAX_BATCH = 450;
+
     private const MAX_PAGE = 450;
+
     private const MAX_FUTURE_SKEW_MS = 86_400_000;
 
     /**
