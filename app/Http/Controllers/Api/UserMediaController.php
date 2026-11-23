@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -69,22 +70,51 @@ class UserMediaController extends Controller
         $originalName = trim(mb_substr($originalName, 0, 180));
         $originalName = $originalName !== '' ? $originalName : 'upload';
 
-        $this->storage->put($objectKey, $contents);
+        $sizeBytes = strlen($contents);
+        $quotaBytes = max(0, (int) config('filesystems.user_media_quota_bytes', 0));
 
         try {
-            $media = DB::transaction(function () use ($request, $purpose, $objectKey, $originalName, $mimeType, $contents, $mediaId) {
-                return $request->user()->media()->create([
+            $media = DB::transaction(function () use (
+                $request,
+                $purpose,
+                $objectKey,
+                $originalName,
+                $mimeType,
+                $contents,
+                $mediaId,
+                $sizeBytes,
+                $quotaBytes,
+            ) {
+                // Lock the account row to serialize quota checks across concurrent uploads.
+                $owner = $request->user()->newQuery()
+                    ->lockForUpdate()
+                    ->findOrFail($request->user()->getKey());
+
+                if ($quotaBytes > 0) {
+                    $usedBytes = (int) $owner->media()->sum('size_bytes');
+
+                    if ($usedBytes + $sizeBytes > $quotaBytes) {
+                        throw ValidationException::withMessages([
+                            'file' => 'The account media storage quota would be exceeded.',
+                        ]);
+                    }
+                }
+
+                $this->storage->put($objectKey, $contents);
+
+                return $owner->media()->create([
                     'id' => $mediaId,
                     'purpose' => $purpose,
                     'object_key' => $objectKey,
                     'original_name' => $originalName,
                     'mime_type' => $mimeType,
-                    'size_bytes' => strlen($contents),
+                    'size_bytes' => $sizeBytes,
                     'checksum_sha256' => hash('sha256', $contents),
                 ]);
             });
         } catch (Throwable $exception) {
             try {
+                // A delete for a key that was never written is harmless.
                 $this->storage->delete($objectKey);
             } catch (Throwable $cleanupException) {
                 Log::warning('RAVEN23 private media upload compensation failed', [

@@ -125,6 +125,33 @@ class PostgresUserMediaTest extends TestCase
         $this->get($temporaryUrl)->assertForbidden();
     }
 
+    public function test_postgresql_account_media_quota_rejects_additional_files(): void
+    {
+        $owner = $this->createAccount('quota');
+        config(['filesystems.user_media_quota_bytes' => 4]);
+
+        $this->withToken($owner['token'])
+            ->post('/api/v1/user/media', [
+                'purpose' => 'attachment',
+                'file' => UploadedFile::fake()->createWithContent('quota.txt', 'four'),
+            ])
+            ->assertCreated();
+
+        Auth::forgetGuards();
+        $this->withToken($owner['token'])
+            ->post('/api/v1/user/media', [
+                'purpose' => 'attachment',
+                'file' => UploadedFile::fake()->createWithContent('overflow.txt', 'x'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
+
+        $this->assertDatabaseCount('user_media', 1);
+        $objectKey = (string) DB::table('user_media')->value('object_key');
+        Storage::disk('private_media')->assertExists($objectKey);
+        $this->assertCount(1, Storage::disk('private_media')->allFiles());
+    }
+
     protected function tearDown(): void
     {
         foreach (array_reverse($this->createdTokens) as $tokenId) {

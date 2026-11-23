@@ -18,6 +18,8 @@ return [
     // Dedicated private object store; it can later point to an S3-compatible disk.
     'private_disk' => env('RAVEN23_PRIVATE_STORAGE_DISK', 'private_media'),
     'private_media_url_ttl_minutes' => min(15, max(1, (int) env('RAVEN23_PRIVATE_MEDIA_URL_TTL_MINUTES', 5))),
+    // Zero keeps quotas disabled until an account policy is approved.
+    'user_media_quota_bytes' => max(0, (int) env('RAVEN23_USER_MEDIA_QUOTA_BYTES', 0)),
 
     /*
     |--------------------------------------------------------------------------

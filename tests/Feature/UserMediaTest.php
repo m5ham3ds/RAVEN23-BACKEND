@@ -141,6 +141,29 @@ class UserMediaTest extends TestCase
         $this->get($uploaded['temporary_url'])->assertForbidden();
     }
 
+    public function test_account_media_quota_rejects_overflow_before_writing_an_object(): void
+    {
+        $account = $this->registerAccount();
+        $quotaBytes = strlen($this->pngBytes());
+        config(['filesystems.user_media_quota_bytes' => $quotaBytes]);
+
+        $uploaded = $this->uploadAvatar($account['token']);
+        $objectKey = $uploaded['media']->object_key;
+
+        Auth::forgetGuards();
+        $this->withToken($account['token'])
+            ->post('/api/v1/user/media', [
+                'purpose' => 'attachment',
+                'file' => UploadedFile::fake()->createWithContent('overflow.txt', 'x'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('file');
+
+        $this->assertDatabaseCount('user_media', 1);
+        Storage::disk('private_media')->assertExists($objectKey);
+        $this->assertCount(1, Storage::disk('private_media')->allFiles());
+    }
+
     public function test_upload_rejects_unsupported_executable_files_and_oversized_attachments(): void
     {
         $account = $this->registerAccount();
