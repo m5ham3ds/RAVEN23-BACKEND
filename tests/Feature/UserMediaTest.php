@@ -269,6 +269,44 @@ class UserMediaTest extends TestCase
         Storage::disk('private_media')->assertMissing($objectKey);
     }
 
+    public function test_database_worker_executes_private_media_cleanup_and_job_is_idempotent(): void
+    {
+        $account = $this->registerAccount();
+        $uploaded = $this->uploadAvatar($account['token']);
+        $objectKey = $uploaded['media']->object_key;
+
+        Storage::disk('private_media')->assertExists($objectKey);
+        Auth::forgetGuards();
+        $this->withToken($account['token'])
+            ->deleteJson('/api/v1/user/media/'.$uploaded['id'])
+            ->assertAccepted()
+            ->assertJsonPath('deletion_queued', true);
+
+        $this->assertDatabaseMissing('user_media', ['id' => $uploaded['id']]);
+        $this->assertDatabaseCount('jobs', 1);
+        $payload = (string) DB::table('jobs')->value('payload');
+        $this->assertStringNotContainsString($objectKey, $payload);
+
+        $exitCode = Artisan::call('queue:work', [
+            'connection' => 'database',
+            '--once' => true,
+            '--queue' => 'default',
+            '--sleep' => 0,
+            '--tries' => 1,
+            '--timeout' => 10,
+            '--quiet' => true,
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 0);
+        Storage::disk('private_media')->assertMissing($objectKey);
+
+        // A repeated cleanup is a successful no-op for an already-missing object.
+        (new DeletePrivateObjectJob($objectKey))->handle(app(PrivateObjectStorage::class));
+        Storage::disk('private_media')->assertMissing($objectKey);
+    }
+
     public function test_account_deletion_queues_cleanup_and_cascades_media_metadata(): void
     {
         $account = $this->registerAccount();
