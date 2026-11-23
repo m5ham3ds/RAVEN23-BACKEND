@@ -231,7 +231,7 @@ class BookmarkSyncController extends Controller
         DB::transaction(function () use ($userId, $type, $mediaId): void {
             $connection = DB::connection();
             $state = $this->lockRevision($connection, $userId);
-            $this->appendLegacyRemoval($connection, $userId, $type, $mediaId, (int) $state->revision);
+            $this->appendLegacyRemoval($connection, $userId, $type, $mediaId, $state);
         });
 
         return response()->json(['success' => true]);
