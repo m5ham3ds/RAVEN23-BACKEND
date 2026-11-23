@@ -34,7 +34,7 @@ class PlaylistSyncController extends Controller
             'since_revision' => ['sometimes', 'integer', 'min:0'],
             'until_revision' => ['sometimes', 'integer', 'min:0'],
             'cursor' => ['required_with:until_revision', 'integer', 'min:0'],
-            'operations' => ['sometimes', 'array', 'max:'.self::MAX_OPERATIONS, 'prohibited_with:until_revision'],
+            'operations' => ['sometimes', 'array', 'max:'.self::MAX_OPERATIONS, 'prohibits:until_revision'],
             'operations.*' => ['required', 'array'],
             'operations.*.operation_id' => ['required', 'uuid'],
             'operations.*.action' => ['required', 'in:'.implode(',', self::ACTIONS)],
