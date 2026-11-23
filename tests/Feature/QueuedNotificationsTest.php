@@ -176,7 +176,7 @@ class QueuedNotificationsTest extends TestCase
 
     public function test_database_worker_records_terminal_failures_in_failed_jobs(): void
     {
-        Queue::pushOn('mail', new FailingQueueJob());
+        Queue::pushOn('mail', new FailingQueueJob);
 
         $this->assertDatabaseCount('jobs', 1);
 
