@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -35,19 +35,16 @@ jobs:
               git fetch origin "$GITHUB_BASE_REF"
               mapfile -t changed_php < <(git diff --name-only "origin/$GITHUB_BASE_REF...$GITHUB_SHA" -- '*.php')
               ;;
-            push)
-              if [[ "${GITHUB_EVENT_BEFORE}" =~ ^0+$ ]]; then
-                mapfile -t changed_php < <(git diff-tree --root -r --no-commit-id --name-only "$GITHUB_SHA" -- '*.php')
-              else
-                mapfile -t changed_php < <(git diff --name-only "$GITHUB_EVENT_BEFORE" "$GITHUB_SHA" -- '*.php')
-              fi
-              ;;
-            *)
+            push|workflow_dispatch)
               if git rev-parse "${GITHUB_SHA}^" >/dev/null 2>&1; then
                 mapfile -t changed_php < <(git diff --name-only "${GITHUB_SHA}^" "$GITHUB_SHA" -- '*.php')
               else
                 mapfile -t changed_php < <(git diff-tree --root -r --no-commit-id --name-only "$GITHUB_SHA" -- '*.php')
               fi
+              ;;
+            *)
+              echo "::error::Unsupported event for changed-file detection: ${GITHUB_EVENT_NAME}"
+              exit 1
               ;;
           esac
           if [ "${#changed_php[@]}" -eq 0 ]; then

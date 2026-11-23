@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [RAVEN23-BACKEND-USERS]
+    branches: [main]
 
 permissions:
   contents: read
