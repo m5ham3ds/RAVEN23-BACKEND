@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Contracts\Storage\PrivateObjectStorage;
 use App\Http\Controllers\Controller;
 use App\Jobs\DeletePrivateObjectJob;
+use App\Models\UserMedia;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -103,6 +105,40 @@ class UserMediaController extends Controller
     public function show(Request $request, string $mediaId): Response|JsonResponse
     {
         $media = $request->user()->media()->whereKey($mediaId)->firstOrFail();
+
+        return $this->mediaResponse($media);
+    }
+
+    public function showTemporary(string $ownerId, string $mediaId): Response|JsonResponse
+    {
+        $media = UserMedia::query()
+            ->where('user_id', $ownerId)
+            ->whereKey($mediaId)
+            ->firstOrFail();
+
+        return $this->mediaResponse($media);
+    }
+
+    public function destroy(Request $request, string $mediaId): JsonResponse
+    {
+        DB::transaction(function () use ($request, $mediaId): void {
+            $media = $request->user()->media()
+                ->whereKey($mediaId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            DeletePrivateObjectJob::dispatch($media->object_key);
+            $media->delete();
+        });
+
+        return response()->json([
+            'success' => true,
+            'deletion_queued' => true,
+        ], 202);
+    }
+
+    private function mediaResponse(UserMedia $media): Response|JsonResponse
+    {
         $contents = $this->storage->get($media->object_key);
 
         if ($contents === null) {
@@ -124,26 +160,10 @@ class UserMediaController extends Controller
             ->header('X-Content-Type-Options', 'nosniff');
     }
 
-    public function destroy(Request $request, string $mediaId): JsonResponse
+    private function serializeMedia(UserMedia $media): array
     {
-        DB::transaction(function () use ($request, $mediaId): void {
-            $media = $request->user()->media()
-                ->whereKey($mediaId)
-                ->lockForUpdate()
-                ->firstOrFail();
+        $expiresAt = now()->addMinutes((int) config('filesystems.private_media_url_ttl_minutes', 5));
 
-            DeletePrivateObjectJob::dispatch($media->object_key);
-            $media->delete();
-        });
-
-        return response()->json([
-            'success' => true,
-            'deletion_queued' => true,
-        ], 202);
-    }
-
-    private function serializeMedia($media): array
-    {
         return [
             'id' => (string) $media->getKey(),
             'purpose' => $media->purpose,
@@ -153,6 +173,12 @@ class UserMediaController extends Controller
             'checksum_sha256' => $media->checksum_sha256,
             'created_at' => optional($media->created_at)->toISOString(),
             'download_url' => route('api.v1.user.media.show', ['media' => $media->getKey()]),
+            'temporary_download_url' => URL::temporarySignedRoute(
+                'api.v1.user.media.temporary',
+                $expiresAt,
+                ['owner' => $media->user_id, 'media' => $media->getKey()],
+            ),
+            'download_url_expires_at' => $expiresAt->toISOString(),
         ];
     }
 }

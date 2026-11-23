@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Throwable;
@@ -701,16 +702,26 @@ class AuthController extends Controller
                 ->orderBy('created_at')
                 ->orderBy('id')
                 ->get(['id', 'purpose', 'original_name', 'mime_type', 'size_bytes', 'checksum_sha256', 'created_at'])
-                ->map(static fn ($item): array => [
-                    'id' => (string) $item->getKey(),
-                    'purpose' => $item->purpose,
-                    'original_name' => $item->original_name,
-                    'mime_type' => $item->mime_type,
-                    'size_bytes' => (int) $item->size_bytes,
-                    'checksum_sha256' => $item->checksum_sha256,
-                    'created_at' => optional($item->created_at)->toISOString(),
-                    'download_url' => route('api.v1.user.media.show', ['media' => $item->getKey()]),
-                ])
+                ->map(function ($item) use ($userId): array {
+                    $expiresAt = now()->addMinutes((int) config('filesystems.private_media_url_ttl_minutes', 5));
+
+                    return [
+                        'id' => (string) $item->getKey(),
+                        'purpose' => $item->purpose,
+                        'original_name' => $item->original_name,
+                        'mime_type' => $item->mime_type,
+                        'size_bytes' => (int) $item->size_bytes,
+                        'checksum_sha256' => $item->checksum_sha256,
+                        'created_at' => optional($item->created_at)->toISOString(),
+                        'download_url' => route('api.v1.user.media.show', ['media' => $item->getKey()]),
+                        'temporary_download_url' => URL::temporarySignedRoute(
+                            'api.v1.user.media.temporary',
+                            $expiresAt,
+                            ['owner' => $userId, 'media' => $item->getKey()],
+                        ),
+                        'download_url_expires_at' => $expiresAt->toISOString(),
+                    ];
+                })
                 ->values()
             : collect();
         $devices = $user->devices()

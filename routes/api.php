@@ -15,6 +15,13 @@ Route::prefix('v1')->group(function (): void {
     // /up remains an application-only liveness endpoint.
     Route::get('/health', [HealthController::class, 'apiHealth']);
 
+    // Short-lived signed capability URL for private media consumers without bearer-header support.
+    Route::get('/user/media/{owner}/{media}/temporary', [UserMediaController::class, 'showTemporary'])
+        ->whereNumber('owner')
+        ->whereUuid('media')
+        ->name('api.v1.user.media.temporary')
+        ->middleware(['signed', 'throttle:60,1']);
+
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:auth-register');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth-login');
     Route::post('/auth/google', [AuthController::class, 'google'])->middleware('throttle:auth-google');

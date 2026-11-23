@@ -84,6 +84,7 @@ class UserMediaTest extends TestCase
         return [
             'id' => (string) $response->json('media.id'),
             'url' => (string) $response->json('media.download_url'),
+            'temporary_url' => (string) $response->json('media.temporary_download_url'),
             'bytes' => $bytes,
             'media' => UserMedia::query()->findOrFail($response->json('media.id')),
         ];
@@ -115,6 +116,28 @@ class UserMediaTest extends TestCase
         $this->assertStringContainsString('private', $cacheControl);
         $this->assertStringContainsString('no-store', $cacheControl);
         $this->assertSame($uploaded['bytes'], $download->getContent());
+    }
+
+    public function test_temporary_download_urls_are_signed_owner_bound_and_expire(): void
+    {
+        $account = $this->registerAccount();
+        $uploaded = $this->uploadAvatar($account['token']);
+
+        $this->assertNotSame('', $uploaded['temporary_url']);
+        $this->get($uploaded['temporary_url'])
+            ->assertOk()
+            ->assertContent($uploaded['bytes'])
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+
+        $tamperedUrl = str_replace(
+            '/user/media/'.$account['id'].'/',
+            '/user/media/'.($account['id'] + 1).'/',
+            $uploaded['temporary_url'],
+        );
+        $this->get($tamperedUrl)->assertForbidden();
+
+        $this->travel(6)->minutes();
+        $this->get($uploaded['temporary_url'])->assertForbidden();
     }
 
     public function test_upload_rejects_unsupported_executable_files_and_oversized_attachments(): void
