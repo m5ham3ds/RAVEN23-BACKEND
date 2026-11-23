@@ -432,6 +432,133 @@ class WellnessSyncTest extends TestCase
         $this->assertSame(1, $days['2026-11-24']['completed_movies']);
     }
 
+    public function test_identical_upload_retry_after_lost_response_does_not_advance_revisions(): void
+    {
+        $account = $this->registerAccount();
+        $sessionId = '12121212-1212-4121-8121-121212121212';
+        $payload = [
+            'client_time_utc' => $this->clientTime(),
+            'sessions' => [$this->wellnessSession($sessionId, 5000)],
+            'daily' => [$this->daily('2026-11-23', 5000)],
+            'limit' => 450,
+        ];
+
+        $first = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', $payload)
+            ->assertOk()
+            ->assertJsonPath('server_revision', 2);
+
+        // Treat the first response as lost: the next sync cycle replays the
+        // exact persisted upload. Receipts must make that replay a no-op.
+        Auth::forgetGuards();
+        $retry = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', $payload)
+            ->assertOk()
+            ->assertJsonPath('server_revision', 2);
+
+        $this->assertSame(
+            $first->json('server_revision'),
+            $retry->json('server_revision'),
+        );
+        $this->assertDatabaseCount('user_wellness_sessions', 1);
+        $this->assertDatabaseCount('user_wellness_daily', 1);
+        $this->assertDatabaseCount('user_wellness_changes', 2);
+        $this->assertDatabaseCount('user_wellness_upload_receipts', 2);
+        $this->assertDatabaseHas('user_sync_revisions', [
+            'user_id' => $account['id'],
+            'domain' => 'wellness',
+            'revision' => 2,
+        ]);
+    }
+
+    public function test_revision_ahead_response_allows_a_clean_full_resync(): void
+    {
+        $account = $this->registerAccount();
+        $sessionId = '23232323-2323-4232-8232-232323232323';
+        $this->upload($account['token'], [
+            $this->wellnessSession($sessionId, 6000),
+        ], [
+            $this->daily('2026-11-23', 6000),
+        ]);
+
+        Auth::forgetGuards();
+        $ahead = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 999,
+                'limit' => 450,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('server_revision', 2)
+            ->assertJsonStructure(['errors' => ['since_revision']]);
+
+        Auth::forgetGuards();
+        $full = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('full', true)
+            ->assertJsonPath('server_revision', 2)
+            ->assertJsonCount(1, 'sessions')
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('sessions.0.id', $sessionId);
+
+        $this->assertSame(2, $ahead->json('server_revision'));
+        $this->assertTrue($full->json('full'));
+    }
+
+    public function test_revoking_one_device_token_keeps_the_second_devices_sync_authorized(): void
+    {
+        $account = $this->registerAccount();
+        $secondDevice = $this->createSecondDeviceToken($account['id']);
+        $sessionId = '34343434-3434-4434-8434-343434343434';
+        $this->upload($account['token'], [
+            $this->wellnessSession($sessionId, 7000),
+        ]);
+
+        Auth::forgetGuards();
+        $this->withToken($account['token'])
+            ->postJson('/api/v1/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Auth::forgetGuards();
+        $revoked = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertUnauthorized();
+
+        Auth::forgetGuards();
+        $active = $this->withToken($secondDevice)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(1, 'sessions')
+            ->assertJsonPath('sessions.0.id', $sessionId);
+
+        $this->assertSame(401, $revoked->status());
+        $this->assertSame($sessionId, $active->json('sessions.0.id'));
+    }
+
     public function test_sync_is_owner_scoped_and_rejects_clock_skew_and_invalid_cursors(): void
     {
         $owner = $this->registerAccount();
