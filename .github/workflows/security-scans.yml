@@ -2,7 +2,7 @@ name: RAVEN23 Security Scans
 
 on:
   pull_request:
-    branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
+    branches: [main]
   push:
     branches: [main, RAVEN23-BACKEND-TEST, RAVEN23-BACKEND-USERS]
   workflow_dispatch:

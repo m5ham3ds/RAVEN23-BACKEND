@@ -3,7 +3,7 @@
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
 > main implementation SHA: fea7045178e603a7b54150e75475f5d27960d306 — 23 نوفمبر 2026  
-> الفروع التشغيلية المسموحة: main / RAVEN23-BACKEND-TEST / RAVEN23-BACKEND-USERS
+> الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
 
@@ -28,9 +28,9 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا بتاريخ 23 نوفمبر 2026. Phase00–03 مكتملة وفق أدلتها التاريخية، Phase04 PARTIAL، Phase05 مكتملة على مستوى الكود وCI التاريخي، وPhase06 ما تزال IN_PROGRESS / CI BLOCKED. على main أصبحت المفضلة وسجل المشاهدة والقوائم الشخصية منفذة، مع تصدير حساب v3. لا تنتقل إلى Phase07 قبل نجاح الاختبارات والبوابات على SHA واحد.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 مكتملة وفق أدلتها، Phase04 PARTIAL للتكاملات الحقيقية، Phase05 COMPLETE، وPhase06 منفذة بالكود مع اختبارات Feature وPostgreSQL منقولة إلى `main`. تبقى Phase06 بانتظار نجاح بوابات CI على SHA `main` الموحد بعد نقل الاختبارات وتحديث Workflows.
 
-الفروع الدائمة الثلاثة فقط: `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`. تفاصيل التنفيذ وCI في `STATUS.md` وتقرير Phase06.
+`main` هو الفرع التشغيلي الوحيد. فروع TEST وUSERS قديمة ومتقاعدة، ولا ينبغي دفع commits جديدة إليها. لا تعتبر refs محذوفة حتى التحقق من صفحة Branches في GitHub.
 
 ## قواعد هذا المجلد
 

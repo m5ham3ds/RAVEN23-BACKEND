@@ -100,8 +100,9 @@
 الاختبار الفاشل لا يسجل PASS. الوظيفة الملغاة CANCELLED وليست نجاحًا أو فشلًا. Workflow على commit قديم لا يثبت commit جديدًا. نجاح Docker build لا يعني جاهزية الإنتاج. ونجاح staging لا يثبت عمل مزود خارجي ما لم يُختبر ذلك المسار.
 
 
-## 10. حوكمة الفروع الحالية — 23 نوفمبر 2026
+## 10. حوكمة الفرع الحالي — 23 نوفمبر 2026
 
-- الفروع الوحيدة: `main`, `RAVEN23-BACKEND-TEST`, `RAVEN23-BACKEND-USERS`.
-- تعليمات الفروع المخصصة/PR في التقارير القديمة تاريخية وقد superseded بها BRANCH_POLICY.
-- لا تنشئ phase/feature branch. عند تعطل CI سجّل SHA/run/job/log evidence، وأصلح على الفرع الدائم نفسه.
+- `main` هو الفرع الدائم الوحيد المعتمد.
+- الاختبارات العامة واختبارات المصادقة وFeature وIntegration تعيش داخل `tests/` على `main` بجانب التطبيق الذي تحميه.
+- فروع TEST وUSERS القديمة متقاعدة؛ لا تدفع إليها commits جديدة. لا تسجل حذف refs حتى يتم التحقق الفعلي من قائمة GitHub branches.
+- لا تنشئ phase/feature/test branch. عند تعطل CI سجّل SHA/run/job/log evidence، وأصلح على `main`.

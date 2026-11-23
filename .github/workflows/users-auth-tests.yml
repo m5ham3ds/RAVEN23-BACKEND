@@ -1,8 +1,8 @@
-name: RAVEN23 USERS Authentication Tests
+name: RAVEN23 Authentication Regression Tests
 
 on:
   push:
-    branches: [RAVEN23-BACKEND-USERS]
+    branches: [main]
   pull_request:
     branches: [RAVEN23-BACKEND-USERS]
 
@@ -110,11 +110,3 @@ jobs:
           php artisan test tests/Integration/PostgresAuthLifecycleTest.php \
             --filter='test_postgresql_(verification_reset_and_device_routes_use_restricted_application_role|email_registration_and_login_create_real_sanctum_sessions|guest_creation_and_session_are_successful|device_token_replacement_and_logout_are_persistent)'
 
-      - name: Ensure USERS branch contains tests only
-        run: |
-          git diff --name-only origin/main...HEAD > /tmp/users-branch-files.txt
-          if grep -E '^(app/|database/migrations/|routes/|config/|Dockerfile$)' /tmp/users-branch-files.txt; then
-            echo "::error::RAVEN23-BACKEND-USERS may contain test and workflow changes only."
-            exit 1
-          fi
-          echo "PASS: USERS branch contains no application runtime or migration changes."
