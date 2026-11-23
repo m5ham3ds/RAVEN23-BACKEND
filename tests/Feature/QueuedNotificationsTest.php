@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\PasswordResetNotification;
+use Illuminate\Mail\Events\MessageSent;
 use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
+use Tests\Fixtures\FailingQueueJob;
 use Tests\TestCase;
 
 class QueuedNotificationsTest extends TestCase
@@ -94,5 +97,108 @@ class QueuedNotificationsTest extends TestCase
         $this->assertInstanceOf(PasswordResetNotification::class, $job->notification);
         $this->assertSame('password-reset-token-never-store-in-plaintext', $job->notification->token);
         $this->assertMailJobIsEncryptedAndBounded($job);
+    }
+
+    public function test_verification_and_password_reset_templates_render_runtime_action_urls(): void
+    {
+        config([
+            'services.raven23_auth.action_url' => 'https://links.raven23.test/auth/action',
+        ]);
+
+        $user = $this->createUser();
+
+        $verification = (new EmailVerificationNotification(
+            (int) $user->getKey(),
+            'verification-render-token',
+            60,
+        ))->toMail($user);
+        $verificationHtml = (string) $verification->render();
+
+        $this->assertSame('Verify your RAVEN23 email address', $verification->subject);
+        $this->assertStringContainsString('Verify email address', $verificationHtml);
+        $this->assertStringContainsString('action=verify-email', $verificationHtml);
+        $this->assertStringContainsString('verification-render-token', $verificationHtml);
+        $this->assertStringContainsString('60 minutes', $verificationHtml);
+
+        $passwordReset = (new PasswordResetNotification('password-reset-render-token'))->toMail($user);
+        $passwordResetHtml = (string) $passwordReset->render();
+
+        $this->assertSame('Reset your RAVEN23 password', $passwordReset->subject);
+        $this->assertStringContainsString('Reset password', $passwordResetHtml);
+        $this->assertStringContainsString('action=reset-password', $passwordResetHtml);
+        $this->assertStringContainsString(rawurlencode($user->email), $passwordResetHtml);
+        $this->assertStringContainsString('password-reset-render-token', $passwordResetHtml);
+    }
+
+    public function test_database_worker_sends_queued_notification_through_local_array_mailer(): void
+    {
+        config([
+            'mail.default' => 'array',
+            'services.raven23_auth.action_url' => 'https://links.raven23.test/auth/action',
+        ]);
+
+        $sentMessages = [];
+        Event::listen(MessageSent::class, function (MessageSent $event) use (&$sentMessages): void {
+            $sentMessages[] = $event;
+        });
+
+        $user = $this->createUser();
+        $token = 'worker-password-reset-token';
+
+        $user->sendPasswordResetNotification($token);
+
+        $this->assertDatabaseCount('jobs', 1);
+        $payload = (string) DB::table('jobs')->value('payload');
+        $this->assertStringNotContainsString($token, $payload);
+
+        $exitCode = Artisan::call('queue:work', [
+            'connection' => 'database',
+            '--once' => true,
+            '--queue' => 'mail',
+            '--sleep' => 0,
+            '--tries' => 1,
+            '--timeout' => 10,
+            '--quiet' => true,
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 0);
+        $this->assertCount(1, $sentMessages);
+
+        $email = $sentMessages[0]->sent->getSymfonySentMessage()->getOriginalMessage();
+
+        $this->assertSame('Reset your RAVEN23 password', $email->getSubject());
+        $this->assertSame($user->email, $email->getTo()[0]->getAddress());
+        $this->assertStringContainsString('action=reset-password', (string) $email->getHtmlBody());
+        $this->assertStringContainsString($token, (string) $email->getHtmlBody());
+    }
+
+    public function test_database_worker_records_terminal_failures_in_failed_jobs(): void
+    {
+        Queue::pushOn('mail', new FailingQueueJob());
+
+        $this->assertDatabaseCount('jobs', 1);
+
+        try {
+            Artisan::call('queue:work', [
+                'connection' => 'database',
+                '--once' => true,
+                '--queue' => 'mail',
+                '--sleep' => 0,
+                '--tries' => 1,
+                '--timeout' => 10,
+                '--quiet' => true,
+            ]);
+        } catch (\Throwable) {
+            // The worker may rethrow the synthetic job exception after recording it.
+        }
+
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 1);
+
+        $failedJob = DB::table('failed_jobs')->first();
+        $this->assertStringContainsString('synthetic queue worker failure', $failedJob->exception);
+        $this->assertStringContainsString(FailingQueueJob::class, $failedJob->payload);
     }
 }
