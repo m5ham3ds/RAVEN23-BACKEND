@@ -123,11 +123,14 @@ class BookmarkSyncController extends Controller
                 ));
 
                 foreach (array_chunk($ids, 500) as $idBatch) {
-                    DB::table('user_bookmarks')
-                        ->where('user_id', $userId)
-                        ->where('media_type', $type)
-                        ->whereIn('media_id', $idBatch)
-                        ->delete();
+                    foreach ($idBatch as $mediaId) {
+                        $this->appendLegacyRemoval(
+                            DB::connection(),
+                            $userId,
+                            $type,
+                            $mediaId,
+                        );
+                    }
                 }
             }
         });
@@ -505,6 +508,49 @@ class BookmarkSyncController extends Controller
             ->where('domain', 'bookmarks')
             ->lockForUpdate()
             ->first();
+    }
+
+    /**
+     * Preserve deletes made through the legacy endpoint in the versioned
+     * change stream. Repeated deletes do not generate another revision.
+     */
+    private function appendLegacyRemoval(
+        $connection,
+        int $userId,
+        string $type,
+        int $mediaId,
+        ?object $state = null,
+    ): void {
+        $state ??= $this->lockRevision($connection, $userId);
+        $latest = $connection->table('user_bookmark_changes')
+            ->where('user_id', $userId)
+            ->where('media_type', $type)
+            ->where('media_id', $mediaId)
+            ->orderByDesc('revision')
+            ->first();
+
+        if ($latest === null || $latest->action !== 'bookmark.remove') {
+            $revision = (int) $state->revision + 1;
+            $connection->table('user_bookmark_changes')->insert([
+                'user_id' => $userId,
+                'revision' => $revision,
+                'media_type' => $type,
+                'media_id' => $mediaId,
+                'action' => 'bookmark.remove',
+                'payload' => '{}',
+                'deleted' => true,
+                'created_at' => now(),
+            ]);
+            $connection->table('user_sync_revisions')
+                ->where('id', $state->id)
+                ->update(['revision' => $revision, 'updated_at' => now()]);
+        }
+
+        $connection->table('user_bookmarks')
+            ->where('user_id', $userId)
+            ->where('media_type', $type)
+            ->where('media_id', $mediaId)
+            ->delete();
     }
 
     private function normalizeVersionedOperation(array $operation): array
