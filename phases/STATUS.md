@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 23 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest CI-verified implementation SHA:** `dd861fa9afd6f876ff300f65aae58a35b16f3112`
+**Latest fully CI-verified implementation SHA:** `dd861fa9afd6f876ff300f65aae58a35b16f3112`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -83,3 +83,12 @@
 - Phase08 بدأت بشريحة mail queue فقط؛ لا يوجد مزود بريد فعلي ولا تخزين S3 أو push adapter مكتمل.
 - البريد ما زال معطلاً في الإعدادات النموذجية: `RAVEN23_AUTH_MAIL_ENABLED=false` و`MAIL_MAILER=log`.
 - لا production DB/secrets/deploy/DNS/AWS resources.
+
+
+## 8. تحقق لاحق وإصلاح حوكمة CI — 23 نوفمبر 2026
+
+- رأس main الذي خضعت عليه هذه المراجعة: `729163a909679cf50cd0cd1275dcd9ab8f7061f6`؛ آخر SHA برمجي اختُبر بالكامل قبل تعديلات حوكمة CI: `dd861fa9afd6f876ff300f65aae58a35b16f3112`.
+- تم فحص تشغيلات CI الأربعة على 729163a: Docker #45205731260 SUCCESS، Security #45205731207 SUCCESS، Authentication #45205731245 SUCCESS، Pint #45205731265 SUCCESS. Pint تخطى فقط خطوات فحص/تنسيق الملفات المتغيرة لعدم وجود PHP changes؛ Docker strict Pint على Wellness controller نجح.
+- تمت مراجعة مواصفات Phase07 وPhase08 وتقاريرهما؛ المرحلتان تبقيان IN_PROGRESS ولا يوجد أساس لبدء Phase09.
+- حُذفت سبعة workflows تستهدف Render production مباشرة: ستة workflows لإنشاء/تسجيل دخول/حذف حسابات إنتاج اصطناعية، وworkflow route probe يرسل POST إلى production. السبب منع CI من كتابة بيانات على الإنتاج عند تعديل ملفات workflow نفسها.
+- لم يتم تشغيل هذه workflows أو إرسال طلب إلى Render، ولم تُقرأ GitHub Secrets ولم يتم لمس قاعدة الإنتاج أو تنفيذ deploy.
