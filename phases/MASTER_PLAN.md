@@ -157,3 +157,10 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Phase07 تبقى IN_PROGRESS؛ شريحة Phase08 لا تغير هذا الحكم ولا تسمح ببدء Phase09 أو AWS.
 - Phase08: إشعارات البريد مشفرة في queue database، after-commit، fixed retry deadline، bounded attempts/backoff؛ لم يتم ضبط مزود بريد أو push أو object storage.
 - لم تُقرأ secrets ولم تُشغّل worker على بيئة إنتاج؛ لا migrations أو deploy أو موارد مدفوعة.
+
+
+## 13. متابعة CI وحماية الإنتاج — 23 نوفمبر 2026
+
+تم التحقق من اكتمال تشغيلات CI الأربعة التي كانت قيد التنفيذ على الرأس التوثيقي: Docker #45205731260 وSecurity #45205731207 وPint #45205731265 وAuthentication #45205731245. كلها SUCCESS؛ Pint تخطى فقط خطوات الملفات المتغيرة لعدم وجود PHP changes، بينما strict Pint ضمن Docker نجح.
+
+خلال جرد workflows اكتشفت ستة workflows lifecycle تنشئ وتحذف حسابات اصطناعية على Render production وworkflow route probe. أزيلت الملفات السبعة من main لأنها ليست بوابات CI آمنة. لا يتم حذف/تعديل قاعدة الإنتاج أو أسرارها. Phase07 وPhase08 تظلان IN_PROGRESS ولا ينتقل العمل إلى Phase09.
