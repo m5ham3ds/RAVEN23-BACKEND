@@ -391,6 +391,47 @@ class WellnessSyncTest extends TestCase
         $this->assertGreaterThan(0, (int) $merged->json('server_revision'));
     }
 
+    public function test_daily_aggregates_split_cross_midnight_segments_and_completion_day(): void
+    {
+        $account = $this->registerAccount();
+        $id = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+        $session = $this->wellnessSession($id, 3000);
+        $session['timezoneOffsetMinutes'] = 0;
+        $session['startedAtUtc'] = 1795478370000;
+        $session['endedAtUtc'] = 1795478430000;
+        $session['watchedMs'] = 60000;
+        $session['durationMs'] = 60000;
+        $session['progressEndMs'] = 60000;
+        $session['completed'] = true;
+        $session['segments'] = [[
+            'startedAtUtc' => 1795478370000,
+            'endedAtUtc' => 1795478430000,
+        ]];
+
+        $this->upload($account['token'], [$session]);
+
+        Auth::forgetGuards();
+        $pull = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonCount(1, 'sessions')
+            ->assertJsonCount(2, 'daily');
+
+        $days = collect($pull->json('daily'))->keyBy('local_day');
+        $this->assertSame(30000, $days['2026-11-23']['watched_ms']);
+        $this->assertSame(30000, $days['2026-11-24']['watched_ms']);
+        $this->assertSame(1, $days['2026-11-23']['session_count']);
+        $this->assertSame(0, $days['2026-11-24']['session_count']);
+        $this->assertSame(0, $days['2026-11-23']['completed_movies']);
+        $this->assertSame(1, $days['2026-11-24']['completed_movies']);
+    }
+
     public function test_sync_is_owner_scoped_and_rejects_clock_skew_and_invalid_cursors(): void
     {
         $owner = $this->registerAccount();

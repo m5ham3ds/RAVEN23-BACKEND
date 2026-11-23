@@ -103,6 +103,16 @@ jobs:
             raven23-backend:postgres-test \
             /opt/raven/vendor/bin/pint --test "${changed_php[@]}"
 
+      - name: Verify the Wellness controller Pint baseline
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -w /workspace \
+            --entrypoint php \
+            raven23-backend:postgres-test \
+            /opt/raven/vendor/bin/pint --test app/Http/Controllers/Api/WellnessSyncController.php
+
       - name: Verify production refuses APP_DEBUG=true
         run: |
           set -eu

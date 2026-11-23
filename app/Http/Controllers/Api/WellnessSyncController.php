@@ -505,6 +505,7 @@ class WellnessSyncController extends Controller
 
                 if (! isset($aggregates[$day])) {
                     $aggregates[$day] = $contribution;
+
                     continue;
                 }
 
