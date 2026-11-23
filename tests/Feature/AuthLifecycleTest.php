@@ -93,6 +93,7 @@ class AuthLifecycleTest extends TestCase
             $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
             $table->string('locale', 16)->nullable();
             $table->string('timezone', 64)->default('UTC');
+            $table->unsignedBigInteger('revision')->default(0);
             $table->timestamps();
         });
 
