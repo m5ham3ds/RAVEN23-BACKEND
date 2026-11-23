@@ -24,7 +24,7 @@ RUN set -eu; \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
       app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
       app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
-      app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Http/Controllers/Api/UserMediaController.php \
+      app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Http/Controllers/Api/UserMediaController.php app/Console/Commands/CleanupOrphanedPrivateMedia.php \
       database/migrations/2026_11_23_000014_create_user_media_table.php \
       config/cors.php config/security.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \

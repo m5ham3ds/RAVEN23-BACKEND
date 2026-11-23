@@ -18,4 +18,9 @@ interface PrivateObjectStorage
     public function exists(string $key): bool;
 
     public function delete(string $key): void;
+
+    /**
+     * @return iterable<array{key: string, last_modified: int}>
+     */
+    public function listObjects(string $prefix): iterable;
 }

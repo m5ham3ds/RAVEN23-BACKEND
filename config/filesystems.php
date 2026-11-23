@@ -20,6 +20,10 @@ return [
     'private_media_url_ttl_minutes' => min(15, max(1, (int) env('RAVEN23_PRIVATE_MEDIA_URL_TTL_MINUTES', 5))),
     // Zero keeps quotas disabled until an account policy is approved.
     'user_media_quota_bytes' => max(0, (int) env('RAVEN23_USER_MEDIA_QUOTA_BYTES', 0)),
+    // Orphan cleanup remains disabled unless explicitly enabled by the operator.
+    'private_media_orphan_cleanup_enabled' => filter_var(env('RAVEN23_PRIVATE_MEDIA_ORPHAN_CLEANUP_ENABLED', false), FILTER_VALIDATE_BOOL),
+    'private_media_orphan_grace_seconds' => max(86400, (int) env('RAVEN23_PRIVATE_MEDIA_ORPHAN_GRACE_SECONDS', 604800)),
+    'private_media_orphan_batch_limit' => min(5000, max(1, (int) env('RAVEN23_PRIVATE_MEDIA_ORPHAN_BATCH_LIMIT', 500))),
 
     /*
     |--------------------------------------------------------------------------

@@ -35,6 +35,18 @@ class PrivateObjectStorageTest extends TestCase
         $this->assertFalse($storage->exists('users/42/avatar.webp'));
     }
 
+    public function test_private_storage_streams_object_keys_with_last_modified_timestamps(): void
+    {
+        Storage::disk('private_media')->put('users/42/media/avatar.webp', 'private-avatar');
+
+        $objects = iterator_to_array(app(PrivateObjectStorage::class)->listObjects('users'));
+
+        $this->assertCount(1, $objects);
+        $this->assertSame('users/42/media/avatar.webp', $objects[0]['key']);
+        $this->assertIsInt($objects[0]['last_modified']);
+        $this->assertGreaterThan(0, $objects[0]['last_modified']);
+    }
+
     public function test_private_storage_rejects_empty_traversal_and_nonportable_object_keys(): void
     {
         $storage = app(PrivateObjectStorage::class);

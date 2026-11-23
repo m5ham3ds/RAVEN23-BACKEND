@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Contracts\Storage\PrivateObjectStorage;
 use App\Jobs\DeletePrivateObjectJob;
+use App\Models\User;
 use App\Models\UserMedia;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Http\UploadedFile;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class UserMediaTest extends TestCase
@@ -282,6 +284,58 @@ class UserMediaTest extends TestCase
         $this->assertDatabaseMissing('users', ['id' => $account['id']]);
         $this->assertDatabaseMissing('user_media', ['id' => $uploaded['id']]);
         Queue::assertPushed(DeletePrivateObjectJob::class, fn (DeletePrivateObjectJob $job): bool => $job->objectKey === $objectKey);
+    }
+
+    public function test_orphan_cleanup_is_dry_run_by_default_and_apply_requires_operator_opt_in(): void
+    {
+        $account = $this->registerAccount();
+        $owner = User::query()->findOrFail($account['id']);
+        $trackedKey = 'users/'.$account['id'].'/media/'.Str::uuid().'.txt';
+        $orphanKey = 'users/'.$account['id'].'/media/'.Str::uuid().'.txt';
+
+        $owner->media()->create([
+            'id' => (string) Str::uuid(),
+            'purpose' => 'attachment',
+            'object_key' => $trackedKey,
+            'original_name' => 'tracked.txt',
+            'mime_type' => 'text/plain',
+            'size_bytes' => 7,
+            'checksum_sha256' => hash('sha256', 'tracked'),
+        ]);
+
+        $oldTimestamp = now()->subDays(2)->timestamp;
+        $storage = \\Mockery::mock(PrivateObjectStorage::class);
+        $storage->shouldReceive('listObjects')
+            ->with('users')
+            ->twice()
+            ->andReturn([
+                ['key' => $trackedKey, 'last_modified' => $oldTimestamp],
+                ['key' => $orphanKey, 'last_modified' => $oldTimestamp],
+            ]);
+        $this->app->instance(PrivateObjectStorage::class, $storage);
+        config([
+            'filesystems.private_media_orphan_cleanup_enabled' => false,
+            'filesystems.private_media_orphan_grace_seconds' => 86400,
+            'filesystems.private_media_orphan_batch_limit' => 100,
+        ]);
+
+        Queue::fake();
+        $this->artisan('media:cleanup-orphans')->assertExitCode(0);
+        Queue::assertNothingPushed();
+
+        $this->artisan('media:cleanup-orphans', ['--apply' => true])->assertExitCode(1);
+        Queue::assertNothingPushed();
+
+        config(['filesystems.private_media_orphan_cleanup_enabled' => true]);
+        $this->artisan('media:cleanup-orphans', ['--apply' => true])->assertExitCode(0);
+
+        Queue::assertPushed(DeletePrivateObjectJob::class, fn (DeletePrivateObjectJob $job): bool => $job->objectKey === $orphanKey);
+        Queue::assertNotPushed(DeletePrivateObjectJob::class, fn (DeletePrivateObjectJob $job): bool => $job->objectKey === $trackedKey);
+        Queue::assertPushedTimes(DeletePrivateObjectJob::class, 1);
+        $this->assertDatabaseHas('user_media', [
+            'user_id' => $account['id'],
+            'object_key' => $trackedKey,
+        ]);
     }
 
     public function test_private_storage_disk_is_not_the_public_symbolic_link_target(): void

@@ -3,13 +3,13 @@
 namespace App\Services\Storage;
 
 use App\Contracts\Storage\PrivateObjectStorage;
-use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Filesystem\FilesystemAdapter;
 use InvalidArgumentException;
 use RuntimeException;
 
 final class FilesystemPrivateObjectStorage implements PrivateObjectStorage
 {
-    public function __construct(private readonly Filesystem $filesystem) {}
+    public function __construct(private readonly FilesystemAdapter $filesystem) {}
 
     public function put(string $key, string $contents): void
     {
@@ -49,6 +49,31 @@ final class FilesystemPrivateObjectStorage implements PrivateObjectStorage
 
         if ($this->filesystem->exists($key) && ! $this->filesystem->delete($key)) {
             throw new RuntimeException('The private object could not be deleted.');
+        }
+    }
+
+    /**
+     * Stream object metadata under a prefix without buffering the full store.
+     *
+     * @return iterable<array{key: string, last_modified: int}>
+     */
+    public function listObjects(string $prefix): iterable
+    {
+        $prefix = rtrim($prefix, '/');
+        $this->assertValidKey($prefix);
+
+        foreach ($this->filesystem->getDriver()->listContents($prefix, true) as $attributes) {
+            if (! $attributes->isFile()) {
+                continue;
+            }
+
+            $key = $attributes->path();
+            $this->assertValidKey($key);
+
+            yield [
+                'key' => $key,
+                'last_modified' => (int) ($attributes->lastModified() ?? 0),
+            ];
         }
     }
 
