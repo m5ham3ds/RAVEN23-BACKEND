@@ -63,7 +63,7 @@ class PostgresWellnessSyncTest extends TestCase
         return (int) floor(microtime(true) * 1000);
     }
 
-    private function session(string $id, int $stamp, ?int $deleted = null): array
+    private function wellnessSession(string $id, int $stamp, ?int $deleted = null): array
     {
         return [
             'id' => $id,
@@ -98,7 +98,7 @@ class PostgresWellnessSyncTest extends TestCase
         $this->withToken($owner['token'])
             ->postJson('/api/v1/sync/wellness', [
                 'client_time_utc' => $this->clientTime(),
-                'sessions' => [$this->session($id, 1000)],
+                'sessions' => [$this->wellnessSession($id, 1000)],
                 'daily' => [[
                     'local_day' => '2026-11-23',
                     'timezone_offset_minutes' => 0,
@@ -150,7 +150,7 @@ class PostgresWellnessSyncTest extends TestCase
         $this->withToken($owner['token'])
             ->postJson('/api/v1/sync/wellness', [
                 'client_time_utc' => $this->clientTime(),
-                'sessions' => [$this->session($id, 2000, 2000)],
+                'sessions' => [$this->wellnessSession($id, 2000, 2000)],
                 'daily' => [],
                 'limit' => 450,
             ])
@@ -160,7 +160,7 @@ class PostgresWellnessSyncTest extends TestCase
         $this->withToken($owner['token'])
             ->postJson('/api/v1/sync/wellness', [
                 'client_time_utc' => $this->clientTime(),
-                'sessions' => [$this->session($id, 1500)],
+                'sessions' => [$this->wellnessSession($id, 1500)],
                 'daily' => [],
                 'limit' => 450,
             ])

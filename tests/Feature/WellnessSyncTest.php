@@ -43,7 +43,7 @@ class WellnessSyncTest extends TestCase
         return (int) floor(microtime(true) * 1000);
     }
 
-    private function session(
+    private function wellnessSession(
         string $id,
         int $stamp,
         ?int $deleted = null,
@@ -115,7 +115,7 @@ class WellnessSyncTest extends TestCase
 
         $this->upload(
             $account['token'],
-            [$this->session($sessionId, 1000)],
+            [$this->wellnessSession($sessionId, 1000)],
             [$this->daily('2026-11-23', 1100)],
         );
 
@@ -166,8 +166,8 @@ class WellnessSyncTest extends TestCase
         $laterId = '33333333-3333-4333-8333-333333333333';
 
         $this->upload($account['token'], [
-            $this->session($firstId, 1000),
-            $this->session($secondId, 2000),
+            $this->wellnessSession($firstId, 1000),
+            $this->wellnessSession($secondId, 2000),
         ]);
 
         Auth::forgetGuards();
@@ -188,7 +188,7 @@ class WellnessSyncTest extends TestCase
         $this->assertIsString($cursor);
 
         Auth::forgetGuards();
-        $this->upload($account['token'], [$this->session($laterId, 3000)]);
+        $this->upload($account['token'], [$this->wellnessSession($laterId, 3000)]);
 
         Auth::forgetGuards();
         $second = $this->withToken($account['token'])
@@ -233,16 +233,16 @@ class WellnessSyncTest extends TestCase
         $account = $this->registerAccount();
         $id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 
-        $this->upload($account['token'], [$this->session($id, 1000)]);
+        $this->upload($account['token'], [$this->wellnessSession($id, 1000)]);
 
         Auth::forgetGuards();
-        $this->upload($account['token'], [$this->session($id, 2000, 2000)]);
+        $this->upload($account['token'], [$this->wellnessSession($id, 2000, 2000)]);
 
         Auth::forgetGuards();
-        $this->upload($account['token'], [$this->session($id, 1500, null, 'Old device copy')]);
+        $this->upload($account['token'], [$this->wellnessSession($id, 1500, null, 'Old device copy')]);
 
         Auth::forgetGuards();
-        $this->upload($account['token'], [$this->session($id, 1500, null, 'Old device copy')]);
+        $this->upload($account['token'], [$this->wellnessSession($id, 1500, null, 'Old device copy')]);
 
         $this->assertDatabaseHas('user_sync_revisions', [
             'user_id' => $account['id'],
@@ -272,7 +272,7 @@ class WellnessSyncTest extends TestCase
             ->assertJsonPath('sessions.0.deleted', true);
 
         Auth::forgetGuards();
-        $this->upload($account['token'], [$this->session($id, 3000, 2000)]);
+        $this->upload($account['token'], [$this->wellnessSession($id, 3000, 2000)]);
 
         Auth::forgetGuards();
         $resumed = $this->withToken($account['token'])
@@ -307,7 +307,7 @@ class WellnessSyncTest extends TestCase
         $other = $this->registerAccount();
         $id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 
-        $this->upload($owner['token'], [$this->session($id, 1000)]);
+        $this->upload($owner['token'], [$this->wellnessSession($id, 1000)]);
 
         Auth::forgetGuards();
         $empty = $this->withToken($other['token'])
