@@ -132,3 +132,15 @@
 | Pint Format | [45205731265](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45205731265) | SUCCESS؛ لم تتغير PHP files لذلك تخطت steps الخاصة بالملفات المتغيرة؛ strict Pint داخل Docker نجح |
 
 آخر التزام برمجي اجتاز البوابات الأربع على SHA واحد هو `dd861fa9afd6f876ff300f65aae58a35b16f3112` مع runs #45204060525 و#45204060572 و#45204060578 و#45204060417، كلها SUCCESS.
+
+
+## 9. تحقق CI على رأس main — 24 نوفمبر 2026
+
+على SHA `d0aa6d4a0e467fe6d72619858b13ef30a466722e` اكتملت البوابات الأربع بنجاح:
+
+- Docker Validation [45289473199](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289473199) — SUCCESS.
+- Authentication Regression [45289472959](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289472959) — SUCCESS.
+- Pint Format [45289473303](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289473303) — SUCCESS.
+- Security Scans [45289472973](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289472973) — SUCCESS.
+
+Docker steps المرصودة تشمل SQLite tests وPostgreSQL integration باعتماد application role محدود وmigration role منفصل، strict Pint، queue-worker guards، APP_DEBUG guard، non-root runtime، readiness وuploaded-PHP blocking. لم تكن هناك jobs فاشلة على هذا الرأس.
