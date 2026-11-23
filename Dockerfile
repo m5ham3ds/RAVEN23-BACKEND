@@ -4,6 +4,9 @@
 # minor version used by the production runtime.
 FROM php:8.4-cli-bookworm AS build
 
+# Avoid saturating GitHub's package archive endpoint during parallel CI image builds.
+ENV COMPOSER_MAX_PARALLEL_HTTP=4
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libpq-dev libsqlite3-dev libxml2-dev libonig-dev libcurl4-openssl-dev \
       libzip-dev unzip git ca-certificates \
@@ -76,6 +79,8 @@ CMD ["php", "artisan", "test", "tests/Integration/PostgresAuthLifecycleTest.php"
 # Production runtime: pinned FrankenPHP/PHP 8.4 image, Caddy HTTP server,
 # PHP production settings, and no Render/Neon-specific startup behaviour.
 FROM dunglas/frankenphp:1.13.6-php8.4-trixie@sha256:bbe6057527f8dd9e270d9e2a33315f26b264ce8b0dbd19b67b0855a7899960ec AS runtime
+
+ENV COMPOSER_MAX_PARALLEL_HTTP=4
 
 ARG RAVEN23_SOURCE_COMMIT=unknown
 ENV RAVEN23_SOURCE_COMMIT=${RAVEN23_SOURCE_COMMIT}

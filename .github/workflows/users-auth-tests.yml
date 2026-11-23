@@ -47,6 +47,8 @@ jobs:
           tools: composer:v2
 
       - name: Install locked dependencies
+        env:
+          COMPOSER_MAX_PARALLEL_HTTP: '4'
         run: |
           touch .env
           composer validate --strict
