@@ -12,6 +12,7 @@ use Tests\TestCase;
 class PostgresWellnessSyncTest extends TestCase
 {
     private array $createdUsers = [];
+
     private array $createdTokens = [];
 
     protected function setUp(): void
@@ -173,7 +174,7 @@ class PostgresWellnessSyncTest extends TestCase
             'deleted_at_utc' => 2000,
         ]);
         $this->assertSame(1, DB::table('user_wellness_sessions')->where('user_id', $owner['id'])->count());
-        $this->assertSame(0, DB::table('user_wellness_sessions')->where('user_id', $other['id'])->count());
+        $this->assertSame(0, DB::table('user_cells_sessions')->where('user_id', $other['id'])->count());
         $this->assertDatabaseCount('user_wellness_upload_receipts', 3);
         $this->assertSame(2, $ownerPull->json('server_revision'));
         $this->assertSame(0, $otherPull->json('server_revision'));
