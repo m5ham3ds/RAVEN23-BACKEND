@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class EmailVerificationNotification extends Notification implements ShouldQueue, ShouldBeEncrypted
+class EmailVerificationNotification extends Notification implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable;
 
@@ -30,7 +30,6 @@ class EmailVerificationNotification extends Notification implements ShouldQueue,
     {
         return now()->addMinutes(20);
     }
-
 
     public function __construct(
         public readonly int $userId,
