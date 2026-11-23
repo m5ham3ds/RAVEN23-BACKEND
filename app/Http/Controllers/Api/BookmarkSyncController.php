@@ -102,14 +102,69 @@ class BookmarkSyncController extends Controller
         }
 
         DB::transaction(function () use ($pending, $deletions, $userId, $now): void {
-            // Keep each SQLite statement below its host-parameter limit.
-            foreach (array_chunk(array_values($pending), 100) as $batch) {
-                DB::table('user_bookmarks')->upsert(
-                    $batch,
+            $connection = DB::connection();
+            $state = $this->lockRevision($connection, $userId);
+            $revision = (int) $state->revision;
+
+            // Legacy clients still send a complete set of newly-known rows.
+            // Record those transitions so versioned clients can consume them.
+            foreach ($pending as $item) {
+                $type = (string) $item['media_type'];
+                $mediaId = (int) $item['media_id'];
+                $latest = $connection->table('user_bookmark_changes')
+                    ->where('user_id', $userId)
+                    ->where('media_type', $type)
+                    ->where('media_id', $mediaId)
+                    ->orderByDesc('revision')
+                    ->first();
+                $metadata = json_decode((string) $item['metadata'], true);
+                $metadata = is_array($metadata) ? $metadata : [];
+
+                if ($latest !== null && $latest->action === 'bookmark.remove') {
+                    $addedAt = isset($metadata['date_added']) ? strtotime((string) $metadata['date_added']) : false;
+                    $removedAt = strtotime((string) $latest->created_at);
+                    if ($addedAt === false || $removedAt === false || $addedAt <= $removedAt) {
+                        $connection->table('user_bookmarks')
+                            ->where('user_id', $userId)
+                            ->where('media_type', $type)
+                            ->where('media_id', $mediaId)
+                            ->delete();
+
+                        continue;
+                    }
+                }
+
+                $existing = $connection->table('user_bookmarks')
+                    ->where('user_id', $userId)
+                    ->where('media_type', $type)
+                    ->where('media_id', $mediaId)
+                    ->exists();
+
+                $connection->table('user_bookmarks')->upsert(
+                    [$item],
                     ['user_id', 'media_type', 'media_id'],
                     ['metadata', 'updated_at'],
                 );
+
+                if (! $existing || ($latest !== null && $latest->action === 'bookmark.remove')) {
+                    $revision++;
+                    $metadata['id'] = $mediaId;
+                    $connection->table('user_bookmark_changes')->insert([
+                        'user_id' => $userId,
+                        'revision' => $revision,
+                        'media_type' => $type,
+                        'media_id' => $mediaId,
+                        'action' => 'bookmark.add',
+                        'payload' => $this->encodeMetadata($metadata),
+                        'deleted' => false,
+                        'created_at' => now(),
+                    ]);
+                }
             }
+
+            $connection->table('user_sync_revisions')
+                ->where('id', $state->id)
+                ->update(['revision' => $revision, 'updated_at' => now()]);
 
             // Deletions are applied last so a conflicting entry in one request
             // cannot silently override the caller's explicit tombstone.
@@ -124,12 +179,7 @@ class BookmarkSyncController extends Controller
 
                 foreach (array_chunk($ids, 500) as $idBatch) {
                     foreach ($idBatch as $mediaId) {
-                        $this->appendLegacyRemoval(
-                            DB::connection(),
-                            $userId,
-                            $type,
-                            $mediaId,
-                        );
+                        $this->appendLegacyRemoval($connection, $userId, $type, $mediaId);
                     }
                 }
             }
