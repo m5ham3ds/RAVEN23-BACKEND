@@ -199,6 +199,8 @@ class QueuedNotificationsTest extends TestCase
 
         $failedJob = DB::table('failed_jobs')->first();
         $this->assertStringContainsString('synthetic queue worker failure', $failedJob->exception);
-        $this->assertStringContainsString(FailingQueueJob::class, $failedJob->payload);
+
+        $payload = json_decode($failedJob->payload, true, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame(FailingQueueJob::class, $payload['data']['commandName']);
     }
 }
