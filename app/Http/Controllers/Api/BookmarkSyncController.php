@@ -320,6 +320,16 @@ class BookmarkSyncController extends Controller
             }
 
             if (isset($validated['until_revision'])
+                && (int) $validated['until_revision'] < $sinceRevision) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => [
+                        'until_revision' => ['The requested snapshot revision is older than the supplied cursor.'],
+                    ],
+                ], 422);
+            }
+
+            if (isset($validated['until_revision'])
                 && (int) $validated['until_revision'] > $revision) {
                 return response()->json([
                     'success' => false,
@@ -527,7 +537,8 @@ class BookmarkSyncController extends Controller
 
             return response()->json([
                 'success' => true,
-                'server_revision' => $revision,
+                'server_revision' => $untilRevision,
+                'current_revision' => $revision,
                 'server_time_utc' => $serverTime,
                 'full' => $full,
                 'until_revision' => $untilRevision,
