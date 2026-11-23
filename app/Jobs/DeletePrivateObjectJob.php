@@ -22,11 +22,9 @@ class DeletePrivateObjectJob implements ShouldQueue, ShouldBeEncrypted
 
     public bool $failOnTimeout = true;
 
-    public bool $afterCommit = true;
-
     public function __construct(public readonly string $objectKey)
     {
-        $this->onQueue('default');
+        $this->onQueue('default')->afterCommit();
     }
 
     public function backoff(): array
