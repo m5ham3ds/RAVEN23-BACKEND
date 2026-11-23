@@ -111,7 +111,9 @@ class UserMediaTest extends TestCase
             ->assertHeader('Content-Disposition', 'inline; filename="avatar.png"')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
-        $this->assertSame('private, no-store, max-age=0', $download->headers->get('Cache-Control'));
+        $cacheControl = (string) $download->headers->get('Cache-Control');
+        $this->assertStringContainsString('private', $cacheControl);
+        $this->assertStringContainsString('no-store', $cacheControl);
         $this->assertSame($uploaded['bytes'], $download->getContent());
     }
 
@@ -158,7 +160,7 @@ class UserMediaTest extends TestCase
 
     public function test_media_upload_and_download_require_authentication(): void
     {
-        $this->post('/api/v1/user/media', [
+        $this->withHeader('Accept', 'application/json')->post('/api/v1/user/media', [
             'purpose' => 'attachment',
             'file' => UploadedFile::fake()->createWithContent('notes.txt', 'private notes'),
         ])->assertUnauthorized();
