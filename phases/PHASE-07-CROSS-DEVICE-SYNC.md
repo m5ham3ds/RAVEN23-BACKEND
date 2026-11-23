@@ -1,6 +1,6 @@
 # المرحلة 07 — المزامنة بين الأجهزة والعمل عند انقطاع الاتصال
 
-**الحالة:** NOT_STARTED  
+**الحالة:** IN_PROGRESS — أضيف Wellness API واجتاز جميع بوابات CI؛ بقية قبول multi-device/offline ما زالت مفتوحة.  
 **الاعتماديات:** المرحلتان 05 و06 COMPLETE
 
 ## الهدف
@@ -28,3 +28,56 @@
 
 ## ملاحظة
 لا تستخدم قاعدة "آخر كتابة تفوز" لكل المجالات بشكل أعمى؛ تقدم المشاهدة والقوائم والحذف لها قواعد مختلفة.
+
+
+## التنفيذ الفعلي — 23 نوفمبر 2026
+
+### أساس المزامنة الموجود على main
+
+- Bookmarks: owner-scoped، عمليات idempotent، revisions.
+- Recently watched/progress: LWW، revisions، tombstones، UTC milliseconds، clock-skew وupload acknowledgements.
+- Playlists: operation log، payload-hash idempotency، base-version conflict، stable revision pagination.
+- Preferences: revision-aware sync.
+
+### Wellness API الجديد
+
+- Route: `POST /api/v1/sync/wellness` خلف `auth:sanctum`.
+- Migration: `2026_11_23_000013_create_user_wellness_sync_tables.php`.
+- Tables: `user_wellness_sessions`, `user_wellness_daily`, `user_wellness_changes`, `user_wellness_upload_receipts`.
+- Upload sessions/daily بحد 450 records combined؛ يقوم العميل بالـpull بعد إكمال جميع upload batches.
+- Per-user `wellness` revision، owner-scoped UUIDs، LWW/tombstones، payload-hash receipts، immutable changes.
+- Pull باستخدام `since_revision`, `limit`, HMAC-signed cursor bound to user and snapshot revision.
+- Response fields: `server_revision`, `server_time_utc`, `sessions`, `daily`, `full`, `has_more`, `next_cursor`.
+- Clock skew أكثر من 24 ساعة يعيد 422 `clock_skew_detected` ووقت الخادم UTC milliseconds.
+
+### Final CI proof
+
+## Final CI proof on `ef3db49dea53c33622a716f8f46aa1dadccd5109` — 23 November 2026
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45118862759](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45118862759) | SUCCESS — 85 Feature / 925 assertions; 10 PostgreSQL Integration / 240 assertions |
+| Pint Format | [45118862746](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45118862746) | SUCCESS |
+| Security Scans | [45118862763](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45118862763) | SUCCESS under configured Gitleaks/Trivy/fixable-vulnerability gate |
+| Authentication Regression | [45118862792](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45118862792) | SUCCESS — 20 SQLite / 151 assertions; 4 PostgreSQL / 99 assertions |
+
+Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restricted PostgreSQL app role, separate migration role, readiness, non-root runtime and uploaded-PHP blocking.
+
+
+### الأخطاء التي تم إصلاحها
+
+1. تعارض helper باسم `session()` مع Laravel TestCase؛ أعيدت تسميته إلى `wellnessSession()`.
+2. strict Pint اكتشف تنسيقًا واحدًا في PostgreSQL test؛ طُبّق artifact وتحققنا أن المصدر يطابقه.
+3. PostgreSQL كشف username اصطناعيًا يتجاوز حد 30 حرفًا؛ تم تقصير prefix إلى `well_`، ثم اجتاز الاختبار.
+4. صُحح typo اسم جدول في assertion عزل المالك وعدد upload receipts المتوقع.
+
+### ما تبقى لإغلاق Phase07
+
+1. سيناريو تقارب جهازين/ثلاثة أجهزة مع concurrent/out-of-order updates.
+2. lost HTTP response ثم retry بلا تكرار أو فقد acknowledgements.
+3. logout/account switch/token revoke/device ID change دون تسرب بيانات المالك السابق.
+4. cursor loss/full resync وpagination ثابتة مع concurrent writes.
+5. daily-summary conflict: Flutter يستمد `updated_at_utc` لليوم من أكبر session timestamp؛ إضافة جلسة أقدم من جهاز آخر قد تغير totals دون زيادة stamp، وبالتالي قد تتخطى daily upload plan الملخص المعدل. يلزم daily monotonic revision/merge contract واختبار جهازين.
+6. توثيق retry/backoff وقياس latency/volume.
+
+**القرار:** Phase07 تبقى IN_PROGRESS. لا تعتبر اكتمال Wellness endpoint وحده إثباتًا لاكتمال تقارب الأجهزة والعمل دون اتصال.

@@ -22,3 +22,7 @@
 - فرع `RAVEN23-BACKEND-USERS` لم يكن يحمل اختبارات فريدة؛ الفرق عن `main` كان ملف توثيق نطاق الفرع فقط. اختبارات المصادقة موجودة بالفعل في `tests/Feature/AuthLifecycleTest.php` و`tests/Integration/PostgresAuthLifecycleTest.php`.
 - تم اعتماد `main` ليكون الفرع الوحيد الذي يشغّل كامل بوابات CI. الفروع القديمة TEST وUSERS متقاعدة ولا ينبغي دفع commits جديدة إليها.
 - عند إعداد هذا التحديث، كانت refs القديمة ما تزال ظاهرة في GitHub؛ لا تعتبر محذوفة إلا بعد حذفها والتحقق من refs.
+
+## تحقق حذف فروع الاختبارات — 23 نوفمبر 2026
+
+حذف المستخدم `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS`. أعاد GitHub branch listing بعد الحذف فرعًا واحدًا فقط: `main`. جميع الاختبارات المنقولة ما زالت في main؛ لم يحذف تنظيف refs أي ملفات اختبار ولم يُعِد كتابة commit history.

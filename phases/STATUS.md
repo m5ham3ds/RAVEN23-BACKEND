@@ -2,8 +2,8 @@
 
 **آخر تحديث:** 23 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**آخر SHA تم التحقق منه:** `608c94fe057816ee582af7d3e578e14a2bfb3a37`
-**نطاق CI:** `main` فقط؛ refs TEST/USERS متقاعدة ولم تُحذف بعد.
+**Latest CI-verified implementation SHA:** `ef3db49dea53c33622a716f8f46aa1dadccd5109`
+**نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
 
@@ -16,7 +16,7 @@
 | 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
-| 07 — المزامنة بين الأجهزة والعمل دون اتصال | NOT_STARTED | تبدأ بعد إغلاق Phase06. |
+| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | Wellness API اجتاز 85 Feature/925 assertions و10 PostgreSQL/240 assertions؛ بقيت multi-device convergence وoffline/account-switch وdaily-summary conflict. |
 | 08 — التخزين والإشعارات والمهام | NOT_STARTED | تعتمد على عقود storage/mail/push/queue وموافقة المزود. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
@@ -45,13 +45,13 @@
 ## 3. سياسة الفروع
 
 - `main` هو الفرع الدائم الوحيد المعتمد، ويحمل التطبيق والمigrations والاختبارات والوثائق وCI.
-- `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS` متقاعدان؛ لا تدفع إليهما commits جديدة.
-- refs القديمة ما زالت موجودة في GitHub وقت آخر تحقق؛ نقل الملفات وتعديل triggers لا يحذف refs.
+- `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS` حُذفا بواسطة المستخدم؛ branch listing بعد الحذف يعيد `main` فقط.
+- جميع الاختبارات الوظيفية تبقى في `main`؛ حذف refs لم يحذف ملفات الاختبار أو يعيد كتابة التاريخ.
 - آخر فحص سابق لم يظهر PRs مفتوحة.
 
 ## 4. ما يلزم بعد ذلك
 
-1. بدء Phase07: cross-device sync/offline behavior بعد Phase06 COMPLETE.
+1. متابعة Phase07: إثبات تقارب جهازين/ثلاثة أجهزة، offline retries، account switching/token revocation، cursor loss/full resync، وإصلاح daily-summary conflict.
 2. Phase08: storage/mail/push/queue adapters.
 3. Phase09: entitlement/subscription model بعد قرارات المنتج ومزود الدفع.
 4. Phase10: release engineering/contract/load/rollback gates بعد إكمال نطاقات 01–09.
@@ -63,4 +63,11 @@
 - لم تُقرأ قيم GitHub Secrets أو `.env` أو مفاتيح التطبيق.
 - لم تُنفذ migrations إنتاجية أو deploy أو DNS cutover.
 - لم ينشأ حساب أو مورد AWS من خلال هذه الأعمال، ولا يوجد في المستودع دليل على AWS deployment/OIDC.
-- لم تُحذف refs TEST/USERS بعد؛ يجب حذفها يدويًا من GitHub والتحقق من وجود main فقط.
+- تم التحقق من وجود `main` فقط؛ refs TEST/USERS غير موجودة.
+
+## 6. تحديث Phase07 — 23 نوفمبر 2026
+
+- أضيف `POST /api/v1/sync/wellness` مع migration والجداول واختبارات SQLite/PostgreSQL.
+- جميع بوابات CI الأربع ناجحة على `ef3db49dea53c33622a716f8f46aa1dadccd5109`; التفاصيل في `phases/reports/PHASE-07-PROGRESS-REPORT-2026-11-23.md`.
+- Phase07 ما زالت IN_PROGRESS: endpoint وowner isolation وrevisions وtombstones وstable pagination مختبرة، لكن multi-device convergence وoffline recovery وaccount switching وdaily-summary conflict لم تغلق بعد.
+- لم يتم الاتصال بقاعدة الإنتاج أو قراءة الأسرار أو تنفيذ migration إنتاجية أو deploy.

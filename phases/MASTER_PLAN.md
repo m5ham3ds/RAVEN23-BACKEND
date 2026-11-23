@@ -31,7 +31,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
-| 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
+| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ Wellness API اجتاز CI على main، وبقيت multi-device convergence وoffline/account-switch وdaily-summary conflict | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
@@ -119,12 +119,11 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Phase06: bookmarks وrecently-watched وplaylists منفذة، وثمانية ملفات اختبار Feature/Integration نُقلت إلى main في SHA `800cff70b9663815e57b47db2be8340e8c19215e`.
 - Docker على SHA الدمج نجح: 81 Feature tests /824 assertions و9 PostgreSQL Integration tests /219 assertions؛ Pint وSecurity نجحا.
 - Workflows Docker/Pint/Security/Auth regression أصبحت تستهدف main فقط. Pint وAuth regression على إعداد main-only SHA `5a1b0d5` نجحا؛ Docker/Security كانا قيد الإكمال.
-- Phase06 COMPLETE بعد نجاح Docker/SQLite/PostgreSQL/Auth/Security على main SHA `608c94fe057816ee582af7d3e578e14a2bfb3a37` (Docker run 45111592814، Auth 45111592724، Security 45111592767). Phase07 هي المرحلة التالية وNOT_STARTED.
+- Phase06 COMPLETE. Phase07 بدأت؛ Wellness API اجتاز Docker/Pint/Security/Auth على main SHA `ef3db49dea53c33622a716f8f46aa1dadccd5109` (Docker 45118862759، Pint 45118862746، Security 45118862763، Auth 45118862792). Phase07 تبقى IN_PROGRESS حتى اختبارات multi-device/offline/account-switch وdaily-summary conflict.
 
 ### سياسة الفروع
 - `main` هو الفرع الدائم الوحيد؛ التطبيق والاختبارات والوثائق وCI كلها عليه.
-- `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS` متقاعدان ولا يستقبلان commits جديدة؛ جميع ملفات الاختبارات الوظيفية على main.
-- refs القديمة ما زالت ظاهرة في GitHub؛ لم يتم حذفها في هذا التحديث.
+- `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS` حُذفا؛ GitHub branch listing أعاد `main` فقط. جميع ملفات الاختبارات الوظيفية باقية في main.
 
 ### اعتماديات AWS
 - Phase08 التخزين/المهام/الإشعارات وPhase09 قرارات الاشتراكات والاستحقاقات لم تكتمل بعد.
@@ -132,3 +131,17 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Phase11 تعتمد على 02–03 و08 و10، وتحتاج قرار المنطقة والميزانية والتنبيهات وموافقة صريحة.
 - Phase12 تتطلب backup/restore rehearsal وموافقة cutover؛ Phase13 تعتمد عليها.
 - نجاح CI لا يثبت Google Android أو تسليم البريد أو مزود دفع أو استعادة إنتاجية حقيقية.
+
+
+## 11. تحديث التنفيذ — 23 نوفمبر 2026 (Phase06 closure / Phase07 progress)
+
+- Phase06 COMPLETE؛ تقرير الإغلاق موجود في `phases/reports/PHASE-06-COMPLETION-REPORT-2026-11-23.md`.
+- حذف المستخدم TEST وUSERS، وتحقق branch listing من وجود `main` وحده.
+- بدأ Phase07 على main دون إنشاء فرع إضافي. أضيف `POST /api/v1/sync/wellness` وmigration 000013 وجداول الجلسات اليومية وسجل التغييرات وإيصالات upload.
+- CI على SHA `ef3db49dea53c33622a716f8f46aa1dadccd5109`: Docker 85/925 SQLite و10/240 PostgreSQL، Pint، Security، Authentication 20/151 SQLite و4/99 PostgreSQL — جميعها SUCCESS.
+- Phase07 IN_PROGRESS؛ تبقى multi-device convergence، offline retry/recovery، account switch/token revoke، full resync وdaily-summary conflict contract.
+- لا production DB/secret reads أو migrations أو deploy أو AWS resources.
+
+### سياسة الفروع الحالية
+
+الفرع الدائم الوحيد هو `main`. تم حذف refs TEST وUSERS والتحقق من ذلك بعد الحذف. لا تنشئ فروع اختبار أو phase دائمة جديدة.
