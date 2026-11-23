@@ -30,7 +30,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
-| 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — IN_PROGRESS / CI BLOCKED (bookmarks/recent/playlists مطبقة؛ الاعتماد والاختبارات لم يثبتا) | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
+| 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — الاختبارات نُقلت إلى main؛ 81 Feature و9 PostgreSQL tests اجتازت على SHA `800cff70`؛ بوابات main-only الأخيرة قيد التحقق | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
@@ -114,24 +114,21 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 
 ## 10. سجل الانتقالات والحالة الموحدة — 23 نوفمبر 2026
 
-التفاصيل التاريخية للمراحل 00–05 محفوظة في تقاريرها. سياسة المستودع الحالية ثلاث فروع دائمة فقط.
-
 ### حالة التنفيذ
-- Phase00–03 COMPLETE وفق أدلتها التاريخية؛ Phase04 PARTIAL للتكاملات الخارجية؛ Phase05 COMPLETE على مستوى الكود وCI التاريخي.
-- Phase06: bookmarks وrecently-watched وplaylists أصبحت منفذة بالكود على main، وتصدير الحساب v3. الاختبارات العامة الموسعة موجودة على TEST.
-- Playlist backend يستخدم operation log وstable revision change stream؛ لا يتضمن import أو public sharing.
-- Phase06 لم تغلق بسبب عدم تنفيذ GitHub Actions لأي خطوة على الرؤوس الحالية؛ الوظائف فشلت دون runner مخصص، لذا لا يوجد PASS ولا فشل PHP مثبت.
-- لا تبدأ Phase07 قبل نجاح SQLite وPostgreSQL وPint وSecurity على SHA موحد.
+- Phase00–03 COMPLETE وفق أدلتها التاريخية؛ Phase04 PARTIAL للتكاملات الخارجية؛ Phase05 COMPLETE على مستوى schema/API/code/CI.
+- Phase06: bookmarks وrecently-watched وplaylists منفذة، وثمانية ملفات اختبار Feature/Integration نُقلت إلى main في SHA `800cff70b9663815e57b47db2be8340e8c19215e`.
+- Docker على SHA الدمج نجح: 81 Feature tests /824 assertions و9 PostgreSQL Integration tests /219 assertions؛ Pint وSecurity نجحا.
+- Workflows Docker/Pint/Security/Auth regression أصبحت تستهدف main فقط. Pint وAuth regression على إعداد main-only SHA `5a1b0d5` نجحا؛ Docker/Security كانا قيد الإكمال.
+- Phase06 IN_PROGRESS حتى نجاح كل بوابات main-only على SHA موحد؛ Phase07 NOT_STARTED حتى الإغلاق.
 
-### رؤوس الفروع
-- main code SHA: `fea7045178e603a7b54150e75475f5d27960d306`
-- TEST: `15369516309ddd6122a358a82063a48ca6e8b7d3`
-- USERS: `c789b333574b140d1aed23ce9982dbe6a5c945e0`
+### سياسة الفروع
+- `main` هو الفرع الدائم الوحيد؛ التطبيق والاختبارات والوثائق وCI كلها عليه.
+- `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS` متقاعدان ولا يستقبلان commits جديدة.
+- refs القديمة بقيت ظاهرة في GitHub عند آخر تحقق؛ يلزم حذفها يدويًا والتحقق من وجود main فقط.
 
-### آخر تحقق CI
-- main: Docker #360 / Pint #96 / Security #98.
-- TEST: Docker #361 / Pint #97 / Security #99.
-- USERS: Auth #8 / Pint #98 / Security #100.
-- كل jobs التي فُحصت تعرض runner_id=0 وsteps=[]؛ سجلات الوظائف غير متاحة. احتمالية quota/billing أو منع runner لم تثبت بعد؛ راجع STATUS.md.
-
-**الخطوة المسموحة التالية:** استعادة تخصيص Actions runners ثم تشغيل وإصلاح نتائج الاختبارات الفعلية. بعد نجاح بوابات Phase06 فقط، انتقل مباشرة إلى Phase07.
+### اعتماديات AWS
+- Phase08 التخزين/المهام/الإشعارات وPhase09 قرارات الاشتراكات والاستحقاقات لم تكتمل بعد.
+- Phase10 release engineering تعتمد على إكمال نطاقات 01–09.
+- Phase11 تعتمد على 02–03 و08 و10، وتحتاج قرار المنطقة والميزانية والتنبيهات وموافقة صريحة.
+- Phase12 تتطلب backup/restore rehearsal وموافقة cutover؛ Phase13 تعتمد عليها.
+- نجاح CI لا يثبت Google Android أو تسليم البريد أو مزود دفع أو استعادة إنتاجية حقيقية.

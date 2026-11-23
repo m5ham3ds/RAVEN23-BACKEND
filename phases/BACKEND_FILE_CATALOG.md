@@ -152,3 +152,9 @@
 - `2026_11_22_000007_create_user_data_foundation_tables.php`
 - `2026_11_23_000008_create_user_bookmarks_table.php`
 - `2026_11_23_000009_create_user_recent_media_tables.php`
+
+## 11. تحديث تنظيم الاختبارات — 23 نوفمبر 2026
+- `tests/README.md` يحدد main كمصدر الاختبارات الوحيد ويشرح Feature/SQLite وIntegration/PostgreSQL المؤقتة.
+- أضيفت اختبارات BookmarkSyncTest وPlaylistSyncTest وPreferenceSyncTest وRecentlyWatchedSyncTest، وPostgresBookmarkSyncTest وPostgresPlaylistSyncTest وPostgresPreferenceSyncTest وPostgresRecentlyWatchedSyncTest.
+- Docker/Pint/Security/Auth regression workflows تستهدف main فقط.
+- refs فرعي TEST وUSERS كانت لا تزال ظاهرة في GitHub عند آخر تحقق؛ تقاعدت تنظيميًا ولم يُؤكد حذفها.

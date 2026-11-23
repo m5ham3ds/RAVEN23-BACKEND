@@ -109,3 +109,8 @@
 Bookmarks وRecently watched وPlaylist sync أصبحت لها migrations/controllers/routes على main. ويشمل playlist backend عمليات create/update/delete/reorder/item.add/item.remove، operation log وversion conflict responses وrevision snapshot pagination. تصدير الحساب v3 يشمل المكتبة والقوائم.
 
 هذه الميزات تصنف «كود موجود / CI غير معتمد» لأن أحدث jobs على الفروع الثلاثة فشلت قبل تخصيص runner (runner_id=0، steps=[]). لذلك لا تصنف «موجود ومختبر» حتى تعمل البوابات فعليًا. استيراد القوائم ومشاركتها العامة ليست ضمن Phase06.
+
+## 9. توحيد الاختبارات على main — 23 نوفمبر 2026
+- أصبحت اختبارات bookmarks وrecently-watched وplaylists وpreferences وPostgreSQL المقابلة كلها في main.
+- اجتاز SHA `800cff70` عدد 81 Feature tests /824 assertions و9 PostgreSQL Integration tests /219 assertions؛ كما نجح Pint وSecurity.
+- لا يثبت ذلك تكامل Google Android أو تسليم البريد الحقيقي أو push/storage/billing أو cross-device/offline orchestration؛ تظل هذه عناصر مراحل مستقبلية أو اختبارات staging.

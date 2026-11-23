@@ -80,3 +80,15 @@
 - لا تكرر rerun عشوائيًا ولا تعدّل الكود لإخفاء هذه الحالة.
 
 لم يتم تشغيل workflows التي تكتب على الإنتاج، ولم تتم قراءة secrets أو تعديل قاعدة الإنتاج.
+
+## 6. توحيد الاختبارات وCI على main — 23 نوفمبر 2026
+
+**سياسة التشغيل الحالية هي main فقط.** أوصاف triggers في الجداول التاريخية أعلاه تعكس الحالة السابقة قبل إلغاء فروع الاختبارات.
+
+- `docker-build.yml`: push/pull_request على main؛ جميع Feature tests على SQLite وجميع Integration tests على PostgreSQL 16 المؤقتة بدور تطبيق محدود.
+- `pint-format-report.yml`: push/pull_request على main وworkflow_dispatch؛ Push يقارن مع parent SHA، PR مع base branch، والتشغيل اليدوي مع commit السابق.
+- `security-scans.yml`: push/pull_request على main وworkflow_dispatch؛ Gitleaks وTrivy source/image.
+- `users-auth-tests.yml`: أصبح `RAVEN23 Authentication Regression Tests` ويعمل على main فقط كفحص إضافي لدورة الحسابات.
+- اختبارات Phase06 الثمانية في main؛ `tests/README.md` يوضح استخدام SQLite/PostgreSQL المؤقتة فقط.
+- workflows القديمة production-account retry/smoke تحتاج توحيدًا آمنًا على staging ضمن Phase10، ولا تُشغّلها على الإنتاج.
+- لا يوجد AWS deploy workflow أو OIDC role مثبت في المستودع.

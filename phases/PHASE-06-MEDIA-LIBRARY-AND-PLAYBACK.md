@@ -1,6 +1,6 @@
 # المرحلة 06 — المكتبة الشخصية وسجل المشاهدة وتقدم التشغيل
 
-**الحالة:** IN_PROGRESS / CI BLOCKED — bookmarks وrecently-watched وplaylist sync أضيفت إلى main؛ الاختبارات موجودة لكن لم تحصل على runner للتنفيذ.  
+**الحالة:** IN_PROGRESS — الميزات والاختبارات الموسعة موجودة في main؛ 81 Feature و9 PostgreSQL tests اجتازت على SHA دمج الاختبارات، والبوابات main-only الأخيرة قيد الإكمال.  
 **الاعتماديات:** Phase05 COMPLETE؛ عقد Flutter المصدر تمت مراجعته على SHA `ffe543b6d263c4d1f8b5a84922f348c705baf138`
 
 ## الهدف
@@ -104,15 +104,17 @@
 - لا يصدّر password أو google_id أو remember_token أو Sanctum tokens/secret values.
 - تم تحديث اختبار `UserDataFoundationTest.php` على main إلى الإصدار 3 لأن Docker Feature suite يشغله من main.
 
-### الاختبارات
-- TEST يحتوي BookmarkSyncTest وRecentlyWatchedSyncTest وPlaylistSyncTest وPostgresRecentlyWatchedSyncTest وPostgresPlaylistSyncTest.
-- يغطي التكرار، stale progress/tombstones، ownership، clock skew، عمليات القوائم الستة، conflicts، reorder، deletion، stable pagination، وexport v3.
-- لا يوجد PASS بعد: latest CI runs main #360/#96/#98، TEST #361/#97/#99، USERS #8/#98/#100. الوظائف المفحوصة انتهت بـrunner_id=0 وsteps=[] وسجلات غير متاحة. هذا عائق تخصيص runner قبل التنفيذ، وليس فشلًا مثبتًا في PHP tests.
+### الاختبارات وأدلة دمج الاختبارات إلى main
+- Feature: `BookmarkSyncTest.php`, `PlaylistSyncTest.php`, `PreferenceSyncTest.php`, `RecentlyWatchedSyncTest.php`.
+- PostgreSQL Integration: `PostgresBookmarkSyncTest.php`, `PostgresPlaylistSyncTest.php`, `PostgresPreferenceSyncTest.php`, `PostgresRecentlyWatchedSyncTest.php`.
+- Docker run 45109747066 على SHA `800cff70`: SUCCESS — 81 Feature /824 assertions و9 PostgreSQL /219 assertions، مع runtime/non-root/readiness/least-privilege smoke PASS.
+- Security run 45109747037 وPint run 45109747060 على SHA الدمج: SUCCESS.
+- إصلاحات CI المثبتة: Laravel rule `prohibited_with` استبدلت بـ`prohibits`؛ تصحيح registration helper؛ تحديث tombstone test timestamps؛ طلب 401 يستخدم bearer token غير صالح.
+- على إعداد main-only SHA `5a1b0d5`: Pint #45110903710 وAuth #45110903688 نجحا؛ Docker #45110903634 وSecurity #45110903620 كانا قيد التنفيذ.
 
 ### ما يلزم للإغلاق
-1. استعادة runner allocation في GitHub Actions لدى مالك المستودع.
-2. تشغيل Docker/SQLite Feature suite، PostgreSQL Integration suite، Pint، Security على SHA موحد.
-3. إصلاح أي أخطاء فعلية تظهر بعد تخصيص runner وإعادة الاختبارات.
-4. إغلاق Phase06 بتقرير نهائي بعد استيفاء كل المعايير. لا تبدأ Phase07 قبل ذلك.
+1. تأكيد نجاح Docker وSecurity على main-only SHA.
+2. إصلاح أي فشل فعلي وإعادة جميع البوابات على SHA موحد.
+3. إنشاء تقرير إغلاق بعد تحقق جميع معايير القبول. لا تبدأ Phase07 قبل ذلك.
 
-**الحالة الدقيقة:** الميزات الثلاث منفذة بالكود، والاختبارات المخصصة موجودة على TEST، لكن لا يوجد إثبات CI صالح بعد. Phase06 IN_PROGRESS / CI BLOCKED.
+**الحالة الدقيقة:** الميزات والاختبارات كلها موجودة على main؛ دمج الاختبارات اجتاز SQLite/PostgreSQL/Pint/Security على SHA `800cff70`. الاعتماد النهائي لPhase06 ينتظر اكتمال Docker/Security/Auth على إعداد main-only.

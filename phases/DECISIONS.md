@@ -143,3 +143,11 @@
 - القرار: GET /api/v1/user/data-export أصبح format_version=3 ويضم account/profile/preferences/devices/bookmarks/recently_watched/playlists.
 - الأمان: لا تصدر كلمات المرور أو google_id أو remember_token أو Sanctum token hashes أو أسرار التحقق/الاسترداد.
 - التوافق: D-014 v1 وD-017 v2 تاريخيان؛ v3 هو العقد الحالي بعد إضافة Playlist sync.
+
+## D-020 — توحيد الاختبارات على main وإيقاف فروع TEST/USERS
+- التاريخ: 23 نوفمبر 2026
+- الحالة: معتمد
+- القرار: جميع التطبيق وmigrations والوثائق واختبارات Feature/Integration/contract/regression تحفظ في الفرع الدائم الوحيد `main`. لا تستخدم فروع TEST أو USERS دائمة ولا تنشئ فروع اختبار جديدة.
+- السبب: وضع الاختبارات بجوار الوظائف يقلل تشتت المصدر وازدواج workflows ومشكلات مزامنة الفروع.
+- التنفيذ: نُقلت ثمانية ملفات اختبار من TEST إلى main في SHA `800cff70b9663815e57b47db2be8340e8c19215e`؛ اختبارات Auth كانت موجودة في main مسبقًا.
+- الأثر: Docker/Pint/Security/Auth regression workflows تستهدف main. refs TEST وUSERS متقاعدة لكن حذفها عملية منفصلة يجب التحقق منها.
