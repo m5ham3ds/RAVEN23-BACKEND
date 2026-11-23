@@ -84,13 +84,13 @@ docker run --rm \
 
 The command above is an operator-invoked one-off task. It is not run by the web entrypoint. Confirm the database target before running it; never run it against production as an unreviewed test.
 
-A queue worker is also a separate process using the same image and shared environment:
+A queue worker is a separate process using the same release image, stable `APP_KEY`, PostgreSQL queue tables and runtime environment. Run it as a separate background service / container; do not combine it with the HTTP server process:
 
 ```sh
-php artisan queue:work --tries=3 --timeout=90
+docker run --rm --env-file .env raven23-backend:release /usr/local/bin/raven23-queue-worker
 ```
 
-Do not combine a long-lived queue worker and HTTP server in the same container process.
+The worker handles the `mail` and `default` queues, sleeps between polls, recycles after one hour and uses a timeout shorter than the database queue `retry_after` window. Deployments should configure their process supervisor to restart the worker after exit. `failed_jobs` is the durable failure store; inspect or retry failed jobs through the normal Artisan queue commands. Verification and password-reset notifications are encrypted in the queue, dispatched after commit, and use bounded retries/backoff. Mail delivery remains disabled until a real provider and action URL are explicitly configured.
 
 ## Docker validation
 
@@ -127,4 +127,4 @@ Google sign-in requires a verified Google identity token. A synthetic token acce
 
 ## Current limitations
 
-Password-reset email delivery remains unavailable until an outbound provider is configured. Plan-based maximum device limits and an active-device listing endpoint are not implemented. Do not consider the backend production-ready until real-device Google sign-in, email verification/reset delivery, abuse controls, backups, monitoring and object storage are completed.
+Email verification and password-reset notifications are queued and encrypted, but delivery remains disabled until an outbound provider and action URL are configured. Plan-based maximum device limits and an active-device listing endpoint are not implemented. Do not consider the backend production-ready until real-device Google sign-in, email verification/reset delivery, abuse controls, backups, monitoring and object storage are completed.

@@ -35,8 +35,9 @@ RUN set -eu; \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
       tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Feature/SecurityResponseTest.php tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
-      docker/php-production.ini; do \
+      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php \
+      tests/Integration/PostgresAuthLifecycleTest.php docker/Caddyfile docker/entrypoint.sh \
+      docker/queue-worker.sh docker/php-production.ini; do \
         test -s "$file" || { echo "Required project file missing or empty: $file" >&2; exit 1; }; \
     done
 
@@ -51,6 +52,7 @@ RUN set -eu; \
     find app bootstrap config database docker public routes tests -type f -name '*.php' -print0 \
       | xargs -0 -r -n1 php -l; \
     php artisan --version; \
+    sh -n docker/queue-worker.sh; \
     APP_ENV=testing APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' \
       DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= \
       CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=sync MAIL_MAILER=array \
@@ -92,6 +94,7 @@ WORKDIR /var/www/html
 COPY --from=build /opt/raven /var/www/html
 COPY docker/Caddyfile /etc/frankenphp/Caddyfile
 COPY docker/entrypoint.sh /usr/local/bin/raven23-entrypoint
+COPY docker/queue-worker.sh /usr/local/bin/raven23-queue-worker
 COPY docker/php-production.ini /usr/local/etc/php/conf.d/99-raven23-production.ini
 
 RUN set -eu; \
@@ -106,7 +109,7 @@ RUN set -eu; \
     setcap -r /usr/local/bin/frankenphp; \
     mkdir -p /data /config storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs; \
     chown -R raven:raven /data /config storage bootstrap/cache; \
-    chmod 755 /usr/local/bin/raven23-entrypoint; \
+    chmod 755 /usr/local/bin/raven23-entrypoint /usr/local/bin/raven23-queue-worker; \
     apt-get purge -y libcap2-bin linux-libc-dev; \
     apt-get autoremove -y --purge; \
     rm -rf /var/lib/apt/lists/*

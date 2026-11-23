@@ -2,16 +2,43 @@
 
 namespace App\Notifications;
 
+use DateTimeInterface;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class EmailVerificationNotification extends Notification
+class EmailVerificationNotification extends Notification implements ShouldQueue, ShouldBeEncrypted
 {
+    use Queueable;
+
+    public int $tries = 5;
+
+    public int $timeout = 30;
+
+    public int $maxExceptions = 3;
+
+    public bool $failOnTimeout = true;
+
+    public function backoff(): array
+    {
+        return [10, 30, 90, 180];
+    }
+
+    public function retryUntil(): DateTimeInterface
+    {
+        return now()->addMinutes(20);
+    }
+
+
     public function __construct(
         public readonly int $userId,
         public readonly string $token,
         public readonly int $expiresInMinutes,
-    ) {}
+    ) {
+        $this->onQueue('mail')->afterCommit();
+    }
 
     public function via($notifiable): array
     {
