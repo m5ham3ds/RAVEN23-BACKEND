@@ -67,3 +67,14 @@ Docker additionally passed strict Pint, queue worker guard tests, production APP
 4. Add a worker execution test with a fake mail transport and failed_jobs/retry visibility.
 
 **Phase08 remains IN_PROGRESS.** This report does not claim object storage, push or real email delivery is production-ready.
+
+
+## 8. Phase08B — Private object storage contract
+
+- Introduced the provider-neutral PrivateObjectStorage contract (put/get/exists/delete).
+- Added FilesystemPrivateObjectStorage over Laravel's Filesystem contract; storage keys reject traversal and non-portable characters, writes force private visibility, and failed I/O raises explicit exceptions.
+- Bound the contract through AppServiceProvider to a configurable RAVEN23_PRIVATE_STORAGE_DISK; default is a separate non-public private_media local disk, leaving the app's existing default disk and Flutter photo_url response contract unchanged.
+- Added feature tests for the binding, object lifecycle, missing reads and invalid-key rejection using Laravel's filesystem fake.
+- composer.lock currently contains Flysystem core/local only; no AWS S3 Flysystem adapter is installed. S3 is not activated and no credentials, bucket, cloud resources or paid services were added. A real S3-compatible integration remains a later staging/provider task.
+- Upload endpoints, PostgreSQL object metadata/ownership, signed URLs, MIME/content validation and orphan cleanup remain unimplemented.
+

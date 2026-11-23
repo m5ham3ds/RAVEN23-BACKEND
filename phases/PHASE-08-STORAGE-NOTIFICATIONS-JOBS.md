@@ -1,6 +1,6 @@
 # المرحلة 08 — تخزين الملفات والإشعارات والمهام الخلفية
 
-**الحالة:** IN_PROGRESS — أنجزت شريحة queue/mail داخلية واجتازت CI؛ التخزين وpush والتكامل الحقيقي للبريد ما زالت مفتوحة.  
+**الحالة:** IN_PROGRESS — شريحتا queue/mail وعقد التخزين الخاص نُفذتا؛ رفع الملفات وmetadata والصلاحيات وpush والتكامل الخارجي ما زالت مفتوحة.  
 **الاعتماديات:** 02 و03 و05 COMPLETE؛ Phase04 PARTIAL في تكامل البريد/Google الخارجي. تسمح الاعتمادية الحالية بتطوير queue abstraction وإبقاء الإرسال معطلاً إلى حين staging/provider approval.
 
 ## الهدف
@@ -40,7 +40,7 @@
 - يستخدم Laravel database queue الموجود بالفعل (`jobs`, `job_batches`, `failed_jobs`)؛ لم تُضف migration أو schema جديداً لهذه الشريحة.
 - أضيف `docker/queue-worker.sh` كعملية منفصلة داخل صورة runtime. افتراضاته: queues `mail,default`، sleep 3s، tries 5، timeout 45s، max-time 3600s، memory 128MB.
 - يرفض العامل `sync/null` ويشترط أن يكون `QUEUE_TIMEOUT < DB_QUEUE_RETRY_AFTER` عند استخدام database driver؛ القيم النموذجية 45 و90 ثانية.
-- اختبارات `QueuedNotificationsTest` تفحص queue dispatch، التشفير، after-commit، queue name، backoff، والـretry deadline الثابت.
+- اختبارات `QueuedNotificationsTest` تفحص queue dispatch والتشفير وafter-commit وqueue name وbackoff والـretry deadline؛ كما تختبر rendering لقوالب البريد وتشغيل عامل قاعدة البيانات مرة واحدة عبر mailer محلي `array` وتسجيل الفشل النهائي في `failed_jobs`.
 - Docker CI يفحص shell syntax ويشغّل حالات رفض timeout/retry_after المتعارضة وsync queue.
 
 ### CI proof على SHA `dd861fa9afd6f876ff300f65aae58a35b16f3112`
@@ -54,7 +54,7 @@
 
 ### حدود ما تم إثباته
 
-- اختبارات queue تستخدم Laravel Queue fake؛ أثبتت job properties/encryption/dispatch contract، ولم تشغّل worker فعلياً ضد SMTP أو mail sink.
+- اختبارات dispatch تستخدم Laravel Queue fake، مع اختبار مستقل يشغّل `queue:work --once` على قاعدة البيانات ويرسل الرسالة إلى mailer محلي `array`؛ لم يُختبر SMTP خارجي.
 - لم يُضبط provider أو domain/DNS أو credential؛ `RAVEN23_AUTH_MAIL_ENABLED=false` و`MAIL_MAILER=log` ما زالا كما هما.
 - لم يُختبر توصيل البريد الحقيقي أو الرسائل في تطبيق Android.
 - لم يُنفذ S3-compatible storage adapter أو private object authorization أو metadata/ownership API.
@@ -72,3 +72,20 @@
 7. سياسات retention وlimits والتكلفة وبيانات account export/delete للملفات.
 
 **الحالة:** Phase08 IN_PROGRESS، وهذه الشريحة لا تعني أن التخزين أو push أو البريد الخارجي جاهز للإنتاج.
+
+
+### شريحة 08B — عقد التخزين الخاص المستقل عن المزود
+
+- أضيف عقد PrivateObjectStorage بعمليات put/get/exists/delete فقط؛ لا يسرّب تفاصيل AWS أو HTTP أو provider إلى منطق المجال.
+- أضيف FilesystemPrivateObjectStorage فوق Illuminate Contracts Filesystem، ولذلك يمكن استخدامه مع Laravel local أو أي disk متوافق مثل S3 بعد تثبيت driver المطلوب.
+- رُبط العقد في AppServiceProvider عبر RAVEN23_PRIVATE_STORAGE_DISK، والافتراضي disk منفصل private_media بمجلد خاص غير منشور وvisibility=private؛ بقي FILESYSTEM_DISK=local وعقد Flutter photo_url دون تغيير.
+- يرفض adapter مفاتيح فارغة أو traversal (./..) أو فواصل مزدوجة أو محارف غير مسموح بها، ويفرض private visibility في الكتابة، ويرفع استثناءً عند فشل التخزين/القراءة/الحذف.
+- أضيف PrivateObjectStorageTest لاختبار binding والكتابة والقراءة والوجود والحذف والرفض الآمن للمفاتيح غير الصالحة باستخدام Storage::fake.
+- لا توجد حزمة league/flysystem-aws-s3-v3 أو AWS SDK في composer.lock حالياً؛ لذلك لم يتم تفعيل disk S3 أو إضافة مفاتيح/اعتمادات خارجية. هذا يثبت حدود العقد وسلوكه على adapter محلي اختباري فقط، وليس اختبار اتصال S3 حقيقي.
+
+### ما لم يدخل بعد في 08B
+
+- لا يوجد upload endpoint أو قبول ملفات من المستخدم حتى الآن.
+- لا يوجد جدول metadata/ownership أو signed URL أو authorization للتنزيل.
+- لا يوجد profile-photo migration أو تغيير إلى photo_url؛ الحقل القديم متوافق كما هو.
+- لا يوجد S3 credentials أو bucket أو تكاليف أو موارد cloud تم إنشاؤها.

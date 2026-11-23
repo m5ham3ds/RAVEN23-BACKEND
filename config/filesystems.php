@@ -15,6 +15,9 @@ return [
 
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    // Dedicated private object store; it can later point to an S3-compatible disk.
+    'private_disk' => env('RAVEN23_PRIVATE_STORAGE_DISK', 'private_media'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -36,6 +39,15 @@ return [
             'serve' => true,
             'throw' => false,
             'report' => false,
+        ],
+
+        'private_media' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/media'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+            'report' => true,
         ],
 
         'public' => [

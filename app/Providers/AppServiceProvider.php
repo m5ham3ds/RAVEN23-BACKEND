@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Contracts\Storage\PrivateObjectStorage;
+use App\Services\Storage\FilesystemPrivateObjectStorage;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,7 +14,11 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(PrivateObjectStorage::class, static function (): PrivateObjectStorage {
+            $disk = (string) config('filesystems.private_disk', 'private_media');
+
+            return new FilesystemPrivateObjectStorage(Storage::disk($disk));
+        });
     }
 
     public function boot(): void
