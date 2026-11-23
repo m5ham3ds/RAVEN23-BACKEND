@@ -4,24 +4,30 @@
 **تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
 **الحالة:** COMPLETE على مستوى source/workflow inventory؛ لم تُنفذ workflows التي تكتب على الإنتاج.
 
-## 1. ملفات workflows
+## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
 
-**Git tree الحالي:** 12 workflow files؛ لم يعد runtime-db-diagnostics.yml موجودًا.
+عدد الملفات الحالية: **5**.
 
-| الملف | الاسم في GitHub Actions | Trigger | طبيعة العمل / ملاحظات |
+| الملف | الاسم | Trigger | السلوك |
 |---|---|---|---|
-| docker-build.yml | RAVEN23 Backend Docker Validation | push وpull_request إلى main وRAVEN23-BACKEND-TEST | يبني الصورة، يشغل جميع Feature tests على SQLite، وجميع Integration tests على PostgreSQL 16 المؤقتة، ثم smoke checks للـruntime |
-| auth-smoke.yml | RAVEN23 Live Authentication Smoke | push إلى main وworkflow_dispatch | يفحص health/DB/schema/commit/routes بطلبات GET؛ شرط job يسمح push فقط لذلك لا يثبت workflow_dispatch وحده تشغيل job |
-| pint-format-report.yml | RAVEN23 Pint Format Report | push وpull_request إلى الفروع الثلاثة وworkflow_dispatch | Laravel Pint على ملفات PHP المتغيرة |
-| security-scans.yml | RAVEN23 Security Scans | push وpull_request إلى الفروع الثلاثة وworkflow_dispatch | Gitleaks وTrivy filesystem/image وبوابات الثغرات |
-| users-auth-tests.yml | RAVEN23 USERS Authentication Tests | push وpull_request إلى RAVEN23-BACKEND-USERS | اختبارات SQLite وPostgreSQL لدورة الحسابات |
-| production-account-retry.yml | RAVEN23 Production Registration Retry | تعديل الملف نفسه على main | ينشئ حسابًا اصطناعيًا ويسجل دخوله ويمسحه من production |
-| production-account-retry-2.yml | RAVEN23 Production Account Retry 2 | تعديل الملف نفسه على main | نسخة قريبة من اختبار account lifecycle الإنتاجي |
-| production-account-retry-3.yml | RAVEN23 Production Account Retry 3 | تعديل الملف نفسه على main | نسخة قريبة من اختبار account lifecycle الإنتاجي |
-| production-account-retry-4.yml | RAVEN23 Production Account Retry 6 | تعديل الملف نفسه على main | نسخة قريبة؛ الاسم يوحي برقم retry غير مطابق للملف |
-| production-account-retry-7.yml | RAVEN23 Production Account Retry 6 | تعديل الملف نفسه على main | اسم workflow مكرر مع retry-4 رغم اختلاف اسم الملف |
-| production-account-smoke.yml | RAVEN23 Production Account Creation Test | تعديل الملف نفسه على main | ينشئ حساب إنتاج اصطناعيًا ويجرب دورة الحياة ويحاول التنظيف؛ cleanup failure قد يترك حسابًا |
-| production-registration-route-probe.yml | RAVEN23 Production Registration Route Probe | تعديل الملف نفسه على main | يختبر route validation عبر payload فارغ ويتوقع 422؛ لا ينشئ حسابًا في المسار الرئيسي |
+| `.github/workflows/docker-build.yml` | RAVEN23 Backend Docker Validation | push/pull_request إلى main | Production image build، SQLite Feature tests، PostgreSQL 16 disposable Integration tests، Pint strict/runtime/least-privilege/worker guards. |
+| `.github/workflows/auth-smoke.yml` | RAVEN23 Runtime HTTP Smoke | workflow_dispatch فقط | فحص GET-only لـliveness/readiness/health وتسجيل المسارات؛ عنوان API يمرر يدوياً. لا إنشاء حساب أو migration. |
+| `.github/workflows/pint-format-report.yml` | RAVEN23 Pint Format Report | push/pull_request إلى main وworkflow_dispatch | ينسق PHP files المتغيرة فقط ثم ينشر artifact؛ إذا لا توجد PHP files، يتخطى خطوات التنسيق. |
+| `.github/workflows/security-scans.yml` | RAVEN23 Security Scans | push/pull_request إلى main وworkflow_dispatch | Gitleaks وTrivy filesystem/image وفشل على fixable HIGH/CRITICAL image vulnerabilities. |
+| `.github/workflows/users-auth-tests.yml` | RAVEN23 Authentication Regression Tests | push/pull_request إلى main | Auth regression على SQLite وPostgreSQL المؤقتة. اسم الملف تاريخي ولا يعتمد فرع USERS. |
+
+### Workflows الإنتاج التي أزيلت
+
+حُذفت سبعة ملفات من `main` بعد اكتشاف استهدافها Render production مباشرة:
+- `production-account-smoke.yml`
+- `production-account-retry.yml`
+- `production-account-retry-2.yml`
+- `production-account-retry-3.yml`
+- `production-account-retry-4.yml`
+- `production-account-retry-7.yml`
+- `production-registration-route-probe.yml`
+
+ستة منها تنفذ دورة إنشاء/تسجيل دخول/حذف حساب ضد API الإنتاج، وملف route-probe يرسل POST فارغاً إلى production للتحقق من validation. كانت triggers مرتبطة بتعديل ملف workflow نفسه وليست regression checks آمنة لكل تغييرات التطبيق. لم يتم تشغيلها خلال المراجعة، ولم ترسل أي طلبات إلى Render، ولم يتم تغيير قاعدة الإنتاج. أي lifecycle test حي مستقبلاً يجب أن يستخدم staging بقاعدة معزولة وموافقة صريحة.
 
 ## 2. نتائج CI المرصودة
 
@@ -112,3 +118,17 @@
 - لا تُخفى هذه النتيجة السابقة: الفشل كان تنسيقياً، وتم إصلاحه والتحقق من SHA أحدث.
 
 لا توجد PRs أو فروع اختبار جديدة؛ GitHub branch listing أعاد `main` فقط.
+
+
+## 8. تحديث نتائج ومراجعة CI — 23 نوفمبر 2026
+
+تم التحقق من نتائج التشغيلات الأربعة على رأس الوثائق `729163a909679cf50cd0cd1275dcd9ab8f7061f6`:
+
+| Workflow | Run | النتيجة المرصودة |
+|---|---:|---|
+| Docker Validation | [45205731260](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45205731260) | SUCCESS؛ جميع الخطوات الأساسية وSQLite/PostgreSQL/runtime smoke PASS |
+| Security Scans | [45205731207](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45205731207) | SUCCESS؛ Gitleaks/Trivy/image gates PASS |
+| Authentication Regression | [45205731245](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45205731245) | SUCCESS؛ SQLite/PostgreSQL auth lifecycle PASS |
+| Pint Format | [45205731265](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45205731265) | SUCCESS؛ لم تتغير PHP files لذلك تخطت steps الخاصة بالملفات المتغيرة؛ strict Pint داخل Docker نجح |
+
+آخر التزام برمجي اجتاز البوابات الأربع على SHA واحد هو `dd861fa9afd6f876ff300f65aae58a35b16f3112` مع runs #45204060525 و#45204060572 و#45204060578 و#45204060417، كلها SUCCESS.
