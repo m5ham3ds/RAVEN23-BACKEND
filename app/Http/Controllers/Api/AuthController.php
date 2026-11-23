@@ -864,6 +864,7 @@ class AuthController extends Controller
             ],
         ]);
     }
+
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();

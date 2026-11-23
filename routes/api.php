@@ -3,11 +3,11 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
-use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use App\Http\Controllers\Api\PlaylistSyncController;
 use App\Http\Controllers\Api\PreferenceSyncController;
-use App\Http\Controllers\Api\WellnessSyncController;
+use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use App\Http\Controllers\Api\UserMediaController;
+use App\Http\Controllers\Api\WellnessSyncController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {

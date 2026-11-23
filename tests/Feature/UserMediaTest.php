@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Contracts\Storage\PrivateObjectStorage;
 use App\Jobs\DeletePrivateObjectJob;
 use App\Models\UserMedia;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -235,7 +236,7 @@ class UserMediaTest extends TestCase
         Storage::disk('private_media')->assertExists($objectKey);
         Queue::assertPushed(DeletePrivateObjectJob::class, function (DeletePrivateObjectJob $job) use ($objectKey): bool {
             return $job->objectKey === $objectKey
-                && $job instanceof \Illuminate\Contracts\Queue\ShouldBeEncrypted
+                && $job instanceof ShouldBeEncrypted
                 && $job->afterCommit;
         });
 
