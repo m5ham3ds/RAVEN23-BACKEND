@@ -144,12 +144,39 @@ class WellnessSyncController extends Controller
                 ->first();
 
             $revision = (int) $state->revision;
+            $daysToRefresh = [];
+            $requestedDaily = [];
+
             foreach ($sessions as $session) {
-                $revision = $this->storeSession($connection, $userId, $session, $revision);
+                $revision = $this->storeSession(
+                    $connection,
+                    $userId,
+                    $session,
+                    $revision,
+                    $daysToRefresh,
+                );
             }
+
             foreach ($daily as $summary) {
-                $revision = $this->storeDaily($connection, $userId, $summary, $revision);
+                $normalized = $this->normalizeDaily($summary);
+                $newReceipt = $this->recordDailyUploadReceipt(
+                    $connection,
+                    $userId,
+                    $normalized,
+                );
+                $daysToRefresh[$normalized['local_day']] = true;
+                if ($newReceipt) {
+                    $requestedDaily[$normalized['local_day']] = $normalized;
+                }
             }
+
+            $revision = $this->rebuildDailySummaries(
+                $connection,
+                $userId,
+                array_keys($daysToRefresh),
+                $requestedDaily,
+                $revision,
+            );
 
             if ($revision !== (int) $state->revision) {
                 $connection->table('user_sync_revisions')
@@ -305,8 +332,13 @@ class WellnessSyncController extends Controller
         ]);
     }
 
-    private function storeSession($connection, int $userId, array $input, int $revision): int
-    {
+    private function storeSession(
+        $connection,
+        int $userId,
+        array $input,
+        int $revision,
+        array &$daysToRefresh,
+    ): int {
         $updatedAt = (int) $input['updated_at_utc'];
         $submittedDeletedAt = isset($input['deleted_at_utc']) ? (int) $input['deleted_at_utc'] : null;
         $deletedAt = $submittedDeletedAt !== null && $submittedDeletedAt >= $updatedAt
@@ -336,10 +368,19 @@ class WellnessSyncController extends Controller
             ->lockForUpdate()
             ->first();
 
+        $existingPayload = [];
+        if ($existing !== null) {
+            $decoded = json_decode((string) $existing->payload, true);
+            $existingPayload = is_array($decoded) ? $decoded : [];
+        }
+
         if ($existing === null || $effectiveStamp > max(
             (int) $existing->updated_at_utc,
             (int) ($existing->deleted_at_utc ?? 0),
         )) {
+            $this->includeDailyDays($daysToRefresh, $existingPayload);
+            $this->includeDailyDays($daysToRefresh, $payload);
+
             $revision++;
             if ($existing === null) {
                 $connection->table('user_wellness_sessions')->insert([
@@ -365,11 +406,12 @@ class WellnessSyncController extends Controller
             }
             $this->appendChange($connection, $userId, $revision, 'session', $sessionId, $payload, $deletedAt !== null);
         } elseif ($existing !== null) {
-            // Re-publish the winning row once for this stale upload version.
-            // This lets a device whose cursor is already current apply the winner
-            // without making retries create an unbounded stream of duplicates.
-            $winner = json_decode((string) $existing->payload, true);
-            $winner = is_array($winner) ? $winner : [];
+            // A stale device still needs the winning session and every affected
+            // daily aggregate. The canonical summary is rebuilt from server rows.
+            $winner = $existingPayload;
+            $this->includeDailyDays($daysToRefresh, $payload);
+            $this->includeDailyDays($daysToRefresh, $winner);
+
             $revision++;
             $this->appendChange(
                 $connection,
@@ -394,11 +436,10 @@ class WellnessSyncController extends Controller
         return $revision;
     }
 
-    private function storeDaily($connection, int $userId, array $input, int $revision): int
+    private function recordDailyUploadReceipt($connection, int $userId, array $payload): bool
     {
-        $updatedAt = (int) $input['updated_at_utc'];
-        $localDay = (string) $input['local_day'];
-        $payload = $this->normalizeDaily($input);
+        $updatedAt = (int) $payload['updated_at_utc'];
+        $localDay = (string) $payload['local_day'];
         $encoded = $this->encode($payload);
         $fingerprint = hash('sha256', $encoded);
 
@@ -411,43 +452,7 @@ class WellnessSyncController extends Controller
             ->exists();
 
         if ($receipt) {
-            return $revision;
-        }
-
-        $existing = $connection->table('user_wellness_daily')
-            ->where('user_id', $userId)
-            ->where('local_day', $localDay)
-            ->lockForUpdate()
-            ->first();
-
-        if ($existing === null || $updatedAt > (int) $existing->updated_at_utc) {
-            $revision++;
-            if ($existing === null) {
-                $connection->table('user_wellness_daily')->insert([
-                    'user_id' => $userId,
-                    'local_day' => $localDay,
-                    'updated_at_utc' => $updatedAt,
-                    'revision' => $revision,
-                    'payload' => $encoded,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } else {
-                $connection->table('user_wellness_daily')
-                    ->where('id', $existing->id)
-                    ->update([
-                        'updated_at_utc' => $updatedAt,
-                        'revision' => $revision,
-                        'payload' => $encoded,
-                        'updated_at' => now(),
-                    ]);
-            }
-            $this->appendChange($connection, $userId, $revision, 'daily', $localDay, $payload, false);
-        } elseif ($existing !== null) {
-            $winner = json_decode((string) $existing->payload, true);
-            $winner = is_array($winner) ? $winner : [];
-            $revision++;
-            $this->appendChange($connection, $userId, $revision, 'daily', $localDay, $winner, false);
+            return false;
         }
 
         $connection->table('user_wellness_upload_receipts')->insert([
@@ -459,7 +464,221 @@ class WellnessSyncController extends Controller
             'created_at' => now(),
         ]);
 
+        return true;
+    }
+
+    /**
+     * A daily summary is derived from all active sessions for an account.
+     * It is never replaced by one device's partial local aggregate.
+     */
+    private function rebuildDailySummaries(
+        $connection,
+        int $userId,
+        array $daysToRefresh,
+        array $requestedDaily,
+        int $revision,
+    ): int {
+        $targetDays = array_fill_keys(array_values(array_unique($daysToRefresh)), true);
+        if ($targetDays === []) {
+            return $revision;
+        }
+
+        $aggregates = [];
+        $rows = $connection->table('user_wellness_sessions')
+            ->where('user_id', $userId)
+            ->whereNull('deleted_at_utc')
+            ->orderBy('id')
+            ->get(['payload']);
+
+        foreach ($rows as $row) {
+            $decoded = json_decode((string) $row->payload, true);
+            if (! is_array($decoded)) {
+                continue;
+            }
+
+            foreach ($this->dailyContributions($decoded) as $day => $contribution) {
+                if (! isset($targetDays[$day])) {
+                    continue;
+                }
+
+                if (! isset($aggregates[$day])) {
+                    $aggregates[$day] = $contribution;
+                    continue;
+                }
+
+                foreach ([
+                    'watched_ms',
+                    'movie_ms',
+                    'episode_ms',
+                    'live_ms',
+                    'completed_movies',
+                    'completed_episodes',
+                    'session_count',
+                ] as $field) {
+                    $aggregates[$day][$field] += (int) $contribution[$field];
+                }
+                $aggregates[$day]['updated_at_utc'] = max(
+                    (int) $aggregates[$day]['updated_at_utc'],
+                    (int) $contribution['updated_at_utc'],
+                );
+            }
+        }
+
+        foreach (array_keys($targetDays) as $localDay) {
+            $payload = $aggregates[$localDay] ?? [
+                'local_day' => $localDay,
+                'timezone_offset_minutes' => 0,
+                'watched_ms' => 0,
+                'movie_ms' => 0,
+                'episode_ms' => 0,
+                'live_ms' => 0,
+                'completed_movies' => 0,
+                'completed_episodes' => 0,
+                'session_count' => 0,
+                'updated_at_utc' => 0,
+            ];
+            $encoded = $this->encode($payload);
+            $existing = $connection->table('user_wellness_daily')
+                ->where('user_id', $userId)
+                ->where('local_day', $localDay)
+                ->lockForUpdate()
+                ->first();
+
+            $existingPayload = [];
+            if ($existing !== null) {
+                $decoded = json_decode((string) $existing->payload, true);
+                $existingPayload = is_array($decoded) ? $decoded : [];
+            }
+
+            $same = $existing !== null && $this->encode($existingPayload) === $encoded;
+            $requested = $requestedDaily[$localDay] ?? null;
+            // Publish the canonical aggregate once when a new device payload
+            // differs. The receipt suppresses the same stale payload on retry.
+            $needsAcknowledgement = is_array($requested)
+                && $this->encode($requested) !== $encoded;
+
+            if ($same && ! $needsAcknowledgement) {
+                continue;
+            }
+
+            $revision++;
+            if ($existing === null) {
+                $connection->table('user_wellness_daily')->insert([
+                    'user_id' => $userId,
+                    'local_day' => $localDay,
+                    'updated_at_utc' => (int) $payload['updated_at_utc'],
+                    'revision' => $revision,
+                    'payload' => $encoded,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else {
+                $connection->table('user_wellness_daily')
+                    ->where('id', $existing->id)
+                    ->update([
+                        'updated_at_utc' => (int) $payload['updated_at_utc'],
+                        'revision' => $revision,
+                        'payload' => $encoded,
+                        'updated_at' => now(),
+                    ]);
+            }
+            $this->appendChange($connection, $userId, $revision, 'daily', $localDay, $payload, false);
+        }
+
         return $revision;
+    }
+
+    /**
+     * Matches the Flutter daily-summary allocation: 30-second qualifying
+     * sessions, session count on the start day, watched time split by segments,
+     * and completion counts on the local end day.
+     */
+    private function dailyContributions(array $session): array
+    {
+        if (($session['deleted_at_utc'] ?? null) !== null
+            || (int) ($session['watched_ms'] ?? 0) < 30_000) {
+            return [];
+        }
+
+        $offsetMinutes = (int) ($session['timezone_offset_minutes'] ?? 0);
+        $offsetMilliseconds = $offsetMinutes * 60_000;
+        $updatedAt = (int) ($session['updated_at_utc'] ?? 0);
+        $mediaType = (string) ($session['media_type'] ?? 'movie');
+        $mediaField = match ($mediaType) {
+            'episode' => 'episode_ms',
+            'live' => 'live_ms',
+            default => 'movie_ms',
+        };
+        $buckets = [];
+
+        $ensureDay = function (int $localMilliseconds) use (
+            &$buckets,
+            $offsetMinutes,
+            $updatedAt,
+        ): string {
+            $day = gmdate('Y-m-d', intdiv($localMilliseconds, 1000));
+            if (! isset($buckets[$day])) {
+                $buckets[$day] = [
+                    'local_day' => $day,
+                    'timezone_offset_minutes' => $offsetMinutes,
+                    'watched_ms' => 0,
+                    'movie_ms' => 0,
+                    'episode_ms' => 0,
+                    'live_ms' => 0,
+                    'completed_movies' => 0,
+                    'completed_episodes' => 0,
+                    'session_count' => 0,
+                    'updated_at_utc' => $updatedAt,
+                ];
+            } elseif ($updatedAt > (int) $buckets[$day]['updated_at_utc']) {
+                $buckets[$day]['updated_at_utc'] = $updatedAt;
+            }
+
+            return $day;
+        };
+
+        $startLocal = (int) $session['started_at_utc'] + $offsetMilliseconds;
+        $startDay = $ensureDay($startLocal);
+        $buckets[$startDay]['session_count']++;
+
+        $segments = $session['segments'] ?? [];
+        if ($segments === []) {
+            $buckets[$startDay]['watched_ms'] += (int) $session['watched_ms'];
+            $buckets[$startDay][$mediaField] += (int) $session['watched_ms'];
+        } else {
+            foreach ($segments as $segment) {
+                $cursor = (int) $segment['startedAtUtc'] + $offsetMilliseconds;
+                $end = (int) $segment['endedAtUtc'] + $offsetMilliseconds;
+                while ($cursor < $end) {
+                    $day = $ensureDay($cursor);
+                    $nextMidnight = (intdiv($cursor, 86_400_000) + 1) * 86_400_000;
+                    $sliceEnd = min($end, $nextMidnight);
+                    $duration = $sliceEnd - $cursor;
+                    $buckets[$day]['watched_ms'] += $duration;
+                    $buckets[$day][$mediaField] += $duration;
+                    $cursor = $sliceEnd;
+                }
+            }
+        }
+
+        if ((bool) ($session['completed'] ?? false)) {
+            $endLocal = (int) $session['ended_at_utc'] + $offsetMilliseconds;
+            $endDay = $ensureDay($endLocal);
+            if ($mediaType === 'movie') {
+                $buckets[$endDay]['completed_movies']++;
+            } elseif ($mediaType === 'episode') {
+                $buckets[$endDay]['completed_episodes']++;
+            }
+        }
+
+        return $buckets;
+    }
+
+    private function includeDailyDays(array &$target, array $session): void
+    {
+        foreach (array_keys($this->dailyContributions($session)) as $day) {
+            $target[$day] = true;
+        }
     }
 
     private function appendChange(

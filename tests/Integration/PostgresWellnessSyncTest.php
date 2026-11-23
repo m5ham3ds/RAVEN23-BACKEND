@@ -76,8 +76,8 @@ class PostgresWellnessSyncTest extends TestCase
             'title' => 'Pilot',
             'seasonNumber' => 1,
             'episodeNumber' => 1,
-            'startedAtUtc' => 1_700_000_000_000,
-            'endedAtUtc' => 1_700_000_060_000,
+            'startedAtUtc' => 1_795_392_000_000,
+            'endedAtUtc' => 1_795_392_060_000,
             'timezoneOffsetMinutes' => 0,
             'watchedMs' => 60_000,
             'durationMs' => 120_000,
@@ -88,6 +88,87 @@ class PostgresWellnessSyncTest extends TestCase
             'updated_at_utc' => $stamp,
             'deleted_at_utc' => $deleted,
         ];
+    }
+
+    public function test_postgresql_daily_aggregates_converge_for_two_devices_out_of_order(): void
+    {
+        $owner = $this->createAccount();
+        $secondToken = User::query()
+            ->findOrFail($owner['id'])
+            ->createToken('PostgreSQL wellness second device')->plainTextToken;
+        $secondStored = PersonalAccessToken::findToken($secondToken);
+        $this->createdTokens[] = (int) $secondStored->getKey();
+
+        $newer = $this->wellnessSession(
+            'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+            2000,
+        );
+        $newer['deviceId'] = 'postgres-device-a';
+        $dailyA = [
+            'local_day' => '2026-11-23',
+            'timezone_offset_minutes' => 0,
+            'watched_ms' => 60000,
+            'movie_ms' => 0,
+            'episode_ms' => 60000,
+            'live_ms' => 0,
+            'completed_movies' => 0,
+            'completed_episodes' => 0,
+            'session_count' => 1,
+            'updated_at_utc' => 2000,
+        ];
+
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$newer],
+                'daily' => [$dailyA],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $older = $this->wellnessSession(
+            'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+            1000,
+        );
+        $older['deviceId'] = 'postgres-device-b';
+        $staleDaily = $dailyA;
+        $staleDaily['updated_at_utc'] = 1000;
+
+        $this->withToken($secondToken)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$older],
+                'daily' => [$staleDaily],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $pull = $this->withToken($secondToken)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonCount(2, 'sessions')
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('daily.0.watched_ms', 120000)
+            ->assertJsonPath('daily.0.movie_ms', 120000)
+            ->assertJsonPath('daily.0.session_count', 2)
+            ->assertJsonPath('daily.0.updated_at_utc', 2000);
+
+        $row = DB::table('user_wellness_daily')
+            ->where('user_id', $owner['id'])
+            ->where('local_day', '2026-11-23')
+            ->first();
+        $summary = json_decode((string) $row->payload, true);
+        $this->assertSame(120000, $summary['watched_ms']);
+        $this->assertSame(2, $summary['session_count']);
+        $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
     }
 
     public function test_postgresql_wellness_sync_is_owner_scoped_revisioned_and_tombstone_safe(): void

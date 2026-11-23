@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +44,14 @@ class WellnessSyncTest extends TestCase
         return (int) floor(microtime(true) * 1000);
     }
 
+    private function createSecondDeviceToken(int $userId): string
+    {
+        return User::query()
+            ->findOrFail($userId)
+            ->createToken('wellness-second-device')
+            ->plainTextToken;
+    }
+
     private function wellnessSession(
         string $id,
         int $stamp,
@@ -56,8 +65,8 @@ class WellnessSyncTest extends TestCase
             'source' => 'streaming',
             'contentId' => '550',
             'title' => $title,
-            'startedAtUtc' => 1_700_000_000_000,
-            'endedAtUtc' => 1_700_000_060_000,
+            'startedAtUtc' => 1_795_392_000_000,
+            'endedAtUtc' => 1_795_392_060_000,
             'timezoneOffsetMinutes' => 120,
             'watchedMs' => 60_000,
             'durationMs' => 120_000,
@@ -65,8 +74,8 @@ class WellnessSyncTest extends TestCase
             'completed' => false,
             'segments' => [
                 [
-                    'startedAtUtc' => 1_700_000_000_000,
-                    'endedAtUtc' => 1_700_000_060_000,
+                    'startedAtUtc' => 1_795_392_000_000,
+                    'endedAtUtc' => 1_795_392_060_000,
                 ],
             ],
             'genres' => ['Drama'],
@@ -152,7 +161,7 @@ class WellnessSyncTest extends TestCase
         $this->assertDatabaseHas('user_wellness_daily', [
             'user_id' => $account['id'],
             'local_day' => '2026-11-23',
-            'updated_at_utc' => 1100,
+            'updated_at_utc' => 1000,
             'revision' => 2,
         ]);
         $this->assertSame(2, $pull->json('server_revision'));
@@ -180,7 +189,7 @@ class WellnessSyncTest extends TestCase
                 'limit' => 1,
             ])
             ->assertOk()
-            ->assertJsonPath('server_revision', 2)
+            ->assertJsonPath('server_revision', 3)
             ->assertJsonPath('has_more', true)
             ->assertJsonCount(1, 'sessions');
 
@@ -201,10 +210,24 @@ class WellnessSyncTest extends TestCase
                 'limit' => 1,
             ])
             ->assertOk()
-            ->assertJsonPath('server_revision', 2)
-            ->assertJsonPath('has_more', false)
-            ->assertJsonPath('next_cursor', null)
+            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('has_more', true)
             ->assertJsonCount(1, 'sessions');
+
+        Auth::forgetGuards();
+        $third = $this->withToken($account['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'cursor' => $second->json('next_cursor'),
+                'limit' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('has_more', false)
+            ->assertJsonCount(1, 'daily');
 
         $snapshotIds = [
             $first->json('sessions.0.id'),
@@ -212,6 +235,8 @@ class WellnessSyncTest extends TestCase
         ];
         sort($snapshotIds);
         $this->assertSame([$firstId, $secondId], $snapshotIds);
+        $this->assertSame('2026-11-23', $third->json('daily.0.local_day'));
+        $this->assertSame(120000, $third->json('daily.0.watched_ms'));
 
         Auth::forgetGuards();
         $incremental = $this->withToken($account['token'])
@@ -219,13 +244,15 @@ class WellnessSyncTest extends TestCase
                 'client_time_utc' => $this->clientTime(),
                 'sessions' => [],
                 'daily' => [],
-                'since_revision' => 2,
+                'since_revision' => 3,
                 'limit' => 450,
             ])
             ->assertOk()
-            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('server_revision', 5)
             ->assertJsonCount(1, 'sessions')
-            ->assertJsonPath('sessions.0.id', $laterId);
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('sessions.0.id', $laterId)
+            ->assertJsonPath('daily.0.watched_ms', 180000);
     }
 
     public function test_tombstones_win_over_stale_devices_and_exact_upload_replays_are_idempotent(): void
@@ -247,7 +274,7 @@ class WellnessSyncTest extends TestCase
         $this->assertDatabaseHas('user_sync_revisions', [
             'user_id' => $account['id'],
             'domain' => 'wellness',
-            'revision' => 3,
+            'revision' => 5,
         ]);
         $this->assertDatabaseHas('user_wellness_upload_receipts', [
             'user_id' => $account['id'],
@@ -266,7 +293,7 @@ class WellnessSyncTest extends TestCase
                 'limit' => 450,
             ])
             ->assertOk()
-            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('server_revision', 5)
             ->assertJsonCount(1, 'sessions')
             ->assertJsonPath('sessions.0.deleted_at_utc', 2000)
             ->assertJsonPath('sessions.0.deleted', true);
@@ -284,21 +311,84 @@ class WellnessSyncTest extends TestCase
                 'limit' => 450,
             ])
             ->assertOk()
-            ->assertJsonPath('server_revision', 4)
+            ->assertJsonPath('server_revision', 7)
             ->assertJsonCount(1, 'sessions')
             ->assertJsonPath('sessions.0.deleted_at_utc', null)
             ->assertJsonPath('sessions.0.updated_at_utc', 3000)
             ->assertJsonPath('sessions.0.deleted', false);
 
-        $this->assertSame(3, $tombstone->json('server_revision'));
-        $this->assertSame(4, $resumed->json('server_revision'));
+        $this->assertSame(5, $tombstone->json('server_revision'));
+        $this->assertSame(7, $resumed->json('server_revision'));
         $this->assertDatabaseHas('user_wellness_sessions', [
             'user_id' => $account['id'],
             'session_id' => $id,
             'updated_at_utc' => 3000,
             'deleted_at_utc' => null,
-            'revision' => 4,
+            'revision' => 6,
         ]);
+    }
+
+    public function test_two_devices_converge_daily_totals_when_an_older_session_arrives_later(): void
+    {
+        $account = $this->registerAccount();
+        $deviceB = $this->createSecondDeviceToken($account['id']);
+        $newerId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+        $olderId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+
+        $this->upload(
+            $account['token'],
+            [$this->wellnessSession($newerId, 2000)],
+            [$this->daily('2026-11-23', 2000, 60000)],
+        );
+
+        Auth::forgetGuards();
+        $this->upload(
+            $deviceB,
+            [$this->wellnessSession($olderId, 1000)],
+            [$this->daily('2026-11-23', 1000, 60000)],
+        );
+
+        Auth::forgetGuards();
+        $merged = $this->withToken($deviceB)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonCount(2, 'sessions')
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('daily.0.local_day', '2026-11-23')
+            ->assertJsonPath('daily.0.watched_ms', 120000)
+            ->assertJsonPath('daily.0.movie_ms', 120000)
+            ->assertJsonPath('daily.0.session_count', 2)
+            ->assertJsonPath('daily.0.updated_at_utc', 2000);
+
+        $stored = DB::table('user_wellness_daily')
+            ->where('user_id', $account['id'])
+            ->where('local_day', '2026-11-23')
+            ->first();
+        $aggregate = json_decode((string) $stored->payload, true);
+        $this->assertSame(120000, $aggregate['watched_ms']);
+        $this->assertSame(2, $aggregate['session_count']);
+
+        Auth::forgetGuards();
+        $corrected = $this->daily('2026-11-23', 2000, 120000);
+        $corrected['session_count'] = 2;
+        $this->upload($deviceB, [], [$corrected]);
+
+        $storedAfterRetry = DB::table('user_wellness_daily')
+            ->where('user_id', $account['id'])
+            ->where('local_day', '2026-11-23')
+            ->first();
+        $this->assertSame(
+            120000,
+            json_decode((string) $storedAfterRetry->payload, true)['watched_ms'],
+        );
+        $this->assertGreaterThan(0, (int) $merged->json('server_revision'));
     }
 
     public function test_sync_is_owner_scoped_and_rejects_clock_skew_and_invalid_cursors(): void
