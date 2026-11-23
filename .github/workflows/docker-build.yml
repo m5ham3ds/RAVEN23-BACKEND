@@ -103,6 +103,36 @@ jobs:
             raven23-backend:postgres-test \
             /opt/raven/vendor/bin/pint --test "${changed_php[@]}"
 
+      - name: Verify the queue worker rejects unsafe process settings
+        run: |
+          set -eu
+          output_file="$(mktemp)"
+          if docker run --rm \
+            --entrypoint /usr/local/bin/raven23-queue-worker \
+            -e QUEUE_CONNECTION=database \
+            -e QUEUE_TIMEOUT=90 \
+            -e DB_QUEUE_RETRY_AFTER=90 \
+            raven23-backend:ci >"$output_file" 2>&1; then
+            echo "::error::Queue worker accepted timeout >= retry_after."
+            cat "$output_file"
+            rm -f "$output_file"
+            exit 1
+          fi
+          grep -Fq "QUEUE_TIMEOUT must be lower than DB_QUEUE_RETRY_AFTER" "$output_file"
+          rm -f "$output_file"
+
+          output_file="$(mktemp)"
+          if docker run --rm \
+            --entrypoint /usr/local/bin/raven23-queue-worker \
+            -e QUEUE_CONNECTION=sync \
+            raven23-backend:ci >"$output_file" 2>&1; then
+            echo "::error::Queue worker accepted the synchronous queue driver."
+            cat "$output_file"
+            rm -f "$output_file"
+            exit 1
+          fi
+          grep -Fq "requires an asynchronous queue connection" "$output_file"
+          rm -f "$output_file"
       - name: Verify the Wellness controller Pint baseline
         run: |
           set -euo pipefail

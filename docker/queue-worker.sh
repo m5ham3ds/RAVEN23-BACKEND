@@ -43,7 +43,7 @@ if [ "$connection" = "database" ] && [ "$timeout" -ge "$retry_after" ]; then
     exit 64
 fi
 
- exec php artisan queue:work "$connection" \
+exec php artisan queue:work "$connection" \
     --queue="$queues" \
     --sleep="$sleep_seconds" \
     --tries="$tries" \

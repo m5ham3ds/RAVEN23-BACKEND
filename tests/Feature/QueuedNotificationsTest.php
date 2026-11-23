@@ -53,8 +53,10 @@ class QueuedNotificationsTest extends TestCase
         $this->assertSame(3, $job->maxExceptions);
         $this->assertTrue($job->failOnTimeout);
         $this->assertSame([10, 30, 90, 180], $job->backoff());
-        $this->assertInstanceOf(\DateTimeInterface::class, $job->retryUntil());
-        $this->assertGreaterThan(now()->getTimestamp(), $job->retryUntil()->getTimestamp());
+        $deadline = $job->retryUntil();
+        $this->assertInstanceOf(\DateTimeInterface::class, $deadline);
+        $this->assertGreaterThan(now()->getTimestamp(), $deadline->getTimestamp());
+        $this->assertSame($deadline, $job->retryUntil());
     }
 
     public function test_email_verification_notification_is_encrypted_and_queued_after_commit(): void

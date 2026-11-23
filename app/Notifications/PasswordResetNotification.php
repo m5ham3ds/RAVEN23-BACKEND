@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -21,6 +22,8 @@ class PasswordResetNotification extends Notification implements ShouldBeEncrypte
 
     public bool $failOnTimeout = true;
 
+    public readonly DateTimeImmutable $retryDeadlineAt;
+
     public function backoff(): array
     {
         return [10, 30, 90, 180];
@@ -28,11 +31,12 @@ class PasswordResetNotification extends Notification implements ShouldBeEncrypte
 
     public function retryUntil(): DateTimeInterface
     {
-        return now()->addMinutes(20);
+        return $this->retryDeadlineAt;
     }
 
     public function __construct(public readonly string $token)
     {
+        $this->retryDeadlineAt = now()->addMinutes(20)->toDateTimeImmutable();
         $this->onQueue('mail')->afterCommit();
     }
 

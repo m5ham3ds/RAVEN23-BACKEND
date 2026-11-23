@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeEncrypted;
@@ -21,6 +22,8 @@ class EmailVerificationNotification extends Notification implements ShouldBeEncr
 
     public bool $failOnTimeout = true;
 
+    public readonly DateTimeImmutable $retryDeadlineAt;
+
     public function backoff(): array
     {
         return [10, 30, 90, 180];
@@ -28,7 +31,7 @@ class EmailVerificationNotification extends Notification implements ShouldBeEncr
 
     public function retryUntil(): DateTimeInterface
     {
-        return now()->addMinutes(20);
+        return $this->retryDeadlineAt;
     }
 
     public function __construct(
@@ -36,6 +39,7 @@ class EmailVerificationNotification extends Notification implements ShouldBeEncr
         public readonly string $token,
         public readonly int $expiresInMinutes,
     ) {
+        $this->retryDeadlineAt = now()->addMinutes(20)->toDateTimeImmutable();
         $this->onQueue('mail')->afterCommit();
     }
 
