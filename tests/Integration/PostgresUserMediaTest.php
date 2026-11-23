@@ -9,9 +9,9 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
 
@@ -173,7 +173,7 @@ class PostgresUserMediaTest extends TestCase
         ]);
 
         $oldTimestamp = now()->subDays(2)->timestamp;
-        $storage = \\Mockery::mock(PrivateObjectStorage::class);
+        $storage = \Mockery::mock(PrivateObjectStorage::class);
         $storage->shouldReceive('listObjects')
             ->with('users')
             ->once()

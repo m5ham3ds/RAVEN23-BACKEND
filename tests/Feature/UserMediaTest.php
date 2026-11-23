@@ -304,7 +304,7 @@ class UserMediaTest extends TestCase
         ]);
 
         $oldTimestamp = now()->subDays(2)->timestamp;
-        $storage = \\Mockery::mock(PrivateObjectStorage::class);
+        $storage = \Mockery::mock(PrivateObjectStorage::class);
         $storage->shouldReceive('listObjects')
             ->with('users')
             ->twice()
