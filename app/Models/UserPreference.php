@@ -13,6 +13,11 @@ class UserPreference extends Model
 
     protected $fillable = ['locale', 'timezone'];
 
+    protected function casts(): array
+    {
+        return ['revision' => 'integer'];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

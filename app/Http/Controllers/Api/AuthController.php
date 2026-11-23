@@ -61,6 +61,7 @@ class AuthController extends Controller
                 'user_id' => $user->getKey(),
                 'locale' => null,
                 'timezone' => 'UTC',
+                'revision' => 0,
                 'created_at' => $user->created_at ?? $now,
                 'updated_at' => $user->updated_at ?? $now,
             ]);
@@ -636,6 +637,7 @@ class AuthController extends Controller
             'preferences' => [
                 'locale' => $preferences->locale,
                 'timezone' => $preferences->timezone,
+                'revision' => (int) $preferences->revision,
                 'updated_at' => optional($preferences->updated_at)->toISOString(),
             ],
         ]);
@@ -658,15 +660,24 @@ class AuthController extends Controller
 
         $user = $request->user();
         $this->ensureAccountData($user);
-        $preferences = $user->preferences()->firstOrFail();
-        $preferences->fill($data)->save();
+        $preferences = DB::transaction(function () use ($user, $data) {
+            $preferences = $user->preferences()->lockForUpdate()->firstOrFail();
+            $preferences->fill($data);
+            if ($preferences->isDirty(['locale', 'timezone'])) {
+                $preferences->revision = (int) $preferences->revision + 1;
+            }
+            $preferences->save();
+
+            return $preferences->fresh();
+        });
 
         return response()->json([
             'success' => true,
             'preferences' => [
                 'locale' => $preferences->locale,
                 'timezone' => $preferences->timezone,
-                'updated_at' => optional($preferences->fresh()->updated_at)->toISOString(),
+                'revision' => (int) $preferences->revision,
+                'updated_at' => optional($preferences->updated_at)->toISOString(),
             ],
         ]);
     }
@@ -812,6 +823,7 @@ class AuthController extends Controller
                 'preferences' => [
                     'locale' => $preferences->locale,
                     'timezone' => $preferences->timezone,
+                    'revision' => (int) $preferences->revision,
                     'updated_at' => optional($preferences->updated_at)->toISOString(),
                 ],
                 'devices' => $devices,
