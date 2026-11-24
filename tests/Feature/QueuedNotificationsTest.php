@@ -405,6 +405,107 @@ class QueuedNotificationsTest extends TestCase
         $this->assertDatabaseHas('notification_outbox', ['id' => $ids[0], 'status' => 'sent']);
     }
 
+    public function test_push_delivery_obeys_the_global_disable_switch_after_enqueue(): void
+    {
+        Queue::fake();
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createUser();
+        $token = 'synthetic-fcm-disable-switch-0123456789abcdef';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:'.$token, (string) config('app.key')),
+            'token' => $token,
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+        $fake = new PushNotificationTransportFake;
+        $this->app->instance(PushNotificationTransport::class, $fake);
+        $ids = app(NotificationOutboxService::class)->queuePush(
+            $user,
+            'disable-switch:'.$user->getKey(),
+            'Security update',
+            'A security update is available.',
+        );
+        $this->assertCount(1, $ids);
+
+        config(['services.raven23_push.enabled' => false]);
+        $transport = app(NotificationOutboxTransport::class);
+
+        try {
+            (new DeliverNotificationOutboxJob($ids[0], 'push'))->handle($transport);
+            $this->fail('A queued push must not be delivered after the global switch is disabled.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('Push delivery is disabled by configuration.', $exception->getMessage());
+        }
+
+        $this->assertSame([], $fake->calls);
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $ids[0],
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_outbox_status_reports_aggregate_health_without_exposing_private_fields(): void
+    {
+        Queue::fake();
+        $user = $this->createUser();
+        $service = app(NotificationOutboxService::class);
+        $ids = [];
+        for ($index = 0; $index < 6; $index++) {
+            $ids[] = $service->queuePasswordReset($user, 'outbox-status-secret-token-'.$index);
+        }
+
+        $now = now();
+        DB::table('notification_outbox')->where('id', $ids[0])->update([
+            'created_at' => $now->copy()->subSeconds(90),
+            'available_at' => $now->copy()->subSeconds(30),
+        ]);
+        DB::table('notification_outbox')->where('id', $ids[1])->update([
+            'created_at' => $now->copy()->subSeconds(10),
+            'available_at' => $now->copy()->addMinutes(5),
+        ]);
+        DB::table('notification_outbox')->where('id', $ids[2])->update([
+            'created_at' => $now->copy()->subMinutes(2),
+            'status' => 'processing',
+            'claimed_at' => $now->copy()->subSeconds(120),
+        ]);
+        DB::table('notification_outbox')->where('id', $ids[3])->update([
+            'created_at' => $now->copy()->subSeconds(20),
+            'status' => 'processing',
+            'claimed_at' => $now->copy()->subSeconds(5),
+        ]);
+        DB::table('notification_outbox')->where('id', $ids[4])->update([
+            'status' => 'sent',
+            'sent_at' => $now,
+        ]);
+        DB::table('notification_outbox')->where('id', $ids[5])->update([
+            'status' => 'failed',
+            'last_error_type' => RuntimeException::class,
+        ]);
+
+        $this->assertSame(0, Artisan::call('notifications:outbox-status', ['--json' => true]));
+        $output = Artisan::output();
+        $summary = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(1, $summary['pending_due_count']);
+        $this->assertSame(1, $summary['pending_scheduled_count']);
+        $this->assertSame(2, $summary['processing_count']);
+        $this->assertSame(1, $summary['expired_claim_count']);
+        $this->assertSame(1, $summary['failed_count']);
+        $this->assertSame(1, $summary['sent_count']);
+        $this->assertGreaterThanOrEqual(90, $summary['oldest_due_pending_age_seconds']);
+        $this->assertNotEmpty($summary['by_type_and_status']);
+        $this->assertStringNotContainsString($user->email, $output);
+        $this->assertStringNotContainsString('outbox-status-secret-token', $output);
+        $this->assertStringNotContainsString('user_id', $output);
+        $this->assertStringNotContainsString('encrypted_payload', $output);
+        $this->assertStringNotContainsString('last_error_type', $output);
+    }
+
     public function test_database_worker_records_unrelated_terminal_queue_failures_in_failed_jobs(): void
     {
         Queue::pushOn('mail', new FailingQueueJob);

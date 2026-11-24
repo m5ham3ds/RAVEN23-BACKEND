@@ -178,6 +178,30 @@ class PostgresNotificationOutboxTest extends TestCase
         Queue::assertPushedOn('push', DeliverNotificationOutboxJob::class);
     }
 
+    public function test_postgresql_outbox_status_reports_only_aggregate_counts(): void
+    {
+        $before = Artisan::call('notifications:outbox-status', ['--json' => true]);
+        $this->assertSame(0, $before);
+        $beforeSummary = json_decode(Artisan::output(), true, 512, JSON_THROW_ON_ERROR);
+
+        $user = $this->createAccount('status-summary');
+        $token = 'postgres-status-secret-token';
+        app(NotificationOutboxService::class)->queuePasswordReset($user, $token);
+
+        $this->assertSame(0, Artisan::call('notifications:outbox-status', ['--json' => true]));
+        $output = Artisan::output();
+        $summary = json_decode($output, true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame(
+            $beforeSummary['pending_due_count'] + 1,
+            $summary['pending_due_count'],
+        );
+        $this->assertStringNotContainsString($user->email, $output);
+        $this->assertStringNotContainsString($token, $output);
+        $this->assertStringNotContainsString('user_id', $output);
+        $this->assertStringNotContainsString('encrypted_payload', $output);
+    }
+
     protected function tearDown(): void
     {
         foreach (array_reverse($this->createdUsers) as $userId) {

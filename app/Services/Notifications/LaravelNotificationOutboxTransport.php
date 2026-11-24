@@ -47,6 +47,10 @@ final class LaravelNotificationOutboxTransport implements NotificationOutboxTran
 
     private function deliverPush(User $user, array $payload, string $idempotencyKey): void
     {
+        if (! (bool) config('services.raven23_push.enabled', false)) {
+            throw new RuntimeException('Push delivery is disabled by configuration.');
+        }
+
         $provider = (string) ($payload['provider'] ?? '');
         if (! in_array($provider, ['fcm', 'onesignal'], true)) {
             throw new RuntimeException('The encrypted push payload does not identify a supported provider.');
