@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PreferenceSyncController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use App\Http\Controllers\Api\UserMediaController;
+use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\WellnessSyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,6 +55,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/user/media', [UserMediaController::class, 'store'])->middleware('throttle:12,1');
         Route::delete('/user/media/{media}', [UserMediaController::class, 'destroy'])->whereUuid('media')->middleware('throttle:12,1');
         Route::get('/user/entitlements', [EntitlementController::class, 'show']);
+        Route::get('/wallet', [WalletController::class, 'show']);
+        Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
         Route::get('/user/profile', [AuthController::class, 'profile']);
         Route::put('/user/profile', [AuthController::class, 'updateProfile']);
         Route::get('/user/preferences', [AuthController::class, 'preferences']);
