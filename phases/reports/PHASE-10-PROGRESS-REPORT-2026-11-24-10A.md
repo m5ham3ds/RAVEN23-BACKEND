@@ -59,6 +59,8 @@
 
 ### 10C pre-CI fixture correction — 24 November 2026
 
-- During source review of the synthetic legacy snapshot test, corrected an assertion whose expected email did not match the fixture value. The fixture remains `legacy_migration_user@example.test`; the assertion now checks that exact persisted value.
-- This was caught by review before the Docker Feature suite completed; it is not recorded as a completed CI failure.
-- The 10C test acceptance remains pending CI on the corrected commit.
+- First CI execution exposed a deterministic fixture assertion mismatch in `DatabaseMigrationRehearsalTest::test_legacy_account_session_and_queue_rows_survive_the_full_upgrade`: expected username `legacy_migration_user`, actual `legacy_migration_user_16`.
+- Root cause: `Raven23AuthSchema::generatedUsername()` appends the base-36 user ID to generated usernames; user id 42 produces suffix `16`. The migration behavior is deterministic and the test expectation was incorrect.
+- A separate email assertion was also aligned to the actual synthetic fixture value `legacy_migration_user@example.test`.
+- Docker run [45494513992](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494513992) on SHA `fda51c0` failed with 1 Feature failure and 145 passed / 1,537 assertions. Pint run [45494514057](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494514057) failed while building the development Composer image because that Docker build runs the same Feature suite; the actual Pint formatting step was skipped. Authentication [45494513820](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494513820) passed. Docker/Security failures were not formatting issues.
+- Corrected the generated username expectation to `legacy_migration_user_16` on the next commit. CI acceptance remains pending on the corrected SHA.

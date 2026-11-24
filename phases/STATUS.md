@@ -225,3 +225,11 @@
 - Pint standalone workflow ليس gate تنسيق صارمًا؛ strict Pint داخل Docker هو gate. Auth Regression متداخل جزئيًا لكنه محفوظ مؤقتًا كفحص متخصص.
 - 10C IN_PROGRESS: أضيف DatabaseMigrationRehearsalTest.php لتغطية empty schema وsynthetic legacy snapshot (account/token/cache/job preservation + data backfill)؛ pending CI.
 - لا production DB أو secrets أو migrations إنتاجية أو deploy أو AWS resources.
+
+
+## 22. معالجة فشل 10C الأول — 24 نوفمبر 2026
+
+- أول Docker run على SHA fda51c0 فشل في Feature suite: 1 failed، 145 passed، 1,537 assertions.
+- السبب المحدد من PHPUnit line 104: المتوقع username `legacy_migration_user` لكن ترحيل `Raven23AuthSchema::generatedUsername()` أعاد `legacy_migration_user_16` باستخدام base-36 id للحساب 42. هذا خطأ في توقع الاختبار وليس فشل ترحيل بيانات.
+- Pint run على SHA ذاته توقف أثناء بناء image التطويرية لأن البناء شغّل Feature suite نفسها؛ خطوة Pint لم تُنفذ. Authentication على SHA نفسه نجح؛ Security بقيت أثناء بناء الصورة.
+- أصلحنا assertion username إلى `legacy_migration_user_16`، وأكدنا email assertion ليطابق `legacy_migration_user@example.test`. CI الجديد مطلوب لإغلاق 10C.

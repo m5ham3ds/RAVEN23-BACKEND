@@ -101,7 +101,7 @@ class DatabaseMigrationRehearsalTest extends TestCase
         $user = DB::table('users')->where('id', 42)->first();
 
         $this->assertNotNull($user);
-        $this->assertSame('legacy_migration_user', $user->username);
+        $this->assertSame('legacy_migration_user_16', $user->username);
         $this->assertFalse((bool) $user->is_guest);
         $this->assertSame('legacy_migration_user@example.test', $user->email);
 

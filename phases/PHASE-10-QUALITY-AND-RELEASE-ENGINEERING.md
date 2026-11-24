@@ -42,6 +42,7 @@
 **الحالة:** IN_PROGRESS — أضيف اختبار مستقل على SQLite لقاعدة فارغة وsnapshot حسابات/جلسات/queue اصطناعي؛ ينتظر CI على commit التغيير.
 
 - يتأكد الاختبار من تطبيق جميع ملفات migrations من الصفر وعدّ سجلات جدول migrations وموجودية الجداول الأساسية.
+- كشفت أول دفعة CI أن username المولد للحساب القديم يضاف إليه base-36 id؛ تم تصحيح assertion من `legacy_migration_user` إلى `legacy_migration_user_16` وفق سلوك `Raven23AuthSchema::generatedUsername()`، مع تصحيح assertion البريد ليتطابق مع fixture. إعادة CI على SHA التصحيح مطلوبة قبل قبول 10C.
 - يعيد تشغيل السلسلة على schema قديم اصطناعي يحتوي حسابًا قديمًا وSanctum token وcache row وqueued job؛ ويتحقق من بقاء البيانات وbackfill للملف الشخصي والتفضيلات والجهاز.
 - هذا ليس dump من الإنتاج، ولا يبرر تشغيل migration على قاعدة إنتاج.
 - PostgreSQL fresh migration مغطى في Docker؛ توسيع synthetic legacy rehearsal إلى PostgreSQL يبقى تحسينًا لاحقًا إذا أظهرت نتائج الاختبار حاجة لذلك.
