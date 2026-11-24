@@ -250,3 +250,12 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - **البيانات:** `user_entitlements` يمثل الحالة الحالية بمفتاح unique (`user_id`, `code`) وحقول starts_at/expires_at/revoked_at/revision/source. لا يحتوي حتى الآن على سجل أحداث append-only أو payment linkage.
 - **العقود التالية ما زالت client-only:** `GET billing/plans`، `GET wallet`، `GET wallet/transactions`، `GET billing/coins`، `POST wallet/topups`، payment/reconcile/topup-link، wallet renewal PUT/PATCH، وcoupon redemption. لا تُنفذ قبل اعتماد قواعد المنتج/مزود الدفع ذات الصلة.
 - **تعارض قائم:** حذف الحساب يتطلب في Flutter التعامل مع `wallet_credit_remaining` عند وجود رصيد؛ Backend الحالي لا يملك wallet ledger ولا يحسب هذا الشرط. يعالج ذلك قبل تمكين wallet/account deletion.
+
+
+## 15. Phase09-09B — مجال سجل أحداث الاشتراك (لا HTTP route)
+
+- أضيف `subscription_events` كسجل داخلي append-only؛ لا public endpoint لكتابة الأحداث أو عرضها.
+- خدمة `SubscriptionEventLedger` تقبل فقط المصادر المعتمدة داخل المجال: internal/coupon/payment/administrative وأنواع grant/revoke/expire/refund/correction. الكلمات هنا تصنيف داخلي عام وليست اختيار مزود.
+- idempotency مربوط بالمصدر والمفتاح؛ تطابق المحتوى يعيد الحدث نفسه، واختلافه يسبب conflict.
+- SQLite/PostgreSQL triggers تمنع تعديل/حذف الحدث مباشرة، بينما حذف حساب المستخدم يسمح بتنفيذ cascade لمحو تاريخه.
+- لا يغير 09B عقد Flutter ولا current entitlement projection؛ ربط الأحداث بالـprojection مؤجل إلى 09C.

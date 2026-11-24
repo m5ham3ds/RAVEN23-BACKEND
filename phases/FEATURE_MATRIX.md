@@ -73,7 +73,8 @@
 | الميزة | الحالة | الدليل / الفجوة |
 |---|---|---|
 | Billing plans | client-only / backend missing | BillingRepository GET billing/plans |
-| User entitlements | موجود ومختبر آليًا بعد Phase09-09A | GET /api/v1/user/entitlements؛ Sanctum owner-scoped، server-calculated، start/expiry/revocation، default-deny. لا grant/revoke write API أو event ledger بعد. |
+| User entitlements | موجود ومختبر آليًا بعد 09A | GET /api/v1/user/entitlements؛ Sanctum owner-scoped، server-calculated، start/expiry/revocation، default-deny. لا write API للعميل. |
+| Subscription event ledger | 09B قيد التحقق | جدول append-only، service idempotent، immutable update/direct-delete guards؛ لا public API أو payment provider. |
 | Wallet balance/history | client-only / backend missing | GET wallet and wallet/transactions |
 | Topups/payment/reconcile | client-only / backend missing | multiple wallet/topups routes |
 | Coin catalog | client-only / backend missing | GET billing/coins |

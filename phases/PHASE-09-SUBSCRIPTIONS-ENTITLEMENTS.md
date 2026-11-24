@@ -1,6 +1,6 @@
 # المرحلة 09 — الاشتراكات والصلاحيات والميزات المدفوعة
 
-**الحالة:** IN_PROGRESS — بدأت 09A (جرد عقد التطبيق وتنفيذ قراءة الاستحقاق الموثوقة من الخادم). لا تزال الخطط/الأسعار/المزايا التجارية ومزود الدفع WAITING_EXTERNAL.  
+**الحالة:** IN_PROGRESS — 09A COMPLETE (عقد قراءة الاستحقاق) و09B قيد التنفيذ (سجل أحداث موثوق append-only). لا تزال الخطط/الأسعار/المزايا التجارية ومزود الدفع WAITING_EXTERNAL.  
 **الاعتماديات:** 03 و05 COMPLETE على مستوى الكود والاختبارات؛ Phase04 ما تزال PARTIAL بسبب Google Android والبريد الحقيقي في staging. يسمح ذلك بجرد العقد وتنفيذ أساس entitlement read-only، ولا يثبت جاهزية المصادقة/الدفع للإنتاج.
 
 ## الهدف
@@ -24,6 +24,28 @@
 - لا توجد كتابة استحقاق عبر API عامة. الصف يُكتب لاحقًا فقط من خدمات مجال موثوقة (اشتراك/قسيمة/إجراء إداري معتمد) بعد بناء تلك المسارات.
 - اختبارات Feature وPostgreSQL تغطي unauthenticated denial، no-grant default deny، guest denial، owner isolation، future/expired/revoked windows.
 
+### 09A — نتيجة CI النهائية
+
+- الإصلاح النهائي على Backend SHA `fd7ab5b716abe36d9d676abbd9c03c945b4611e1`.
+- Docker Validation [45426235234](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45426235234) SUCCESS؛ Authentication [45426235087](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45426235087) SUCCESS؛ Pint [45426236015](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45426236015) SUCCESS؛ Security [45426235159](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45426235159) SUCCESS.
+- Docker SQLite Feature suite: 129 tests / 1,412 assertions. PostgreSQL integration وS3Mock وruntime/least-privilege checks اجتازت التشغيل.
+- تم إصلاح فشل test owner guard/guest status، ثم أزيل unused import الذي اكتشفه Pint. لا تغيير في قواعد الاستحقاق لتجاوز الاختبارات.
+
+### 09B — سجل أحداث الاستحقاق غير القابل للتعديل
+
+- إنشاء `subscription_events` لحفظ الأحداث الموثوقة: granted/revoked/expired/refunded/corrected.
+- يتضمن كل حدث المالك، entitlement code، المصدر العام (internal/coupon/payment/administrative)، مرجع المصدر، idempotency key، وقت وقوع الحدث، حدود فترة الاستحقاق، reason code، وبصمة SHA-256 للمحتوى.
+- قيد unique على (`source`, `idempotency_key`) لمنع تكرار الحدث. إعادة المفتاح نفسه مع المحتوى نفسه تعيد الحدث السابق؛ إعادة استخدامه لمحتوى مختلف ترفض بتعارض.
+- يمنع PostgreSQL وSQLite تعديل السجل أو حذفه مباشرة. يسمح بحذف الحدث عبر cascade فقط عندما يحذف المستخدم حسابه بالكامل، بما يراعي مسار محو الحساب.
+- خدمة المجال داخل Backend فقط؛ لا public API ولا client-supplied grant، ولا تُفعّل أي مصدر دفع أو مزود أو عملية مالية في 09B.
+- اختبارات Feature وPostgreSQL تغطي idempotency، تضارب المفتاح، رفض UPDATE/DELETE المباشر، وحذف الحساب.
+
+### ما لم ينفذ في 09B
+
+- لم يتم ربط ledger بعد بإسقاط الحالة الحالية `user_entitlements`؛ هذا يحتاج transaction/projection stage منفصلة في 09C.
+- لا يوجد payment provider أو webhook أو coupon/admin grant API.
+- لا توجد plan catalog أو أسعار أو wallet/topup flows.
+
 ### ما لم ينفذ في 09A
 
 - لم ينشأ plan catalog أو تسعير أو trial أو renewal terms.
@@ -34,9 +56,11 @@
 
 ## العمل المتبقي في Phase09
 
+1. إكمال والتحقق من 09B (ledger) ثم 09C (atomic projection من الأحداث الموثوقة إلى current entitlement).
+
 1. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وسياسات التجديد/التجربة/الإلغاء/الاسترداد.
 2. بناء plan/entitlement catalog مستقلين عن طريقة الدفع بعد اعتماد القيم.
-3. إضافة append-only subscription/billing event ledger وقواعد ownership ومصدر الحقيقة.
+3. بعد 09B، استكمال قواعد projection/event ordering ومصدر الحقيقة في 09C.
 4. تعريف PaymentProvider interface بعد اختيار مزود دفع واعتماد الأهلية التشغيلية والقانونية.
 5. تنفيذ تحقق webhook signature وtimestamp/replay defense وidempotency وترتيب الأحداث.
 6. ربط الدفع الموثق بالاستحقاقات دون السماح للعميل بمنح نفسه صلاحية.

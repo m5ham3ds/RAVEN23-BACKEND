@@ -222,3 +222,13 @@
 - **القرار:** يمكن تنفيذ entitlement read contract مستقلة عن الخطط والأسعار ومزود الدفع. GET `/api/v1/user/entitlements` يستخدم Sanctum owner فقط، ويحسم `ad_free` حسب سجل حالي وبداية/انتهاء/إلغاء UTC؛ غياب grant يعني no access.
 - **الأمان:** لا يوجد endpoint عام للمنح أو الإلغاء؛ لا يستطيع العميل تمرير user_id أو تفعيل ميزة. حالات الاشتراك لا تستنتج من wallet balance أو auto-renew.
 - **الأثر:** migration/model/controller/tests تمثل الحالة الفعالة الحالية فقط. سجل الأحداث append-only، مصادر المنح، plan catalog، payment provider/webhooks وسياسات المنتج تبقى في شرائح لاحقة وبعد اعتمادها.
+
+
+## D-029 — Append-only subscription event ledger without payment-provider coupling
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** تنفيذ 09B قيد CI على Backend commit جديد.
+- **القرار:** تسجيل أحداث استحقاق موثوقة في `subscription_events` منفصلة عن current-state projection. الأحداث مدعومة بقيم عامة: granted/revoked/expired/refunded/corrected؛ المصادر العامة internal/coupon/payment/administrative، دون اختيار بوابة أو تفعيل أي مصدر.
+- **Idempotency:** unique(source,idempotency_key)؛ إعادة الطلب بنفس المحتوى تعيد الحدث السابق، وإعادة ربط المفتاح بمحتوى مختلف تُرفض.
+- **Append-only:** SQLite/PostgreSQL DB guards تمنع UPDATE والحذف المباشر. يسمح user FK cascade بمحو سجل الحساب عند حذف الحساب.
+- **الحدود:** لا route عامة ولا webhook ولا wallet/payment execution. ربط ledger بإسقاط `user_entitlements` يأتي في 09C بعد التحقق من 09B.

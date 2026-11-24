@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(UserEntitlement::class);
     }
 
+    public function subscriptionEvents(): HasMany
+    {
+        return $this->hasMany(SubscriptionEvent::class);
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         app(NotificationOutboxService::class)->queuePasswordReset($this, (string) $token);
