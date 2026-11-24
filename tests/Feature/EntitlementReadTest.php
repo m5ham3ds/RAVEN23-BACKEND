@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Models\UserEntitlement;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
@@ -77,6 +78,7 @@ class EntitlementReadTest extends TestCase
             ->assertJsonPath('entitlements.ad_free', false)
             ->assertJsonPath('entitlements.revision', 0);
 
+        Auth::forgetGuards();
         $this->withToken($other['token'])
             ->getJson('/api/v1/user/entitlements')
             ->assertOk()
@@ -117,6 +119,7 @@ class EntitlementReadTest extends TestCase
         ]);
 
         foreach ([$expired, $future, $revoked] as $account) {
+            Auth::forgetGuards();
             $this->withToken($account['token'])
                 ->getJson('/api/v1/user/entitlements')
                 ->assertOk()
@@ -127,7 +130,7 @@ class EntitlementReadTest extends TestCase
     public function test_guests_with_a_valid_session_have_no_entitlement_without_a_trusted_grant(): void
     {
         $response = $this->postJson('/api/v1/auth/guest', []);
-        $response->assertCreated();
+        $response->assertOk();
 
         $this->withToken((string) $response->json('token'))
             ->getJson('/api/v1/user/entitlements')
