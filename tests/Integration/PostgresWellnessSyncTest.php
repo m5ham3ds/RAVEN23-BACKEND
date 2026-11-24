@@ -172,7 +172,6 @@ class PostgresWellnessSyncTest extends TestCase
         $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
     }
 
-
     public function test_postgresql_pagination_keeps_its_snapshot_when_new_writes_commit_between_pages_and_recovers_from_a_corrupt_cursor(): void
     {
         $owner = $this->createAccount();
