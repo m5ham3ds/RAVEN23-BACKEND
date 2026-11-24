@@ -3,7 +3,6 @@
 namespace Tests\Integration;
 
 use App\Exceptions\SubscriptionEventConflict;
-use App\Models\SubscriptionEvent;
 use App\Models\User;
 use App\Services\Entitlements\SubscriptionEventLedger;
 use Illuminate\Database\QueryException;
