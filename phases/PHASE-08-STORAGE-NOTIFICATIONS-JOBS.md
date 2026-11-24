@@ -252,3 +252,11 @@ Docker strict Pint، queue-worker guards، PostgreSQL least-privilege، separate
 4. اعتماد retention، quota/capacity، cost وoutbox audit-retention policy.
 
 **Phase08 remains IN_PROGRESS.** لا تتخطى Phase09؛ تبقى WAITING_EXTERNAL لقرارات الخطط والأسعار والاستحقاقات ومزود الدفع.
+
+
+### 08J — تأجيل اختيار مزود Push بقرار المستخدم (24 نوفمبر 2026)
+
+- تم إنشاء `phases/PUSH-PROVIDER-SELECTION-DEFERRED.md` تنفيذًا لتوجيه المستخدم: اختيار FCM أو OneSignal مؤجل إلى ما بعد اكتمال بقية نطاق Backend (09–13).
+- لم يُعتمد أي مزود، وتبقى `RAVEN23_PUSH_ENABLED=false` والـbinding الافتراضي DisabledPushNotificationTransport.
+- يُسمح باستمرار المراحل الخلفية المستقلة عن اختيار Push؛ لا تُعاد شرائح 08G–08I.
+- Phase08 تبقى IN_PROGRESS لأن اختبار المزود الحقيقي وS3/mail staging وسياسات retention/cost لم تُغلق. يُستأنف قرار Push قبل تنفيذ sender adapter والتفعيل الفعلي.

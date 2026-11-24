@@ -239,3 +239,14 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - PostgreSQL integration suite تضم الآن اختبار ثلاث عمليات متزامنة مستقلة. فازت أحدث نسخة، وأعيد حساب daily summary بعد التداخل المتوازي.
 - Push routes الثلاثة هي registration/storage فقط؛ لا تمثل إرسال إشعارات أو اختبار وصول من provider فعلي.
 - Flutter `SyncRunner` يضيف bounded retries وin-memory telemetry على app SHA `027f51a`; full account/device-id rotation and production/staging verification are still separate acceptance items.
+
+
+## 14. Phase09-09A — entitlement read contract (24 نوفمبر 2026)
+
+- **Flutter consumer:** `lib/data/repositories/billing_repository.dart` يستدعي `GET user/entitlements` مع المصادقة وno-store. يتوقع الغلاف `success`، والكيان `entitlements` وفيه `ad_free`, `starts_at`, `expires_at`, `revision`، إضافة إلى `server_time` و`refresh_after_seconds`.
+- **Flutter owner safety:** `PlusController` يربط النتيجة بمالك الحساب/نسخة الطلب، ويعتبر الوصول صالحًا فقط بعد تأكيد الخادم، قبل expiry، وضمن offline grace. لم يتم تغيير هذا السلوك أو نموذج Flutter.
+- **Backend قبل 09A:** `routes/api.php` لم يحتوِ مسار entitlement أو أي controllers/models/migrations للفوترة؛ كانت هذه الواجهات client-only.
+- **Backend بعد 09A:** `GET /api/v1/user/entitlements` أصبح ضمن `auth:sanctum`. يستخدم حساب الجلسة فقط ولا يقرأ user_id من الطلب. يعيد `ad_free=false` افتراضيًا، ولا يسمح بالمنح/الإلغاء عبر API عامة.
+- **البيانات:** `user_entitlements` يمثل الحالة الحالية بمفتاح unique (`user_id`, `code`) وحقول starts_at/expires_at/revoked_at/revision/source. لا يحتوي حتى الآن على سجل أحداث append-only أو payment linkage.
+- **العقود التالية ما زالت client-only:** `GET billing/plans`، `GET wallet`، `GET wallet/transactions`، `GET billing/coins`، `POST wallet/topups`، payment/reconcile/topup-link، wallet renewal PUT/PATCH، وcoupon redemption. لا تُنفذ قبل اعتماد قواعد المنتج/مزود الدفع ذات الصلة.
+- **تعارض قائم:** حذف الحساب يتطلب في Flutter التعامل مع `wallet_credit_remaining` عند وجود رصيد؛ Backend الحالي لا يملك wallet ledger ولا يحسب هذا الشرط. يعالج ذلك قبل تمكين wallet/account deletion.

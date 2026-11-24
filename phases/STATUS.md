@@ -17,8 +17,8 @@
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08I: private media/quota/orphan cleanup، S3Mock، encrypted mail/push outbox، push subscription registry، provider-neutral transport، worker queue guard، global push kill switch، read-only outbox status، والاحتفاظ بالرسائل due دون إعادة dispatch أثناء تعطيل Push. CI الأربع ناجحة على `1d354f7`. ما زال real S3/mail/push provider staging، native idempotency وسياسة retention/cost ينتظر الاعتماد الخارجي. |
-| 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
+| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A) | أضيف entitlement read-only، owner-scoped وserver-calculated، مع default-deny واختبارات SQLite/PostgreSQL. الخطط والأسعار وسجل billing ومزود الدفع تبقى WAITING_EXTERNAL؛ Phase04 ما تزال PARTIAL. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |

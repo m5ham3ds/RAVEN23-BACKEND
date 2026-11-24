@@ -205,3 +205,20 @@
 - **الحالة:** مطبق ومختبر على Backend SHA `1d354f7`.
 - **القرار:** لا يعيد relay جدولة Push event إذا كان `RAVEN23_PUSH_ENABLED=false`. تظل حالة Outbox و`last_dispatched_at` كما هي، ويُستأنف dispatch فقط بعد إعادة التفعيل. العامل نفسه يتحقق من المفتاح وقت delivery كطبقة حماية ثانية.
 - **السبب:** يجب أن يمنع إيقاف الإرسال كلاً من الرسائل الجديدة والقديمة دون فقد الأحداث أو تكرار queue jobs أثناء التعطيل.
+
+
+## D-027 — تأجيل اختيار FCM أو OneSignal إلى ما بعد بقية نطاق Backend
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** قرار مستخدم صريح؛ لا يوجد مزود مختار.
+- **القرار:** تأجيل الاختيار بين FCM وOneSignal إلى ما بعد اكتمال بقية نطاق Backend (المراحل 09–13). لا sender SDK أو credentials أو إرسال خارجي قبل إعادة فتح القرار.
+- **الأثر:** يظل Push transport provider-neutral، والـbinding الافتراضي DisabledPushNotificationTransport، و`RAVEN23_PUSH_ENABLED=false`. تبقى Phase08 IN_PROGRESS، لكن لا يمنع هذا القرار تنفيذ المراحل المستقلة اللاحقة ولا يكرر 08G–08I.
+- **الحدود:** لا يختار القرار مزود بريد أو Object Storage، ولا يجيز إنشاء حسابات أو موارد أو أسرار أو تكاليف.
+
+## D-028 — بدء Phase09 بقراءة الاستحقاق الموثوقة دون قرارات فوترة
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** مطبق على Backend code commit قيد تحقق CI.
+- **القرار:** يمكن تنفيذ entitlement read contract مستقلة عن الخطط والأسعار ومزود الدفع. GET `/api/v1/user/entitlements` يستخدم Sanctum owner فقط، ويحسم `ad_free` حسب سجل حالي وبداية/انتهاء/إلغاء UTC؛ غياب grant يعني no access.
+- **الأمان:** لا يوجد endpoint عام للمنح أو الإلغاء؛ لا يستطيع العميل تمرير user_id أو تفعيل ميزة. حالات الاشتراك لا تستنتج من wallet balance أو auto-renew.
+- **الأثر:** migration/model/controller/tests تمثل الحالة الفعالة الحالية فقط. سجل الأحداث append-only، مصادر المنح، plan catalog، payment provider/webhooks وسياسات المنتج تبقى في شرائح لاحقة وبعد اعتمادها.

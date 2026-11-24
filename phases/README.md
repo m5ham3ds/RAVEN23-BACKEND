@@ -24,11 +24,12 @@
 13. DECISIONS.md — سجل القرارات المعمارية والمنتج.
 14. SECURITY-OPERATIONS-POLICY.md — ضوابط PostgreSQL وTLS والسجلات والنسخ الاحتياطية.
 15. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
-16. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
+16. PUSH-PROVIDER-SELECTION-DEFERRED.md — قرار تأجيل اختيار FCM/OneSignal.
+17. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، وPhase08 IN_PROGRESS حتى 08I. Phase07 أُغلقت بعد تحقق دورة device identity/account switch، حواجز owner-generation، concurrent PostgreSQL sync واختبارات Flutter/Android. Phase08 تشمل الآن provider-neutral Push outbox، تعطيل الإرسال افتراضيًا، مراقبة Outbox المجمعة، وإيقاف relay لإشعارات Push أثناء تعطيل المفتاح العام؛ لا يوجد sender خارجي أو اعتماد مزود حتى الآن.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 IN_PROGRESS مع اختيار FCM/OneSignal مؤجل بقرار المستخدم، وPhase09 IN_PROGRESS بدءًا من 09A. Phase09 أضاف entitlement read-only server-authoritative مع default-deny؛ لا plan pricing أو payment provider معتمد حتى الآن. Phase08 تحتفظ بعقد Push المحايد والإرسال معطلاً.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

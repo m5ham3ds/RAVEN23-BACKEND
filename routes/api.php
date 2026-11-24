@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EntitlementController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PlaylistSyncController;
@@ -49,6 +50,7 @@ Route::prefix('v1')->group(function (): void {
             ->middleware('throttle:60,1');
         Route::post('/user/media', [UserMediaController::class, 'store'])->middleware('throttle:12,1');
         Route::delete('/user/media/{media}', [UserMediaController::class, 'destroy'])->whereUuid('media')->middleware('throttle:12,1');
+        Route::get('/user/entitlements', [EntitlementController::class, 'show']);
         Route::get('/user/profile', [AuthController::class, 'profile']);
         Route::put('/user/profile', [AuthController::class, 'updateProfile']);
         Route::get('/user/preferences', [AuthController::class, 'preferences']);
