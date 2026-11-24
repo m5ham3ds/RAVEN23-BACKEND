@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(UserEntitlement::class);
     }
 
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(UserWallet::class);
+    }
+
     public function subscriptionEvents(): HasMany
     {
         return $this->hasMany(SubscriptionEvent::class);
