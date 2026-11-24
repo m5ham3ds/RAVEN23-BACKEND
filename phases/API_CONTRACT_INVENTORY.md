@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
 **تاريخ الجرد:** 24 نوفمبر 2026
-**Backend implementation SHA:** df390286cbe2170d4b18a96dad06835379091019
+**Backend implementation SHA:** f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -15,7 +15,7 @@
 
 ## 2. المسارات الموجودة في Backend الحالي
 
-المصدر: routes/api.php على main implementation SHA f4a64407b3c5ca5b8de72def9e7e13009eca57d0.
+المصدر: routes/api.php على main implementation SHA f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19.
 
 | الطريقة | المسار | المصادقة | وضع التنفيذ |
 |---|---|---|---|
@@ -86,14 +86,14 @@
 |---|---|---|
 | Bootstrap/config | GET config/bootstrap مع ETag | غير موجود |
 | إعلانات | GET ads، POST ads/{id}/impression، POST ads/{id}/click | غير موجود |
-| المفضلة | POST sync/bookmarks، DELETE sync/bookmarks/{type}/{id} | موجود بالكود؛ CI غير معتمد |
-| سجل المشاهدة والتقدم | POST sync/recently-watched | موجود بالكود؛ CI غير معتمد |
-| Wellness/viewing sessions | POST sync/wellness مع pagination/revision | غير موجود |
-| القوائم | POST sync/playlists | موجود بالكود؛ CI غير معتمد |
+| المفضلة | POST sync/bookmarks، DELETE sync/bookmarks/{type}/{id} | موجود ومختبر ضمن Docker SQLite/PostgreSQL على main |
+| سجل المشاهدة والتقدم | POST sync/recently-watched | موجود ومختبر ضمن Docker SQLite/PostgreSQL على main |
+| Wellness/viewing sessions | POST sync/wellness مع pagination/revision | موجود؛ owner-scoped وrevision/cursor وtombstones، واختبارات SQLite/PostgreSQL |
+| القوائم | POST sync/playlists | موجود ومختبر ضمن Docker SQLite/PostgreSQL على main |
 | استيراد القوائم | POST playlist-imports، GET playlist-imports/{id}، DELETE playlist-imports/{id}، POST playlist-imports/{id}/commit | غير موجود |
 | مشاركة القوائم | PUT playlists/{id}/sharing، GET shared-lists/{code} | غير موجود |
-| تسجيل جهاز/FCM | POST devices/register | غير موجود |
-| OneSignal | POST push/subscriptions، DELETE push/subscriptions/{id} | غير موجود |
+| تسجيل جهاز/FCM | POST devices/register | موجود؛ token مشفر وHMAC lookup وidempotent؛ لا يوجد sender أو delivery |
+| OneSignal | POST push/subscriptions، DELETE push/subscriptions/{id} | موجود؛ UUID مشفر وowner-scoped؛ لا يوجد sender أو delivery |
 | رسائل/إشعارات داخلية | GET messages/active، GET push/messages/{id} | غير موجود |
 | الاشتراكات والصلاحيات | GET billing/plans، GET user/entitlements | غير موجود |
 | المحفظة | GET wallet، GET wallet/transactions، POST wallet/topups، GET wallet/topups/{id}، POST wallet/topups/{id}/payment، POST wallet/topups/{id}/reconcile، POST wallet/topup-link | غير موجود |
@@ -231,3 +231,11 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - إعادة تسجيل الرمز نفسه تحدّث الحساب المرتبط به إلى الحساب الذي أرسل registration الحالي؛ DELETE OneSignal يتطلب المصادقة ويحدّث صف المالك الحالي فقط.
 - التسجيل لا يرسل إشعارات ولا يثبت وصولها؛ provider sender/credentials/staging خارج هذا العقد الحالي.
 - CI على SHA df390286cbe2170d4b18a96dad06835379091019: Docker [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852)، Auth [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671)، Pint [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645)، Security [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) — كلها SUCCESS.
+
+
+## 13. تحديث التحقق — 24 نوفمبر 2026، SHA `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19`
+
+- Backend routes والجداول والاختبارات على هذا الرأس اجتازت بوابات CI الأربع: Docker [45326348001](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348001)، Auth [45326348002](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348002)، Pint [45326347992](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326347992)، Security [45326348012](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348012).
+- PostgreSQL integration suite تضم الآن اختبار ثلاث عمليات متزامنة مستقلة. فازت أحدث نسخة، وأعيد حساب daily summary بعد التداخل المتوازي.
+- Push routes الثلاثة هي registration/storage فقط؛ لا تمثل إرسال إشعارات أو اختبار وصول من provider فعلي.
+- Flutter `SyncRunner` يضيف bounded retries وin-memory telemetry على app SHA `027f51a`; full account/device-id rotation and production/staging verification are still separate acceptance items.

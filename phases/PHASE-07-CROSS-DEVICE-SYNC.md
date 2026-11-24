@@ -123,3 +123,35 @@ Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restric
 | Security Scans | [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) | SUCCESS — Gitleaks/Trivy and fixable HIGH/CRITICAL gate PASS |
 
 **الحالة:** Phase07 ما زالت IN_PROGRESS حتى تغلق عناصر المعاملات المتوازية، دورة device-ID/account-switch، وقياسات retry/latency.
+
+
+## أحدث تحقق — 24 نوفمبر 2026، PostgreSQL concurrency وFlutter retry
+
+- أضيف fixture `tests/Fixtures/ConcurrentWellnessSyncWorker.php` لفتح ثلاثة Laravel child processes مستقلة، مع اتصال PostgreSQL منفصل لكل عملية وحاجز إطلاق مشترك.
+- نجح `test_postgresql_parallel_device_uploads_converge_to_the_newest_session_version`: 3 أجهزة ترسل timestamps متعارضة للجلسة نفسها. النسخة ذات timestamp 5000 فازت، ولم تتكرر الجلسة، وأعيد بناء daily summary إلى watched_ms=60000 وsession_count=1.
+- سبب الفشل الأول كان تجهيز الاختبار فقط: DB service طُلبت قبل تهيئة Laravel providers. تم تنفيذ GET `/up` في كل child process قبل فتح DB connection، وأضيف error-file diagnostic.
+- Flutter `SyncRunner` على `m5ham3ds/RAVEN23` commit `027f51a3a0fb3f0301e83eb3c71a19c045984447`: maxAttempts=3، retry للأخطاء العابرة فقط، exponential backoff 1/2/4s مع سقف 8s، Retry-After محدود لHTTP 429، وتجاهل أخطاء 401/403/409/422 وأخطاء الاستجابة غير الصحيحة. يوقف owner-generation القديم إعادة المحاولة عند تبديل الحساب.
+- يوفّر العميل in-memory telemetry لعدد المحاولات والمدة والـconsecutive failures. لا يمثل ذلك نظام قياس مركزيًا ولا اختبار حمل.
+
+### CI proof — Backend SHA `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19` (24 November 2026)
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45326348001](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348001) | SUCCESS — SQLite Feature 118 / 1,332 assertions; PostgreSQL Integration 22 passed / 417 assertions, 1 skipped; S3Mock 1 / 8; runtime and least-privilege checks PASS |
+| Authentication Regression | [45326348002](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348002) | SUCCESS — SQLite 20 / 172 assertions; PostgreSQL 4 / 99 assertions |
+| Pint Format | [45326347992](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326347992) | SUCCESS |
+| Security Scans | [45326348012](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348012) | SUCCESS — Gitleaks, filesystem/image scans and fixable HIGH/CRITICAL gate PASS |
+
+الاختبار الوحيد skipped في PostgreSQL suite العامة هو اختبار S3 الاختياري؛ Docker يشغل S3Mock منفصلاً وقد نجح 1/8.
+
+### Flutter evidence
+
+- [Android CI / release APK run 45324044184](https://github.com/m5ham3ds/RAVEN23/actions/runs/45324044184) على commit `027f51a`: SUCCESS، flutter analyze و487 focused Flutter tests و25 Android ABI/offline-download tests.
+- Release APK واحد `arm64-v8a`، 47,853,410 bytes (45.64 MiB). Build define `RAVEN23_AUTH_ONLY=true`؛ لا يثبت هذا التشغيل جاهزية كل الميزات.
+
+### Remaining acceptance
+
+1. Complete end-to-end device-ID rotation/account-switch lifecycle across Flutter and Backend checkpoints/queued requests.
+2. Synthetic load test with measured request volume, latency distribution and conflict rate; current counters are local/in-memory only.
+
+**Phase07 remains IN_PROGRESS.**

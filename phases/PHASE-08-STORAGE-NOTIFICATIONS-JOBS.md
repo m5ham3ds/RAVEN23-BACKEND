@@ -204,3 +204,9 @@
 4. Approve retention, quota/capacity, cost, and outbox audit-retention policy.
 
 **Phase08 remains IN_PROGRESS.**
+
+
+### Latest verification — SHA `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19`
+
+- Backend CI الأربع ناجحة على هذا الرأس؛ Docker/PostgreSQL integration suite تضم Push subscription tests ضمن 22 اختبارًا ناجحًا و417 assertion.
+- يثبت هذا التسجيل المشفر والـHMAC idempotency ونقل/حصر الملكية. لا يثبت sender أو وصول إشعار حقيقي؛ لا provider credentials أو production/staging delivery جرى استخدامها.

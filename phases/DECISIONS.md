@@ -170,3 +170,15 @@
 - ملكية الرمز: إعادة التسجيل من جلسة مصادق عليها تنقل association إلى المستخدم الحالي، بما يسمح بتبديل الحساب على نفس التطبيق. OneSignal unregister لا يحذف إلا التسجيل المرتبط بالمستخدم المصادق؛ حذف الحساب يحذف الصفوف عبر FK cascade.
 - حدود القرار: لا يفعّل هذا القرار FCM/OneSignal sender ولا يرسل Push ولا يضيف credentials. لا تتم أي عملية خارجية قبل اختيار provider والموافقة وإعداد staging.
 - الأثر: migration 2026_11_24_000015_create_user_push_subscriptions_table.php، model/controller/routes، Feature/PostgreSQL tests وFlutter contract match. CI الأربع ناجحة على SHA المذكور.
+
+
+## D-023 — Bounded transient retry policy for offline sync
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** مطبق ومختبر على Flutter main SHA `027f51a3a0fb3f0301e83eb3c71a19c045984447`؛ التشغيل [45324044184](https://github.com/m5ham3ds/RAVEN23/actions/runs/45324044184) SUCCESS.
+- **القرار:** `SyncRunner` يعيد محاولة أخطاء الاتصال/timeout وHTTP statuses `408, 425, 429, 500, 502, 503, 504` فقط. عدد المحاولات 3، مع exponential backoff 1/2/4 ثوانٍ وبحد delay 8 ثوانٍ؛ يحترم Retry-After ل429 حتى 120 ثانية.
+- **الاستثناءات:** لا يعاد الطلب تلقائيًا عند 401/403/409/422، أو malformed/non-Dio errors؛ تبقى recovery الخاصة بالمصادقة والتحقق والتعارض مسؤولية domain engine.
+- **عزل الحساب:** كل دورة ترتبط بـLibraryScope owner/generation؛ إذا تغير المالك أثناء الطلب أو backoff لا تستمر المحاولة القديمة. `ownerChanged()` يصفر مؤشرات الدورة والموعد السابق.
+- **المقاييس الحالية:** آخر عدد محاولات، مدة الدورة بالميلي ثانية، وعدد دورات الفشل المتتالية؛ محفوظة في ValueNotifiers داخل الذاكرة فقط. لم تُربط بعد بخدمة telemetry مركزية أو تخزين دائم.
+- **الاختبارات:** transient retry/backoff، validation non-retry، cancellation on owner change، وpreserved coalescing/owner behavior مغطاة في `test/data/sync_runner_test.dart`، وأُضيفت إلى Android focused pre-build test inventory والـscoped formatter.
+- **الأثر على Phase07:** يغلق جانب retry policy الأولي، لكنه لا يغلق end-to-end device-ID rotation/account switching ولا synthetic load/latency/volume/conflict acceptance.

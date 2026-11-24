@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 24 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `df390286cbe2170d4b18a96dad06835379091019`
+**Latest fully CI-verified implementation SHA:** `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -16,8 +16,8 @@
 | 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
-| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | اجتازت اختبارات ثلاثة أجهزة بتعارضات out-of-order على SQLite/PostgreSQL، وPostgreSQL pagination مع كتابة لاحقة بين الصفحات واستعادة full sync بعد cursor تالف؛ بقي اختبار معاملات متوازية فعلي، دورة device-ID rotation/account switch كاملة، وتوثيق retry/backoff وقياسات الحمل. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08F: private media وS3Mock، encrypted queue/outbox، وPush subscription registration مع token مشفر وHMAC index واختبارات FCM/OneSignal؛ بقي push delivery/provider credentials، S3 staging الحقيقي، mail provider/native idempotency وسياسات retention/cost. |
+| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | اجتاز اختبار PostgreSQL لثلاث عمليات PHP مستقلة تكتب بالتزامن على جلسة واحدة مع timestamps متعارضة؛ النسخة الأحدث فازت والملخص اليومي بقي متسقاً. أضيفت سياسة Flutter retry/backoff محدودة ومقاييس مدة/محاولات وفحوص owner-generation؛ بقيت دورة device-ID rotation/account switch كاملة وقياسات volume/conflict/latency تحت حمل اصطناعي. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08F: private media وS3Mock، encrypted queue/outbox، وPush subscription registration مع token مشفر وHMAC index؛ اجتازت اختبارات FCM/OneSignal على SQLite/PostgreSQL. بقي push sender/delivery وcredentials/staging، S3 staging الحقيقي، mail provider/native idempotency وسياسات retention/cost. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
@@ -131,3 +131,36 @@
 - Phase08 تبقى IN_PROGRESS؛ التسجيل لا يعني إرسال Push أو وصول إشعار. لا provider adapter أو credentials أو إرسال خارجي مفعل. S3 الحقيقي وmail provider وprovider-native idempotency وretention/cost ما زالت مفتوحة.
 - Phase09 تبقى WAITING_EXTERNAL لقرارات الخطط والأسعار والاستحقاقات ومزود الدفع.
 - branch listing ظل main وحده ولا توجد PRs مفتوحة. لا إنتاج DB أو secrets أو deploy أو DNS cutover أو موارد AWS مدفوعة استُخدمت.
+
+
+## 13. تحديث Phase07 وتحقق Flutter — 24 نوفمبر 2026
+
+- رأس Backend main الذي اجتاز بوابات CI الأربع: `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19`. الفرع الوحيد في المستودع هو main، ولا توجد PRs مفتوحة.
+- أضيف `tests/Fixtures/ConcurrentWellnessSyncWorker.php` لتشغيل Laravel في ثلاث عمليات PHP مستقلة. كل عملية تجهز اتصال PostgreSQL منفصلاً وتنتظر حاجزاً مشتركاً ثم ترسل تحديثاً متعارضاً إلى `/api/v1/sync/wellness`.
+- اختبار `test_postgresql_parallel_device_uploads_converge_to_the_newest_session_version` نجح: فازت النسخة ذات timestamp 5000، بقي سجل جلسة واحد، والملخص اليومي النهائي 60,000 ms وجلسة واحدة.
+- فشل المحاولة الأولى كان في bootstrap عامل الاختبار: استُدعيت خدمة db قبل تمهيد Laravel. أضيف طلب داخلي إلى /up قبل إنشاء اتصال PostgreSQL، وأضيفت رسائل تشخيص للعامل.
+- Flutter commit `027f51a3a0fb3f0301e83eb3c71a19c045984447`: retry حتى 3 محاولات للأخطاء العابرة فقط، backoff أُسّي 1/2/4s (حد 8s)، Retry-After محدود لخطأ 429، وعدم retry لأخطاء المصادقة/التحقق/التعارض. Owner-generation يوقف النتيجة القديمة عند تبديل الحساب.
+- مقاييس العميل الحالية داخل الذاكرة: عدد محاولات آخر دورة، مدة آخر دورة بالميلي ثانية، وعدد دورات الفشل المتتالية. لم تُضف بعد إلى telemetry خادمية أو تخزين دائم، ولم ينفذ اختبار حمل لإنتاج percentiles أو conflict rate.
+
+### CI proof — Backend SHA `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19` (24 November 2026)
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45326348001](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348001) | SUCCESS — SQLite Feature 118 / 1,332 assertions; PostgreSQL Integration 22 passed / 417 assertions, 1 skipped; S3Mock 1 / 8; runtime and least-privilege checks PASS |
+| Authentication Regression | [45326348002](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348002) | SUCCESS — SQLite 20 / 172 assertions; PostgreSQL 4 / 99 assertions |
+| Pint Format | [45326347992](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326347992) | SUCCESS |
+| Security Scans | [45326348012](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45326348012) | SUCCESS — Gitleaks, filesystem/image scans and fixable HIGH/CRITICAL gate PASS |
+
+الاختبار الوحيد skipped في PostgreSQL suite العامة هو اختبار S3 الاختياري؛ Docker يشغل S3Mock منفصلاً وقد نجح 1/8.
+
+### Flutter evidence — SHA `027f51a3a0fb3f0301e83eb3c71a19c045984447`
+
+- [Android CI / APK Build #45324044184](https://github.com/m5ham3ds/RAVEN23/actions/runs/45324044184): SUCCESS. flutter analyze و487 اختبار Flutter مركّز و25 اختبار Android ABI/offline-download كلها اجتازت.
+- Release APK بحجم 47,853,410 bytes (45.64 MiB)، ABI واحد `arm64-v8a`. استخدم البناء `RAVEN23_AUTH_ONLY=true`، لذلك لا يثبت جاهزية كل ميزات التطبيق للإنتاج.
+
+### المتبقي قبل إغلاق Phase07
+
+1. دورة device-ID rotation/account switch كاملة من العميل إلى Backend، تشمل إعادة تهيئة checkpoints والتحقق من عدم إرسال طلب/بيانات متأخرة تخص المالك السابق.
+2. حمل اصطناعي قابل للقياس وتسجيل latency/volume/conflict rate؛ المقاييس المحلية الحالية وحدها لا تكفي.
+
+**الحالة: IN_PROGRESS.**
