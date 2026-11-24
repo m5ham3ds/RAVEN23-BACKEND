@@ -21,6 +21,8 @@ class SubscriptionEvent extends Model
         'starts_at',
         'expires_at',
         'event_hash',
+        'aggregate_revision',
+        'projection_status',
         'recorded_at',
     ];
 
@@ -31,6 +33,7 @@ class SubscriptionEvent extends Model
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
             'recorded_at' => 'datetime',
+            'aggregate_revision' => 'integer',
         ];
     }
 

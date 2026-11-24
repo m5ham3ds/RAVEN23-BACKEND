@@ -232,3 +232,12 @@
 - **Idempotency:** unique(source,idempotency_key)؛ إعادة الطلب بنفس المحتوى تعيد الحدث السابق، وإعادة ربط المفتاح بمحتوى مختلف تُرفض.
 - **Append-only:** SQLite/PostgreSQL DB guards تمنع UPDATE والحذف المباشر. يسمح user FK cascade بمحو سجل الحساب عند حذف الحساب.
 - **الحدود:** لا route عامة ولا webhook ولا wallet/payment execution. ربط ledger بإسقاط `user_entitlements` يأتي في 09C بعد التحقق من 09B.
+
+
+## D-030 — Atomic event projection and stale-event ordering
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** تنفيذ 09C قيد CI.
+- **القرار:** يسجل SubscriptionEventLedger الحدث ويحدّث current entitlement في transaction واحدة. يتلقى كل event aggregate_revision متزايدًا لكل user/entitlement وprojection_status ثابتًا عند الإدخال.
+- **الترتيب:** event time الأقدم من last_event_occurred_at يُحفظ stale دون تغيير current projection؛ event replay بالمفتاح نفسه يعيد السجل السابق ولا يزيد revision.
+- **الحدود:** لا route عامة ولا webhook أو payment provider؛ event ledger هو السجل الداخلي وuser_entitlements هو read model الحالي.

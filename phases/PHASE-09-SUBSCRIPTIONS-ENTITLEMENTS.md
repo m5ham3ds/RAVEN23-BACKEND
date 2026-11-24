@@ -1,6 +1,6 @@
 # المرحلة 09 — الاشتراكات والصلاحيات والميزات المدفوعة
 
-**الحالة:** IN_PROGRESS — 09A COMPLETE (عقد قراءة الاستحقاق) و09B قيد التنفيذ (سجل أحداث موثوق append-only). لا تزال الخطط/الأسعار/المزايا التجارية ومزود الدفع WAITING_EXTERNAL.  
+**الحالة:** IN_PROGRESS — 09A و09B COMPLETE؛ 09C قيد التحقق (الإسقاط الذري من سجل الأحداث إلى الاستحقاق الحالي ومقاومة الأحداث القديمة). الخطط والأسعار ومزود الدفع WAITING_EXTERNAL.  
 **الاعتماديات:** 03 و05 COMPLETE على مستوى الكود والاختبارات؛ Phase04 ما تزال PARTIAL بسبب Google Android والبريد الحقيقي في staging. يسمح ذلك بجرد العقد وتنفيذ أساس entitlement read-only، ولا يثبت جاهزية المصادقة/الدفع للإنتاج.
 
 ## الهدف
@@ -40,11 +40,20 @@
 - خدمة المجال داخل Backend فقط؛ لا public API ولا client-supplied grant، ولا تُفعّل أي مصدر دفع أو مزود أو عملية مالية في 09B.
 - اختبارات Feature وPostgreSQL تغطي idempotency، تضارب المفتاح، رفض UPDATE/DELETE المباشر، وحذف الحساب.
 
-### ما لم ينفذ في 09B
+### 09B — نتيجة CI النهائية
 
-- لم يتم ربط ledger بعد بإسقاط الحالة الحالية `user_entitlements`؛ هذا يحتاج transaction/projection stage منفصلة في 09C.
-- لا يوجد payment provider أو webhook أو coupon/admin grant API.
-- لا توجد plan catalog أو أسعار أو wallet/topup flows.
+- Backend SHA `a3f321ee3c4c70dad2db2b1737099c61c3d41d1e` اجتاز Docker [45429542495](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45429542495)، Authentication [45429542789](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45429542789)، Pint [45429543371](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45429543371)، Security [45429542767](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45429542767) — كلها SUCCESS.
+- SQLite Feature: 134 tests / 1,425 assertions. PostgreSQL Integration: 27 passed / 510 assertions، مع اختبار S3 اختياري واحد skipped؛ S3Mock منفصل 1 passed / 8 assertions.
+- PostgreSQL يثبت idempotency ورفض UPDATE/direct DELETE والسماح بحذف الحساب عبر cascade.
+
+### 09C — ربط ledger بإسقاط الاستحقاق الحالي
+
+- أُضيف aggregate revision وتسلسل projection status لكل event، وحقل last_event_occurred_at إلى current entitlement.
+- يسجل ledger الحدث ويحدّث current projection في transaction واحدة؛ لا يمكن إظهار حدث ناجح دون انعكاسه في الحالة أو العكس.
+- أحداث grant/corrected تنشئ أو تستعيد الاستحقاق؛ revoke/expired/refunded تلغي الاستحقاق مع حفظ بداية ونهاية الفترة التاريخية.
+- الحدث الأقدم من آخر حدث مطبق يُحفظ كـstale ولا يستطيع إعادة current state إلى الخلف.
+- replay بالمفتاح نفسه يعيد event السابق بلا زيادة revision.
+- لا public API أو webhook أو payment provider أو تسعير أو شراء حقيقي.
 
 ### ما لم ينفذ في 09A
 
@@ -56,11 +65,11 @@
 
 ## العمل المتبقي في Phase09
 
-1. إكمال والتحقق من 09B (ledger) ثم 09C (atomic projection من الأحداث الموثوقة إلى current entitlement).
+1. إكمال والتحقق من 09C (atomic projection وevent ordering وstale-event safety).
 
 1. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وسياسات التجديد/التجربة/الإلغاء/الاسترداد.
 2. بناء plan/entitlement catalog مستقلين عن طريقة الدفع بعد اعتماد القيم.
-3. بعد 09B، استكمال قواعد projection/event ordering ومصدر الحقيقة في 09C.
+3. بناء plan/entitlement catalog فقط بعد اعتماد قيم المنتج، واستكمال سياسة wallet/account deletion.
 4. تعريف PaymentProvider interface بعد اختيار مزود دفع واعتماد الأهلية التشغيلية والقانونية.
 5. تنفيذ تحقق webhook signature وtimestamp/replay defense وidempotency وترتيب الأحداث.
 6. ربط الدفع الموثق بالاستحقاقات دون السماح للعميل بمنح نفسه صلاحية.

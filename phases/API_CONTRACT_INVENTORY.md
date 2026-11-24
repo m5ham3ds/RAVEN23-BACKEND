@@ -259,3 +259,12 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - idempotency مربوط بالمصدر والمفتاح؛ تطابق المحتوى يعيد الحدث نفسه، واختلافه يسبب conflict.
 - SQLite/PostgreSQL triggers تمنع تعديل/حذف الحدث مباشرة، بينما حذف حساب المستخدم يسمح بتنفيذ cascade لمحو تاريخه.
 - لا يغير 09B عقد Flutter ولا current entitlement projection؛ ربط الأحداث بالـprojection مؤجل إلى 09C.
+
+
+## 16. Phase09-09C — الإسقاط الداخلي دون تغيير API
+
+- 09C لا يضيف HTTP write route أو يغير response الخاص بـGET /api/v1/user/entitlements.
+- SubscriptionEventLedger يسجل الحدث ويحدّث user_entitlements في transaction واحدة.
+- aggregate_revision متزايد ضمن user/entitlement؛ event time الأقدم من last_event_occurred_at ينتج projection_status=stale ولا يغير read model.
+- granted/corrected تنشئ أو تستعيد فترة الصلاحية؛ revoked/expired/refunded تسجل الإلغاء وتحفظ حدود الفترة التاريخية.
+- event row immutable؛ applied/stale يتم تعيينها وقت الإدخال. لا client grant أو payment/webhook provider.

@@ -5,6 +5,7 @@ namespace App\Services\Entitlements;
 use App\Exceptions\SubscriptionEventConflict;
 use App\Models\SubscriptionEvent;
 use App\Models\User;
+use App\Models\UserEntitlement;
 use Carbon\CarbonImmutable;
 use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
@@ -28,8 +29,9 @@ class SubscriptionEventLedger
     ];
 
     /**
-     * Append a trusted domain event. There is intentionally no HTTP endpoint
-     * for this service: callers must already have established authority.
+     * Record a trusted domain event and atomically project it to the current
+     * entitlement. Older events remain in the ledger but cannot regress it.
+     * There is intentionally no public HTTP write route.
      */
     public function record(
         User $user,
@@ -78,6 +80,7 @@ class SubscriptionEventLedger
             $expires,
             $eventHash,
         ): SubscriptionEvent {
+            // Serialize events for this account before allocating revisions.
             $lockedUser = User::on($connection)
                 ->whereKey($user->getKey())
                 ->lockForUpdate()
@@ -99,7 +102,23 @@ class SubscriptionEventLedger
                 return $existing;
             }
 
-            return SubscriptionEvent::on($connection)->create([
+            $current = UserEntitlement::on($connection)
+                ->where('user_id', $lockedUser->getKey())
+                ->where('code', $entitlementCode)
+                ->lockForUpdate()
+                ->first();
+
+            $latestRevision = (int) (SubscriptionEvent::on($connection)
+                ->where('user_id', $lockedUser->getKey())
+                ->where('entitlement_code', $entitlementCode)
+                ->max('aggregate_revision') ?? 0);
+            $aggregateRevision = $latestRevision + 1;
+
+            $isCurrent = $current === null
+                || $current->last_event_occurred_at === null
+                || $occurred >= $this->utc($current->last_event_occurred_at);
+
+            $event = SubscriptionEvent::on($connection)->create([
                 'user_id' => $lockedUser->getKey(),
                 'event_type' => $eventType,
                 'entitlement_code' => $entitlementCode,
@@ -111,9 +130,68 @@ class SubscriptionEventLedger
                 'starts_at' => $starts,
                 'expires_at' => $expires,
                 'event_hash' => $eventHash,
+                'aggregate_revision' => $aggregateRevision,
+                'projection_status' => $isCurrent ? 'applied' : 'stale',
                 'recorded_at' => now('UTC'),
             ]);
+
+            if ($isCurrent) {
+                $this->project(
+                    $connection,
+                    $lockedUser,
+                    $current,
+                    $eventType,
+                    $entitlementCode,
+                    $source,
+                    $sourceReference,
+                    $occurred,
+                    $starts,
+                    $expires,
+                );
+            }
+
+            return $event;
         });
+    }
+
+    private function project(
+        string $connection,
+        User $user,
+        ?UserEntitlement $current,
+        string $eventType,
+        string $entitlementCode,
+        string $source,
+        ?string $sourceReference,
+        string $occurredAt,
+        ?string $startsAt,
+        ?string $expiresAt,
+    ): void {
+        $grantsAccess = in_array($eventType, ['granted', 'corrected'], true);
+        $revision = $current === null ? 1 : (int) $current->revision + 1;
+
+        $attributes = [
+            'starts_at' => $grantsAccess
+                ? ($startsAt ?? $occurredAt)
+                : ($current?->starts_at ?? $startsAt ?? $occurredAt),
+            'expires_at' => $grantsAccess ? $expiresAt : $current?->expires_at,
+            'revoked_at' => $grantsAccess ? null : $occurredAt,
+            'revision' => $revision,
+            'source' => $source,
+            'source_reference' => $sourceReference,
+            'last_event_occurred_at' => $occurredAt,
+        ];
+
+        if ($current === null) {
+            UserEntitlement::on($connection)->create([
+                'user_id' => $user->getKey(),
+                'code' => $entitlementCode,
+                ...$attributes,
+            ]);
+
+            return;
+        }
+
+        $current->forceFill($attributes)->save();
     }
 
     private function validate(
@@ -148,6 +226,10 @@ class SubscriptionEventLedger
 
         if ($reasonCode !== null && ! preg_match('/^[a-z0-9_.-]{1,80}$/', $reasonCode)) {
             throw new InvalidArgumentException('Invalid subscription event reason code.');
+        }
+
+        if ($eventType === 'corrected' && $startsAt === null) {
+            throw new InvalidArgumentException('A corrected entitlement event requires an explicit start time.');
         }
 
         if ($startsAt !== null && $expiresAt !== null && $expiresAt <= $startsAt) {

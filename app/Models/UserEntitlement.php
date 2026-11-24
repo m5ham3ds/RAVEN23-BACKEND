@@ -16,6 +16,7 @@ class UserEntitlement extends Model
         'revision',
         'source',
         'source_reference',
+        'last_event_occurred_at',
     ];
 
     protected function casts(): array
@@ -25,6 +26,7 @@ class UserEntitlement extends Model
             'expires_at' => 'datetime',
             'revoked_at' => 'datetime',
             'revision' => 'integer',
+            'last_event_occurred_at' => 'datetime',
         ];
     }
 

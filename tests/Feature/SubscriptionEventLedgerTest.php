@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Exceptions\SubscriptionEventConflict;
 use App\Models\User;
+use App\Models\UserEntitlement;
 use App\Services\Entitlements\SubscriptionEventLedger;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -75,6 +76,9 @@ class SubscriptionEventLedgerTest extends TestCase
         $this->assertSame('ad_free', $first->entitlement_code);
         $this->assertSame(64, strlen($first->event_hash));
         $this->assertNull($first->updated_at);
+        $this->assertSame('applied', $first->projection_status);
+        $this->assertSame(1, (int) $first->aggregate_revision);
+        $this->assertSame(1, (int) UserEntitlement::query()->where('user_id', $user->getKey())->sole()->revision);
     }
 
     public function test_reusing_an_idempotency_key_with_different_event_content_conflicts(): void
@@ -87,6 +91,59 @@ class SubscriptionEventLedgerTest extends TestCase
 
         $this->expectException(SubscriptionEventConflict::class);
         $ledger->record($user, 'revoked', 'ad_free', 'coupon', 'event-key-0002', $at);
+    }
+
+    public function test_grant_and_revoke_events_project_atomically_to_current_entitlement(): void
+    {
+        $user = $this->account();
+        $ledger = app(SubscriptionEventLedger::class);
+        $grantedAt = now('UTC')->subDays(2);
+        $expiresAt = $grantedAt->copy()->addDays(30);
+        $revokedAt = $grantedAt->copy()->addDay();
+
+        $grant = $ledger->record(
+            $user, 'granted', 'ad_free', 'internal', 'event-key-0101',
+            $grantedAt, $grantedAt, $expiresAt
+        );
+        $revoke = $ledger->record(
+            $user, 'revoked', 'ad_free', 'administrative', 'event-key-0102',
+            $revokedAt, null, null, 'case-102', 'account_review'
+        );
+        $projection = UserEntitlement::query()->where('user_id', $user->getKey())->sole();
+
+        $this->assertSame('applied', $grant->projection_status);
+        $this->assertSame('applied', $revoke->projection_status);
+        $this->assertSame(2, (int) $projection->revision);
+        $this->assertSame($grantedAt->toDateTimeString(), $projection->starts_at->toDateTimeString());
+        $this->assertSame($expiresAt->toDateTimeString(), $projection->expires_at->toDateTimeString());
+        $this->assertSame($revokedAt->toDateTimeString(), $projection->revoked_at->toDateTimeString());
+        $this->assertSame($revokedAt->toDateTimeString(), $projection->last_event_occurred_at->toDateTimeString());
+    }
+
+    public function test_out_of_order_event_is_retained_as_stale_without_regressing_projection(): void
+    {
+        $user = $this->account();
+        $ledger = app(SubscriptionEventLedger::class);
+        $latestAt = now('UTC')->subHour();
+        $olderAt = $latestAt->copy()->subHour();
+        $expiresAt = $latestAt->copy()->addDays(10);
+
+        $latest = $ledger->record(
+            $user, 'granted', 'ad_free', 'payment', 'event-key-0201',
+            $latestAt, $latestAt, $expiresAt
+        );
+        $stale = $ledger->record(
+            $user, 'revoked', 'ad_free', 'payment', 'event-key-0202',
+            $olderAt
+        );
+        $projection = UserEntitlement::query()->where('user_id', $user->getKey())->sole();
+
+        $this->assertSame('applied', $latest->projection_status);
+        $this->assertSame('stale', $stale->projection_status);
+        $this->assertSame(2, (int) $stale->aggregate_revision);
+        $this->assertSame(1, (int) $projection->revision);
+        $this->assertNull($projection->revoked_at);
+        $this->assertSame($latestAt->toDateTimeString(), $projection->last_event_occurred_at->toDateTimeString());
     }
 
     public function test_raw_update_and_direct_delete_are_rejected_by_database_guards(): void

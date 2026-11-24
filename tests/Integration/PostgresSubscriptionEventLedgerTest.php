@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use App\Exceptions\SubscriptionEventConflict;
 use App\Models\User;
+use App\Models\UserEntitlement;
 use App\Services\Entitlements\SubscriptionEventLedger;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -98,6 +99,10 @@ class PostgresSubscriptionEventLedgerTest extends TestCase
             'test_purchase',
         );
         $this->assertSame($event->getKey(), $duplicate->getKey());
+        $projection = UserEntitlement::query()->where('user_id', $user->getKey())->sole();
+        $this->assertSame('applied', $event->projection_status);
+        $this->assertSame(1, (int) $projection->revision);
+        $this->assertNull($projection->revoked_at);
 
         try {
             DB::table('subscription_events')->where('id', $event->getKey())->update(['reason_code' => 'tampered']);
@@ -115,6 +120,29 @@ class PostgresSubscriptionEventLedgerTest extends TestCase
 
         $user->delete();
         $this->assertDatabaseMissing('subscription_events', ['id' => $event->getKey()]);
+    }
+
+    public function test_postgresql_out_of_order_events_do_not_regress_projection(): void
+    {
+        $user = $this->createAccount();
+        $ledger = app(SubscriptionEventLedger::class);
+        $latestAt = now('UTC')->subHour();
+        $olderAt = $latestAt->copy()->subHour();
+
+        $ledger->record(
+            $user, 'granted', 'ad_free', 'payment', 'pg-event-key-0101',
+            $latestAt, $latestAt, $latestAt->copy()->addDays(30)
+        );
+        $stale = $ledger->record(
+            $user, 'revoked', 'ad_free', 'payment', 'pg-event-key-0102',
+            $olderAt
+        );
+        $projection = UserEntitlement::query()->where('user_id', $user->getKey())->sole();
+
+        $this->assertSame('stale', $stale->projection_status);
+        $this->assertSame(2, (int) $stale->aggregate_revision);
+        $this->assertSame(1, (int) $projection->revision);
+        $this->assertNull($projection->revoked_at);
     }
 
     public function test_postgresql_event_idempotency_key_cannot_be_rebound(): void
