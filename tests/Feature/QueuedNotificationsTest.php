@@ -405,6 +405,52 @@ class QueuedNotificationsTest extends TestCase
         $this->assertDatabaseHas('notification_outbox', ['id' => $ids[0], 'status' => 'sent']);
     }
 
+    public function test_outbox_relay_preserves_due_push_when_global_delivery_is_disabled(): void
+    {
+        Queue::fake();
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createUser();
+        $token = 'synthetic-fcm-paused-relay-0123456789abcdef';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:'.$token, (string) config('app.key')),
+            'token' => $token,
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+
+        $ids = app(NotificationOutboxService::class)->queuePush(
+            $user,
+            'paused-relay:'.$user->getKey(),
+            'Paused delivery',
+            'This push must remain queued.',
+        );
+        $this->assertCount(1, $ids);
+        $outboxId = $ids[0];
+        $this->assertCount(1, Queue::pushed(DeliverNotificationOutboxJob::class));
+
+        $staleDispatch = now()->subMinutes(6);
+        DB::table('notification_outbox')->where('id', $outboxId)->update([
+            'last_dispatched_at' => $staleDispatch,
+        ]);
+        config(['services.raven23_push.enabled' => false]);
+
+        $this->assertSame(0, Artisan::call('notifications:outbox-dispatch', ['--limit' => 10]));
+
+        $this->assertCount(1, Queue::pushed(DeliverNotificationOutboxJob::class));
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $outboxId,
+            'notification_type' => 'push_delivery',
+            'status' => 'pending',
+        ]);
+        $lastDispatch = DB::table('notification_outbox')->where('id', $outboxId)->value('last_dispatched_at');
+        $this->assertSame($staleDispatch->timestamp, strtotime((string) $lastDispatch));
+    }
+
     public function test_push_delivery_obeys_the_global_disable_switch_after_enqueue(): void
     {
         Queue::fake();

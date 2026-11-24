@@ -61,6 +61,13 @@ class DispatchPendingNotificationOutbox extends Command
                     return null;
                 }
 
+                if (
+                    $record->notification_type === 'push_delivery'
+                    && ! (bool) config('services.raven23_push.enabled', false)
+                ) {
+                    return null;
+                }
+
                 if ($record->status === 'pending') {
                     if (
                         now()->lessThan($record->available_at)
