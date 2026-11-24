@@ -1,6 +1,6 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified main SHA:** 44ed546c9881bc2d7ca16d6c97024c6ae77ba047  
+**Latest fully CI-verified main SHA:** f912dd2479a5f86471e1e8999b2d36c7611d41cb  
 **تاريخ التحديث:** 25 نوفمبر 2026 — السجل الأقدم تاريخي  
 **الحالة:** تحديث Phase10A؛ جرد workflows مصحح، وbootstrap ذو صلاحيات كتابة أزيل بعد انتهاء مهمته.
 
@@ -220,3 +220,27 @@ Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود ال
 - Phase10D COMPLETE. Phase10E begins by enhancing the PostgreSQL synthetic concurrency report with p50/p95, full wall-clock duration and throughput.
 
 No production DB, secrets, deployments, production API writes or AWS resources were used.
+
+
+## 15. Phase10E closeout / Phase10F start — 25 November 2026
+
+### Phase10E verified on SHA `f912dd2479a5f86471e1e8999b2d36c7611d41cb`
+
+- Docker [45504724906](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724906): SUCCESS — SQLite Feature 150/1,704; PostgreSQL Integration 31/546 with one optional skipped test; S3Mock 1/8; runtime guards PASS.
+- Authentication [45504724789](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724789): SUCCESS.
+- Pint [45504724822](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724822): SUCCESS.
+- Security [45504724860](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724860): SUCCESS — Trivy image Clean; fixable HIGH/CRITICAL gate PASS.
+- Synthetic PostgreSQL metrics: 8/8 requests; 188.248ms wall-clock; 42.497 requests/sec; request 4,191 bytes; response 546 bytes; P50 143.150ms; P95 177.715ms; average 143.856ms; max 177.715ms; 5/8 conflicts; winning timestamp 5000.
+- 10E COMPLETE. This is an isolated CI baseline, not a production SLO.
+
+### Phase10F implementation started
+
+- The Docker workflow gains post-test evidence packaging for the exact local image already tested by the job.
+- A local SHA-specific image tag is checked against embedded `RAVEN23_SOURCE_COMMIT`; Docker config digest and docker-save archive SHA-256 are recorded.
+- Trivy generates CycloneDX SBOM from the same local image.
+- Provenance JSON records source SHA, workflow run, Dockerfile/Composer input hashes, pinned FrankenPHP base digest, image config digest, archive SHA-256 and SBOM SHA-256.
+- `actions/attest@v4` generates signed artifact provenance and SBOM attestations; evidence is uploaded as a commit-specific artifact.
+- This is file-based image evidence. No OCI registry manifest digest is claimed, no image is pushed, and packages:write is not requested.
+- 10F acceptance is pending CI: all four gates, evidence artifact upload, checksums and both attestation outputs must complete.
+
+No production database, secrets, deployments, registry publishing or AWS resources were used.

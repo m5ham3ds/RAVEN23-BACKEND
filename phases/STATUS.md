@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `44ed546c9881bc2d7ca16d6c97024c6ae77ba047`
+**Latest fully CI-verified implementation SHA:** `f912dd2479a5f86471e1e8999b2d36c7611d41cb`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -19,7 +19,7 @@
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
-| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D COMPLETE؛ 10B و10E–10G مفتوحة) | 10D API v1 contract اجتاز البوابات الأربع على 44ed546؛ 10B ينتظر Admin protection، و10E يضيف قياسات P50/P95/throughput لحمل PostgreSQL الاصطناعي. |
+| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E COMPLETE؛ 10B و10F–10G مفتوحة) | 10E اجتازت بوابات CI الأربع على f912dd2 وأنتجت P50/P95 وthroughput؛ 10F بدأ ربط الصورة المختبرة بالـSHA وSBOM/provenance. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
@@ -256,3 +256,14 @@
 - 10E IN_PROGRESS: توسيع اختبار PostgreSQL المتوازي ليقيس P50/P95 وwall-clock duration وthroughput، إلى جانب request/response bytes وconflict rate.
 - 10B remains IN_PROGRESS: main unprotected وrequired-check settings تحتاج صلاحية repository Admin.
 - لا production DB أو secrets أو deployment أو AWS resources تم استخدامها.
+
+
+## 25 نوفمبر 2026 — Phase10E closeout / Phase10F start
+
+- Latest fully CI-verified Backend SHA: `f912dd2479a5f86471e1e8999b2d36c7611d41cb`.
+- Phase10E COMPLETE: Docker [45504724906](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724906)، Authentication [45504724789](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724789)، Pint [45504724822](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724822)، Security [45504724860](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724860): جميعها SUCCESS على SHA نفسه.
+- PostgreSQL synthetic run: 8/8 successful workers؛ 188.248ms wall-clock؛ 42.497 req/s؛ 4,191 request bytes؛ 546 response bytes؛ P50 143.150ms؛ P95 177.715ms؛ average 143.856ms؛ max 177.715ms؛ 5/8 stale conflicts (62.5%)؛ winning timestamp=5000.
+- PostgreSQL Integration: 31 passed / 546 assertions مع optional skip واحد؛ SQLite Feature 150/1,704؛ S3Mock 1/8.
+- 10F IN_PROGRESS: Docker workflow now creates a SHA-bound local image tag, records image config digest and Docker archive SHA-256, generates CycloneDX SBOM from the tested image, prepares build materials provenance, and requests signed GitHub artifact provenance/SBOM attestations. CI is pending.
+- No registry push, packages:write, production DB, production secrets, deployment or AWS resource.
+- Phase10B remains OPEN: main protection/required checks require repository Admin access.

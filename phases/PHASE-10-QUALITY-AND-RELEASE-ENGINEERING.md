@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D COMPLETE على SHA 44ed546؛ 10E IN_PROGRESS لقياس الحمل الاصطناعي.  
+**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D COMPLETE على SHA 44ed546؛ 10E COMPLETE على SHA f912dd2؛ 10F IN_PROGRESS لربط image artifact بالـSHA وSBOM/provenance.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -70,21 +70,34 @@
 
 ## 10E — synthetic PostgreSQL load baseline
 
-**الحالة:** IN_PROGRESS — إضافة قياسات زمن النافذة الكاملة ومعدل الطلبات وP50/P95 إلى اختبار التزامن الموجود.
+**الحالة:** COMPLETE على SHA `f912dd2479a5f86471e1e8999b2d36c7611d41cb` بعد نجاح بوابات CI الأربع وظهور المقاييس الجديدة في Docker log.
 
-- الاختبار يستخدم ثمانية عمال PHP مستقلين، ولكل عامل Sanctum token واتصال PostgreSQL مستقل، مع حاجز إطلاق مشترك. التشغيل عبر Docker يستخدم PostgreSQL disposable فقط.
-- ستشمل القياسات عدد الطلبات الناجحة، زمن نافذة التزامن الكلي، throughput requests/sec، request/response bytes، P50/P95 بطريقة nearest-rank، average/max latency، وعدد/معدل stale conflicts والنسخة الفائزة.
-- baseline المسجل على Docker run 45503594954 قبل إضافة هذه المقاييس: 8 clients؛ 4,191 request bytes؛ 545 response bytes؛ average latency 115.311 ms؛ max 149.676 ms؛ stale conflicts 6/8 (75%)؛ winning timestamp 5000.
-- هذه عينة CI اصطناعية صغيرة وليست production load benchmark أو SLO. لن نضيف حد latency اعتباطياً قبل اعتماد workload وهدف أداء متوقع.
-- قبول 10E يتطلب نجاح البوابات الأربع على SHA الذي يحتوي القياسات، ثم تسجيل القيم النهائية من Docker logs.
+- الاختبار يستخدم ثمانية عمال PHP مستقلين، ولكل عامل Sanctum token واتصال PostgreSQL مستقل، مع حاجز إطلاق مشترك؛ PostgreSQL disposable داخل GitHub Actions فقط.
+- Docker [45504724906](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724906): SUCCESS — SQLite Feature 150 / 1,704 assertions؛ PostgreSQL Integration 31 passed / 546 assertions مع اختبار optional واحد skipped؛ S3Mock 1 / 8؛ runtime guards PASS.
+- Authentication [45504724789](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724789): SUCCESS؛ Pint [45504724822](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724822): SUCCESS؛ Security [45504724860](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724860): SUCCESS — Trivy production image Clean وبوابة HIGH/CRITICAL PASS.
+- القياس الفعلي: 8/8 طلبات ناجحة؛ wall-clock 188.248 ms؛ throughput 42.497 requests/sec؛ request bytes 4,191؛ response bytes 546؛ P50 143.150 ms؛ P95 177.715 ms؛ average 143.856 ms؛ max 177.715 ms؛ stale conflicts 5/8 (62.5%)؛ winning timestamp 5000.
+- حساب P50/P95 يستخدم nearest-rank؛ النتيجة تخص عينة تزامن اصطناعية صغيرة ولا تمثل production capacity أو SLO.
+- لا يوجد latency threshold ثابت؛ القبول هو نجاح جميع العمال، سلامة aggregate، فوز timestamp الأعلى، وحساب القياسات الجديدة بنجاح.
+
+## 10F — immutable tested-image evidence, SBOM and provenance
+
+**الحالة:** IN_PROGRESS — workflow change committed; pending CI proof that the evidence artifact and signed attestations can be generated from the exact tested image.
+
+- يحافظ Docker validation على الصورة نفسها بعد الاختبارات، ويضيف لها local tag خاصاً بالـSHA: `raven23-backend:sha-<GITHUB_SHA>`.
+- يسجل `docker image inspect .Id` باعتباره Docker image config digest، لا registry manifest digest؛ ويتحقق من تطابق `RAVEN23_SOURCE_COMMIT` داخل الصورة مع SHA الحالي.
+- يصدر Docker archive للصورة المختبرة ويحسب SHA-256 للملف؛ كما يولد CycloneDX SBOM من الصورة المحلية نفسها عبر Trivy.
+- يبني provenance JSON يربط source SHA وworkflow run وDockerfile وComposer manifest/lock وFrankenPHP base digest مع config digest وarchive SHA-256 وSBOM SHA-256.
+- يستخدم GitHub Actions signed artifact attestations لإثبات provenance ولإرفاق SBOM بالـarchive، ويحفظ bundles في artifact لمدة 30 يوماً. لا توجد صلاحية packages:write ولا push إلى Registry.
+- لأن المشروع لا ينشر صورة Registry في هذا workflow، لا يتم الادعاء بوجود OCI manifest digest؛ الـconfig digest وarchive SHA-256 يحددان الصورة/الحزمة المحلية بدقة.
+- القبول يتطلب نجاح بوابات CI الأربع، ظهور artifact بكل الملفات المطلوبة، وصحة SHA-256 والتحقق من شهادتي provenance/SBOM.
 
 ## الشرائح التالية
 
 - 10B: required checks وحماية main وتقييم تداخل workflows.
 - 10C COMPLETE: migrations على schema فارغ وsnapshot اصطناعي سابق.
 - 10D COMPLETE: API v1 contract regression verified on SHA 44ed546.
-- 10E IN_PROGRESS: synthetic PostgreSQL load instrumentation (P50/P95/throughput/volume/conflict).
-- 10F: immutable image digest وربط artifact بالـSHA وSBOM/provenance.
+- 10E COMPLETE: synthetic PostgreSQL load baseline verified on SHA f912dd2.
+- 10F IN_PROGRESS: immutable tested-image artifact with config digest, SHA-256, CycloneDX SBOM and signed provenance/SBOM attestations.
 - 10G: release manifest وتجربة rollback في بيئة معزولة.
 
 ## الهدف

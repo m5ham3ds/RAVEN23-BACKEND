@@ -316,3 +316,21 @@
 - **القرار:** قياس التزامن في PostgreSQL disposable باستخدام ثمانية عمال PHP مستقلين، مع توثيق request/response bytes، P50/P95 (nearest-rank)، average/max latency، wall-clock duration، throughput، stale-conflict rate وwinning timestamp.
 - **السبب:** يجب أن تكون التجربة قابلة لإعادة التشغيل وتعطي توزيعًا للزمن وحجم الحركة، لا متوسطًا منفردًا فقط.
 - **الحدود:** لا يُفرض latency SLO قبل اعتماد حمل متوقع، ولا تُستخدم production DB أو production API؛ نتائج CI لا تمثل السعة الإنتاجية.
+
+
+## D-040 — Phase10E synthetic PostgreSQL load measurement accepted
+
+- **التاريخ:** 25 نوفمبر 2026
+- **الحالة:** COMPLETE على SHA `f912dd2479a5f86471e1e8999b2d36c7611d41cb`؛ CI الأربع SUCCESS.
+- **القرار:** يحتفظ الاختبار ذو 8 عمال مستقلة بقياسات حجم الطلبات/الاستجابات، زمن التزامن الكلي، throughput، P50/P95 nearest-rank، average/max latency، stale conflict count/rate والنسخة الفائزة.
+- **النتيجة:** 8/8 نجاح؛ 188.248ms wall clock؛ 42.497 requests/sec؛ 4,191 request bytes؛ 546 response bytes؛ P50 143.150ms؛ P95 177.715ms؛ average 143.856ms؛ max 177.715ms؛ 5/8 conflicts (62.5%)؛ winning timestamp=5000.
+- **الحدود:** PostgreSQL disposable وworkload اصطناعي صغير؛ لا يثبت production capacity أو SLO.
+
+## D-041 — Bind the exact tested image to a source SHA and signed build evidence
+
+- **التاريخ:** 25 نوفمبر 2026
+- **الحالة:** 10F IN_PROGRESS؛ ينتظر CI على workflow changes.
+- **القرار:** يظل build workflow لا ينشر image إلى registry. يحفظ الصورة التي اجتازت runtime/functional tests تحت local SHA tag، ويسجل Docker config digest وSHA-256 للـarchive، وينشئ CycloneDX SBOM وprovenance يربط المصدر وملفات البناء وbase-image digest بالمخرجات.
+- **الإثبات:** GitHub Actions signed artifact attestations لصورة archive ولـSBOM؛ يتم حفظ الملفات والbundles كـartifact محدد بالـSHA.
+- **الصلاحيات:** contents:read وid-token:write وattestations:write وartifact-metadata:write فقط؛ لا packages:write ولا registry push.
+- **الحدود:** Docker config digest ليس OCI registry manifest digest. لا يُدّعى وجود registry manifest digest حتى يوجد registry publishing معتمد. Artifact SHA-256 يحدد الحزمة الدقيقة التي اختُبرت.

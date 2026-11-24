@@ -9,6 +9,9 @@ on:
 
 permissions:
   contents: read
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 concurrency:
   group: raven23-backend-validation-${{ github.ref }}-${{ github.sha }}
@@ -454,3 +457,119 @@ jobs:
       - name: Stop containers
         if: always()
         run: docker rm -f raven23-frankenphp-smoke >/dev/null 2>&1 || true
+
+      - name: Package the tested image with SHA-bound provenance and SBOM
+        id: release-evidence
+        env:
+          BASE_IMAGE: ${{ steps.frankenphp-base.outputs.image }}
+          BASE_DIGEST: ${{ steps.frankenphp-base.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence_dir="$GITHUB_WORKSPACE/release-evidence"
+          mkdir -p "$evidence_dir"
+
+          image_tag="raven23-backend:sha-$GITHUB_SHA"
+          docker tag raven23-backend:ci "$image_tag"
+          image_id="$(docker image inspect --format '{{.Id}}' "$image_tag")"
+          [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]]
+          image_platform="$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image_tag")"
+          embedded_commit="$(docker image inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$image_tag" | sed -n 's/^RAVEN23_SOURCE_COMMIT=//p')"
+          test "$embedded_commit" = "$GITHUB_SHA" || {
+            echo "::error::Image source commit does not match the workflow SHA."
+            exit 1
+          }
+          test "$(docker image inspect --format '{{.Id}}' raven23-backend:ci)" = "$image_id"
+
+          archive="$evidence_dir/raven23-backend-$GITHUB_SHA.docker.tar"
+          sbom="$evidence_dir/raven23-backend.cdx.json"
+          provenance="$evidence_dir/raven23-backend.provenance.json"
+          docker save --output "$archive" "$image_tag"
+          archive_sha="$(sha256sum "$archive" | awk '{print $1}')"
+
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$evidence_dir:/out" \
+            aquasec/trivy:0.76.2 \
+            image --format cyclonedx --output /out/raven23-backend.cdx.json "$image_tag"
+          test -s "$sbom"
+          sbom_sha="$(sha256sum "$sbom" | awk '{print $1}')"
+
+          dockerfile_sha="$(sha256sum Dockerfile | awk '{print $1}')"
+          composer_json_sha="$(sha256sum composer.json | awk '{print $1}')"
+          composer_lock_sha="$(sha256sum composer.lock | awk '{print $1}')"
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg source_commit "$GITHUB_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg image_tag "$image_tag" \
+            --arg image_config_digest "$image_id" \
+            --arg image_platform "$image_platform" \
+            --arg base_image "$BASE_IMAGE" \
+            --arg base_digest "$BASE_DIGEST" \
+            --arg dockerfile_sha256 "$dockerfile_sha" \
+            --arg composer_json_sha256 "$composer_json_sha" \
+            --arg composer_lock_sha256 "$composer_lock_sha" \
+            --arg archive_file "$(basename "$archive")" \
+            --arg archive_sha256 "$archive_sha" \
+            --arg sbom_file "$(basename "$sbom")" \
+            --arg sbom_sha256 "$sbom_sha" \
+            '{
+              schemaVersion: 1,
+              kind: "raven23.tested-container-build-provenance",
+              source: {repository: $repository, commit: $source_commit, runId: $run_id, runAttempt: $run_attempt},
+              image: {localImmutableTag: $image_tag, configDigest: $image_config_digest, platform: $image_platform, sourceCommitVerifiedInImageEnvironment: $source_commit},
+              materials: {runtimeBase: {image: $base_image, digest: $base_digest}, dockerfile: {sha256: $dockerfile_sha256}, composerManifest: {sha256: $composer_json_sha256}, composerLock: {sha256: $composer_lock_sha256}},
+              artifacts: {dockerArchive: {file: $archive_file, sha256: $archive_sha256}, sbom: {file: $sbom_file, format: "CycloneDX JSON", sha256: $sbom_sha256}},
+              registry: {published: false, note: "No registry manifest digest is claimed; the local image config digest and exact archive SHA-256 identify the tested image artifact."}
+            }' > "$provenance"
+
+          printf '%s  %s\n' "$archive_sha" "$(basename "$archive")" "$sbom_sha" "$(basename "$sbom")" > "$evidence_dir/SHA256SUMS"
+          sha256sum --check "$evidence_dir/SHA256SUMS"
+          {
+            echo "## Tested image release evidence"
+            echo
+            echo "- Source commit: `$GITHUB_SHA`"
+            echo "- Immutable local tag: `$image_tag`"
+            echo "- Docker image config digest: `$image_id`"
+            echo "- Platform: `$image_platform`"
+            echo "- Docker archive SHA-256: `$archive_sha`"
+            echo "- CycloneDX SBOM SHA-256: `$sbom_sha`"
+            echo "- Runtime base: `$BASE_IMAGE@$BASE_DIGEST`"
+            echo "- No image was pushed to a container registry."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate signed SLSA build provenance attestation for the tested image archive
+        id: image-provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/raven23-backend-${{ github.sha }}.docker.tar
+          show-summary: true
+
+      - name: Generate signed SBOM attestation for the tested image archive
+        id: image-sbom-attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/raven23-backend-${{ github.sha }}.docker.tar
+          sbom-path: release-evidence/raven23-backend.cdx.json
+          show-summary: true
+
+      - name: Collect signed attestation bundles
+        env:
+          PROVENANCE_BUNDLE: ${{ steps.image-provenance.outputs.bundle-path }}
+          SBOM_BUNDLE: ${{ steps.image-sbom-attestation.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -s "$PROVENANCE_BUNDLE"
+          test -s "$SBOM_BUNDLE"
+          cp "$PROVENANCE_BUNDLE" release-evidence/image-provenance.sigstore.json
+          cp "$SBOM_BUNDLE" release-evidence/image-sbom.sigstore.json
+
+      - name: Upload immutable image, SBOM and provenance evidence
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: raven23-tested-image-evidence-${{ github.sha }}
+          path: release-evidence/
+          if-no-files-found: error
+          retention-days: 30
