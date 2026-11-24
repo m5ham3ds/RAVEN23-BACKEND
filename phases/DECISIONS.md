@@ -250,3 +250,12 @@
 - **القرار:** الأمر `subscriptions:expire-due` يعرض المرشحين فقط افتراضيًا؛ التسجيل يتطلب `--apply`. حد المعالجة الافتراضي 500 وأقصاه 5000 لكل تشغيل.
 - **المصدر:** جميع أحداث expired تسجل عبر SubscriptionEventLedger بمفتاح idempotency مرتبط entitlement ID/revision وoccurred_at يساوي وقت expiry. stale guard يحمي أحدث renewal/correction.
 - **الحدود:** لا scheduler تلقائي في هذه الشريحة؛ لا مزود دفع أو webhook أو تغيير للأسعار والخطط.
+
+
+## D-032 — Public plan catalog contract remains disabled until commercial approval
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** تنفيذ 09E قيد CI.
+- **القرار:** يوفّر Backend المسار العام `GET /api/v1/billing/plans` ليتوافق مع Flutter، لكنه يعيد فقط `success=true`, `purchases_enabled=false`, `plans=[]`.
+- **الأمان والمنتج:** لا يدرج أي سعر أو مدة أو عملة أو wallet limits أو شروط أو provider. لا يستطيع query parameter من العميل تفعيل الشراء.
+- **الحدود:** لا يعدّ هذا كتالوجًا تجاريًا معتمدًا ولا يجيز wallet/topup/payment. يتطلب ملء الخطط موافقة صريحة على جميع تفاصيل المنتج أولًا.

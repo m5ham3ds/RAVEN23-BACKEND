@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified implementation SHA: 1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3 — 24 نوفمبر 2026  
+> latest fully CI-verified implementation SHA: 93f626cff3a5b3c472a283285ac64b49060d0f85 — 24 نوفمبر 2026  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -29,7 +29,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 IN_PROGRESS مع اختيار FCM/OneSignal مؤجل بقرار المستخدم، وPhase09 IN_PROGRESS؛ 09A–09C اجتازت بوابات CI الأربع و09D (preview-first expiry reconciliation) قيد CI. Phase09 أضاف entitlement read-only server-authoritative مع default-deny؛ لا plan pricing أو payment provider معتمد حتى الآن. Phase08 تحتفظ بعقد Push المحايد والإرسال معطلاً.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 IN_PROGRESS مع اختيار FCM/OneSignal مؤجل بقرار المستخدم، وPhase09 IN_PROGRESS؛ 09A–09D اجتازت بوابات CI الأربع و09E (public disabled plan-catalog contract) قيد CI. Phase09 أضاف entitlement read-only server-authoritative مع default-deny؛ لا plan pricing أو payment provider معتمد حتى الآن. Phase08 تحتفظ بعقد Push المحايد والإرسال معطلاً.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

@@ -72,7 +72,7 @@
 
 | الميزة | الحالة | الدليل / الفجوة |
 |---|---|---|
-| Billing plans | client-only / backend missing | BillingRepository GET billing/plans |
+| Billing plans | route implemented, default-off | GET /api/v1/billing/plans public; returns purchases_enabled=false and plans=[] until commercial plan/price/terms approval. No payment provider. |
 | User entitlements | موجود ومختبر آليًا بعد 09A | GET /api/v1/user/entitlements؛ Sanctum owner-scoped، server-calculated، start/expiry/revocation، default-deny. لا write API للعميل. |
 | Subscription event ledger, projection and expiry | 09A–09C verified / 09D under CI | Append-only ledger، atomic projection، stale-event ordering؛ command subscriptions:expire-due preview-first وتكتب فقط مع --apply. No public API/provider. |
 | Wallet balance/history | client-only / backend missing | GET wallet and wallet/transactions |

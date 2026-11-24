@@ -1,6 +1,6 @@
 # المرحلة 09 — الاشتراكات والصلاحيات والميزات المدفوعة
 
-**الحالة:** IN_PROGRESS — 09A و09B و09C COMPLETE؛ 09D قيد CI (مراجعة/تسجيل الاستحقاقات المنتهية بأمر preview-first). الخطط والأسعار ومزود الدفع WAITING_EXTERNAL.  
+**الحالة:** IN_PROGRESS — 09A–09D COMPLETE؛ 09E قيد CI (عقد كتالوج عام مغلق افتراضيًا). الخطط والأسعار وشروط الشراء ومزود الدفع WAITING_EXTERNAL.  
 **الاعتماديات:** 03 و05 COMPLETE على مستوى الكود والاختبارات؛ Phase04 ما تزال PARTIAL بسبب Google Android والبريد الحقيقي في staging. يسمح ذلك بجرد العقد وتنفيذ أساس entitlement read-only، ولا يثبت جاهزية المصادقة/الدفع للإنتاج.
 
 ## الهدف
@@ -69,26 +69,38 @@
 - تستخدم الخدمة نفسها stale-event protection؛ إذا وصل renew/correction أحدث من حدث الانتهاء، يُحفظ expiry event كـstale ولا يسحب استحقاقًا أحدث.
 - الحد الأعلى الافتراضي 500 وبحد أقصى 5000 لكل تشغيل؛ لا scheduler تلقائي في هذه الشريحة.
 
-### ما لم ينفذ في 09A
+### 09D — نتيجة CI النهائية
 
-- لم ينشأ plan catalog أو تسعير أو trial أو renewal terms.
-- لم تنشأ payment provider interface أو webhook routes أو مفاتيح توقيع.
-- لا توجد wallet/topup/coin/coupon implementation في Backend حتى الآن.
-- لا يوجد grant/revoke administrative API أو سجل أحداث append-only بعد؛ جدول `user_entitlements` يمثل الحالة الحالية فقط، ولا يُدّعى أنه audit ledger.
-- لم يتغير تطبيق Flutter أو عقده.
+- Backend SHA `93f626cff3a5b3c472a283285ac64b49060d0f85` اجتاز Docker [45434224117](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45434224117)، Authentication [45434224314](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45434224314)، Pint [45434224098](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45434224098)، Security [45434224005](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45434224005) — كلها SUCCESS.
+- SQLite Feature: 139 tests / 1,460 assertions. PostgreSQL Integration: 29 passed / 526 assertions، مع اختبار S3 اختياري واحد skipped؛ S3Mock منفصل 1 passed / 8 assertions.
+- اختبارات preview-only و`--apply` والتكرار في SQLite وPostgreSQL ناجحة. لا scheduler تلقائي.
+
+### 09E — عقد كتالوج الخطط العام، مغلق افتراضيًا
+
+- أضيف `GET /api/v1/billing/plans` كمسار عام متوافق مع `BillingRepository.plans()` في Flutter.
+- الاستجابة الحالية: `success=true` و`purchases_enabled=false` و`plans=[]`. لا سعر أو مدة أو currency أو wallet limits أو terms أو payment provider.
+- يفرض الخادم الحالة المغلقة ولا يثق في query parameters مثل `purchases_enabled=true` أو `amount_cents`.
+- الغرض إكمال عقد القراءة العام ومنع التطبيق من افتراض شراء مفتوح. لا يمثل هذا اعتمادًا تجاريًا أو تشغيلًا للفوترة.
+- فتح الشراء وإنشاء plan entries يتطلب اعتماد صريح لقائمة المزايا والحدود والأسعار والفترة والعملة والشروط قبل التنفيذ.
+
+### الاعتماديات الخارجية التي بقيت مفتوحة
+
+- لم تُعتمد بعد أسماء الخطط ومزاياها وأسعارها وفتراتها وعملتها وشروط التجديد/التجربة/الإلغاء/الاسترداد.
+- لم يُختَر مزود دفع أو تُبنَ payment adapter أو webhook routes أو مفاتيح توقيع.
+- عقود wallet/topup/coin/coupon/renewal لا تزال client-only وغير مفعلة في Backend.
+- لا توجد واجهة grant/revoke إدارية؛ الكتابة الحالية مخصصة لخدمات المجال الداخلية فقط.
+- لم يتغير تطبيق Flutter أو عقده؛ 09E يضيف فقط route مطابقة للعقد الموجود.
 
 ## العمل المتبقي في Phase09
 
-1. إكمال والتحقق من 09D (preview/apply expiry reconciliation) ثم متابعة 09E.
-
-1. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وسياسات التجديد/التجربة/الإلغاء/الاسترداد.
-2. بناء plan/entitlement catalog مستقلين عن طريقة الدفع بعد اعتماد القيم.
-3. بناء plan/entitlement catalog فقط بعد اعتماد قيم المنتج، واستكمال سياسة wallet/account deletion.
-4. تعريف PaymentProvider interface بعد اختيار مزود دفع واعتماد الأهلية التشغيلية والقانونية.
-5. تنفيذ تحقق webhook signature وtimestamp/replay defense وidempotency وترتيب الأحداث.
+1. إكمال والتحقق من 09E: عقد `GET billing/plans` المغلق افتراضيًا؛ لا فتح شراء في هذه الشريحة.
+2. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وشروط التجديد/التجربة/الإلغاء/الاسترداد قبل إدراج أي plan entries.
+3. بناء catalog الفعلي منفصلًا عن مزود الدفع بعد اعتماد القيم التجارية.
+4. اختيار PaymentProvider بعد موافقة مستقلة والتحقق من الأهلية القانونية والتشغيلية الحالية.
+5. تنفيذ webhooks موقعة مع timestamp/replay defense وidempotency وترتيب الأحداث.
 6. ربط الدفع الموثق بالاستحقاقات دون السماح للعميل بمنح نفسه صلاحية.
-7. حل تعارض حذف الحساب مع وجود رصيد محفظة؛ عقد Flutter يتوقع `409 wallet_credit_remaining` بينما Backend الحالي لا يحسب رصيد محفظة.
-8. تحديد grant/revoke اليدوي وصلاحية الإدارة وسجل التدقيق إن كان مطلوبًا.
+7. حل تعارض حذف الحساب مع وجود رصيد محفظة؛ عقد Flutter يتوقع `409 wallet_credit_remaining` بينما Backend لا يملك wallet ledger بعد.
+8. تحديد grant/revoke اليدوي وصلاحية الإدارة وسجل التدقيق إن لزم.
 9. تحديد حدود الأجهزة/الاستخدام بعد قرار المنتج، لا بالافتراض.
 
 ## معايير القبول النهائية

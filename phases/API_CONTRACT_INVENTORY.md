@@ -277,3 +277,12 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - ينشئ الحدث عبر SubscriptionEventLedger، ويستخدم occurred_at من expires_at، وidempotency key يتضمن entitlement ID/revision.
 - يعتمد على projection_status=stale عند وجود event أحدث، فلا يسحب صلاحية حالية بسبب انتهاء قديم وصل متأخرًا.
 - لا يوجد scheduling تلقائي لهذه العملية في 09D.
+
+
+## 18. Phase09-09E — كتالوج خطط عام مغلق افتراضيًا
+
+- Flutter calls `GET /api/v1/billing/plans` without authentication and parses `success`, `purchases_enabled`, `plans`, and optional wallet limits.
+- Backend now serves the public route with throttle and returns `success=true`, `purchases_enabled=false`, `plans=[]`.
+- The response omits wallet limits and any plan price/period/currency/terms. Flutter model defaults are not evidence of approved commercial values.
+- Query parameters cannot open purchases or introduce plan values. There is no mutation endpoint, payment provider, wallet, checkout or webhook.
+- The route restores the read contract only; purchase enablement awaits explicit approval of product terms.

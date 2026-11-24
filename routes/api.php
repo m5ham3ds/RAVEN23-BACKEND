@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BillingCatalogController;
 use App\Http\Controllers\Api\EntitlementController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
@@ -16,6 +17,8 @@ Route::prefix('v1')->group(function (): void {
     // Readiness includes PostgreSQL and required auth-schema checks.
     // /up remains an application-only liveness endpoint.
     Route::get('/health', [HealthController::class, 'apiHealth']);
+    Route::get('/billing/plans', [BillingCatalogController::class, 'plans'])
+        ->middleware('throttle:60,1');
 
     // Short-lived signed capability URL for private media consumers without bearer-header support.
     Route::get('/user/media/{owner}/{media}/temporary', [UserMediaController::class, 'showTemporary'])

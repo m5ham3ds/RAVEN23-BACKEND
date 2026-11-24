@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 24 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`
+**Latest fully CI-verified implementation SHA:** `93f626cff3a5b3c472a283285ac64b49060d0f85`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -18,7 +18,7 @@
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
-| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09C COMPLETE، 09D قيد CI) | 09C اجتازت CI الأربع على `c3cb81c` (SQLite 136/1,441؛ PostgreSQL 28/518). 09D يضيف أمر انتهاء preview-first عبر ledger، و`--apply` للكتابة، بلا scheduler تلقائي. الأسعار ومزود الدفع WAITING_EXTERNAL؛ Phase04 PARTIAL. |
+| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09D COMPLETE، 09E قيد CI) | 09D اجتازت CI الأربع على `93f626c` (SQLite 139/1,460؛ PostgreSQL 29/526؛ S3Mock 1/8). 09E يضيف `GET /billing/plans` عامًا مع purchases disabled وplans فارغة؛ لا أسعار أو شروط أو مزود دفع. Phase04 PARTIAL. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
