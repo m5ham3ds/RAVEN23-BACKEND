@@ -1,6 +1,6 @@
 # المرحلة 09 — الاشتراكات والصلاحيات والميزات المدفوعة
 
-**الحالة:** IN_PROGRESS — 09A–09D COMPLETE؛ 09E قيد CI (عقد كتالوج عام مغلق افتراضيًا). الخطط والأسعار وشروط الشراء ومزود الدفع WAITING_EXTERNAL.  
+**الحالة:** IN_PROGRESS — 09A–09F COMPLETE على مستوى التنفيذ واختبارات CI؛ القرارات التجارية والدفع WAITING_EXTERNAL. لا يعني ذلك اعتماد الخطط أو تشغيل الشراء.  
 **الاعتماديات:** 03 و05 COMPLETE على مستوى الكود والاختبارات؛ Phase04 ما تزال PARTIAL بسبب Google Android والبريد الحقيقي في staging. يسمح ذلك بجرد العقد وتنفيذ أساس entitlement read-only، ولا يثبت جاهزية المصادقة/الدفع للإنتاج.
 
 ## الهدف
@@ -83,6 +83,24 @@
 - الغرض إكمال عقد القراءة العام ومنع التطبيق من افتراض شراء مفتوح. لا يمثل هذا اعتمادًا تجاريًا أو تشغيلًا للفوترة.
 - فتح الشراء وإنشاء plan entries يتطلب اعتماد صريح لقائمة المزايا والحدود والأسعار والفترة والعملة والشروط قبل التنفيذ.
 
+### 09F — محفظة القراءة فقط ودفتر معاملات داخلي
+
+- أضيفت user_wallets وwallet_transactions: محفظة واحدة لكل مستخدم، USD cents، balance/spendable/revision/status/frozen.
+- أضيفت GET /api/v1/wallet وGET /api/v1/wallet/transactions؛ القراءة مرتبطة بمالك Sanctum والسجل cursor-paginated.
+- الكتابة لا تملك مسار HTTP عامًا. الائتمان/الخصم محصوران في WalletLedger داخل Backend، مع معاملات ذرية، idempotency key مربوط ببصمة المحتوى، ومنع الرصيد السالب أو الإنفاق من محفظة مجمدة/غير نشطة.
+- سجل المعاملات append-only على SQLite/PostgreSQL؛ UPDATE/DELETE المباشر مرفوضان، ويحذف سجل المحفظة فقط ضمن حذف الحساب الكامل عبر cascade.
+- إذا كان الرصيد موجبًا، يرفض حذف الحساب افتراضيًا بـHTTP 422 والحقل wallet_credit_remaining؛ لا يتم الحذف إلا بإرسال acknowledge_wallet_credit=true صراحة.
+- لا public top-up/credit/debit API، ولا coupon redemption أو coin system أو webhook أو payment provider أو auto-renewal أو أسعار/حدود خطط.
+- periods_fundable يظل صفرًا حتى اعتماد خطة Plus وسعرها.
+
+### 09F — نتيجة CI النهائية على SHA 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060
+
+- Docker [45450292965](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292965): SUCCESS — SQLite Feature 144/1,508؛ PostgreSQL Integration 31/541؛ S3Mock منفصل 1/8؛ runtime/least-privilege/worker/PHP asset checks PASS.
+- Authentication [45450293025](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293025): SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Pint [45450293004](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293004): SUCCESS.
+- Security [45450292826](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292826): SUCCESS — Gitleaks وTrivy وfixable HIGH/CRITICAL gate PASS.
+- فشل fixture وسيطًا لعدم إنشاء user_wallets؛ أُصلح في 7341392. ثم أُصلح تنسيق Pint في 009d2f1 واجتازت البوابات الأربع.
+
 ### الاعتماديات الخارجية التي بقيت مفتوحة
 
 - لم تُعتمد بعد أسماء الخطط ومزاياها وأسعارها وفتراتها وعملتها وشروط التجديد/التجربة/الإلغاء/الاسترداد.
@@ -93,13 +111,13 @@
 
 ## العمل المتبقي في Phase09
 
-1. إكمال والتحقق من 09E: عقد `GET billing/plans` المغلق افتراضيًا؛ لا فتح شراء في هذه الشريحة.
+1. 09A–09F مكتملة برمجيًا ومتحققة عبر CI؛ تبقى القرارات التجارية الخارجية فقط.
 2. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وشروط التجديد/التجربة/الإلغاء/الاسترداد قبل إدراج أي plan entries.
 3. بناء catalog الفعلي منفصلًا عن مزود الدفع بعد اعتماد القيم التجارية.
 4. اختيار PaymentProvider بعد موافقة مستقلة والتحقق من الأهلية القانونية والتشغيلية الحالية.
 5. تنفيذ webhooks موقعة مع timestamp/replay defense وidempotency وترتيب الأحداث.
 6. ربط الدفع الموثق بالاستحقاقات دون السماح للعميل بمنح نفسه صلاحية.
-7. حل تعارض حذف الحساب مع وجود رصيد محفظة؛ عقد Flutter يتوقع `409 wallet_credit_remaining` بينما Backend لا يملك wallet ledger بعد.
+7. تأكيد أن شاشة Flutter ترسل acknowledge_wallet_credit=true بعد إقرار المستخدم بفقدان الرصيد؛ حماية Backend واختبارها موجودان.
 8. تحديد grant/revoke اليدوي وصلاحية الإدارة وسجل التدقيق إن لزم.
 9. تحديد حدود الأجهزة/الاستخدام بعد قرار المنتج، لا بالافتراض.
 

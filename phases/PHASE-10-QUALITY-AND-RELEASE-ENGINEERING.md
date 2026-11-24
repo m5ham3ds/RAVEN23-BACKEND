@@ -1,7 +1,25 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** NOT_STARTED  
-**الاعتماديات:** المراحل 01–09 (يمكن إغلاقها تدريجيًا مع كل domain، لكن بوابة المرحلة تشمل كل ما أُعلن كجاهز للنشر)
+**الحالة:** IN_PROGRESS — شريحة 10A لجرد CI وحوكمة workflows قيد التنفيذ؛ إغلاقها يتطلب CI على commit التغيير.  
+**الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
+
+## 10A — جرد CI وسلامة workflows
+
+- جرد workflows من شجرة Git ومقارنة inventory مع الملفات الموجودة.
+- إزالة bootstrap workflow انتهت مهمته وتملك صلاحيات كتابة غير لازمة؛ حزمة S3 مثبتة بالفعل في Composer lock.
+- توثيق triggers والـpermissions والتداخل بين بوابات الاختبار.
+- التحقق من حماية main وrequired checks؛ المرصود قبل هذه الشريحة: main فقط، protected=false ولا توجد rulesets.
+- إعدادات الحماية تحتاج صلاحيات إدارة GitHub غير متاحة من إجراءات المستودع الحالية؛ تبقى OPEN ولا يُدعى أنها فُعّلت.
+- تتطلب 10A نجاح البوابات الأربع على commit التغيير قبل إغلاقها.
+
+## الشرائح التالية
+
+- 10B: required checks وحماية main وتقييم تداخل workflows.
+- 10C: migrations على schema فارغ وsnapshot اصطناعي سابق.
+- 10D: API contract regression.
+- 10E: synthetic load وقياس latency/volume/conflict دون production.
+- 10F: immutable image digest وربط artifact بالـSHA وSBOM/provenance.
+- 10G: release manifest وتجربة rollback في بيئة معزولة.
 
 ## الهدف
 منع regressions، والتأكد من أن كل commit يمر بسلسلة اختبارات واضحة وأن كل إصدار يمكن تتبعه والرجوع عنه.

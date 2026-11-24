@@ -1,12 +1,12 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest CI-verified main SHA:** dd861fa9afd6f876ff300f65aae58a35b16f3112  
+**Latest CI-verified main SHA:** 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060  
 **تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
-**الحالة:** COMPLETE على مستوى source/workflow inventory؛ لم تُنفذ workflows التي تكتب على الإنتاج.
+**الحالة:** تحديث Phase10A؛ جرد workflows مصحح، وbootstrap ذو صلاحيات كتابة أزيل بعد انتهاء مهمته.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
 
-عدد الملفات الحالية: **5**.
+عدد الملفات قبل 10A: **6**؛ وبعد إزالة prepare-s3-composer-lock.yml: **5**.
 
 | الملف | الاسم | Trigger | السلوك |
 |---|---|---|---|
@@ -14,7 +14,7 @@
 | `.github/workflows/auth-smoke.yml` | RAVEN23 Runtime HTTP Smoke | workflow_dispatch فقط | فحص GET-only لـliveness/readiness/health وتسجيل المسارات؛ عنوان API يمرر يدوياً. لا إنشاء حساب أو migration. |
 | `.github/workflows/pint-format-report.yml` | RAVEN23 Pint Format Report | push/pull_request إلى main وworkflow_dispatch | ينسق PHP files المتغيرة فقط ثم ينشر artifact؛ إذا لا توجد PHP files، يتخطى خطوات التنسيق. |
 | `.github/workflows/security-scans.yml` | RAVEN23 Security Scans | push/pull_request إلى main وworkflow_dispatch | Gitleaks وTrivy filesystem/image وفشل على fixable HIGH/CRITICAL image vulnerabilities. |
-| `.github/workflows/users-auth-tests.yml` | RAVEN23 Authentication Regression Tests | push/pull_request إلى main | Auth regression على SQLite وPostgreSQL المؤقتة. اسم الملف تاريخي ولا يعتمد فرع USERS. |
+| `.github/workflows/users-auth-tests.yml` | RAVEN23 Authentication Regression Tests | push/pull_request إلى main وworkflow_dispatch | Auth regression على SQLite وPostgreSQL المؤقتة؛ متداخل جزئيًا مع Docker full-suite ويعاد تقييمه في 10B. |
 
 ### Workflows الإنتاج التي أزيلت
 
@@ -166,3 +166,19 @@ Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود ال
 - Outbox tests: push relay pauses without mutating due push while feature flag disabled; outbox-status emits aggregate counters only.
 - PostgreSQL concurrency metric in this same Docker run: 8 clients، 4,191 request bytes، 546 response bytes، average latency 166.538ms، max 209.686ms، 5/8 stale conflicts، winning stamp=5000. Synthetic CI measurement only.
 - The single optional skipped PostgreSQL test is separately covered by the successful S3Mock integration step. This run does not prove real S3 provider staging.
+
+
+## 12. Phase10A — CI inventory and workflow safety — 24 November 2026
+
+- Actual tree before 10A contained six workflow files; the older inventory claimed five.
+- league/flysystem-aws-s3-v3 is declared and locked at 3.35.3; Docker runs Composer validation/audit, so no lock bootstrap workflow is required.
+- Removed prepare-s3-composer-lock.yml. It had contents:write/actions:write and could resolve dependencies, commit/push composer files to main, then dispatch four CI workflows.
+- Five workflows remain: Docker, manual GET-only HTTP smoke, Auth regression, Pint report, Security scans.
+- auth-smoke.yml is workflow_dispatch only and GET-only; no account/token creation or migrations.
+- Docker is the full Feature/Integration/runtime gate. Auth regression is a focused overlapping gate; strict Pint is also enforced inside Docker.
+- Pint report formats changed files into an artifact; Docker strict Pint is blocking.
+- Trivy filesystem findings are report-only; Gitleaks and the fixable HIGH/CRITICAL image gate are blocking.
+- Branch API shows main only with protected=false; rulesets endpoint is empty. Branch protection is OPEN for 10B; current repository tools do not expose settings writes.
+- No runtime/API/schema change, production DB, secret, deploy, registry publish or AWS resource was touched.
+- 10A implementation committed; CI on the new SHA is pending.
+

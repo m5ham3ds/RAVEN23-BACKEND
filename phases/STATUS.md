@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 24 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `93f626cff3a5b3c472a283285ac64b49060d0f85`
+**Latest fully CI-verified implementation SHA:** `009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -18,8 +18,8 @@
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
-| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09D COMPLETE، 09E قيد CI) | 09D اجتازت CI الأربع على `93f626c` (SQLite 139/1,460؛ PostgreSQL 29/526؛ S3Mock 1/8). 09E يضيف `GET /billing/plans` عامًا مع purchases disabled وplans فارغة؛ لا أسعار أو شروط أو مزود دفع. Phase04 PARTIAL. |
-| 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
+| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
+| 10 — الجودة والإصدارات | IN_PROGRESS (10A قيد CI) | جرد CI الفعلي وحذف S3 Composer lock bootstrap غير اللازم؛ main غير محمي؛ يتبقى CI verify ثم 10B–10G. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
@@ -202,3 +202,16 @@
 4. موافقة سياسة retention، quota/capacity، cost وoutbox audit retention.
 
 **Phase08 تظل IN_PROGRESS، ولا يجوز الانتقال إلى Phase09 قبل قرار المنتج/الاشتراكات والدفع، أو تخطي اعتمادياتها.**
+
+
+## 20. Phase09F وبدء Phase10A — 24 نوفمبر 2026
+
+- آخر SHA اجتاز البوابات الأربع: 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060.
+- Docker [45450292965](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292965): SUCCESS — SQLite 144/1,508؛ PostgreSQL 31/541 مع S3 skip اختياري؛ S3Mock 1/8؛ runtime/least-privilege/worker checks PASS.
+- Authentication [45450293025](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293025): SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Pint [45450293004](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293004): SUCCESS.
+- Security [45450292826](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292826): SUCCESS.
+- 09F COMPLETE. Phase09 overall remains IN_PROGRESS بسبب القرارات التجارية والدفع غير المعتمدة.
+- 10A started: remove obsolete S3 lock bootstrap; audit actual workflow inventory and repository protection.
+- main is the only branch but protected=false and rulesets are empty. This remains open for 10B; no production DB/secrets/deploy/AWS changes.
+

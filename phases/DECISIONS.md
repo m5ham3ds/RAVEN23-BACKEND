@@ -259,3 +259,23 @@
 - **القرار:** يوفّر Backend المسار العام `GET /api/v1/billing/plans` ليتوافق مع Flutter، لكنه يعيد فقط `success=true`, `purchases_enabled=false`, `plans=[]`.
 - **الأمان والمنتج:** لا يدرج أي سعر أو مدة أو عملة أو wallet limits أو شروط أو provider. لا يستطيع query parameter من العميل تفعيل الشراء.
 - **الحدود:** لا يعدّ هذا كتالوجًا تجاريًا معتمدًا ولا يجيز wallet/topup/payment. يتطلب ملء الخطط موافقة صريحة على جميع تفاصيل المنتج أولًا.
+
+
+## D-035 — إغلاق محفظة القراءة فقط وحماية حذف الرصيد (09F)
+
+- التاريخ: 24 نوفمبر 2026
+- الحالة: مكتمل على Backend SHA 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060؛ CI الأربع SUCCESS.
+- القرار: محفظة USD cents owner-scoped، قراءة فقط للعميل، ودفتر append-only داخلي ذري/idempotent. لا public top-up أو payment route.
+- حذف حساب برصيد موجب يتطلب acknowledge_wallet_credit=true؛ وإلا يرجع 422 مع wallet_credit_remaining. بعد الإقرار يمحو cascade المحفظة والسجل.
+- CI: Docker SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock 1/8؛ Auth SQLite 20/172 وPG 4/99؛ Pint/Security PASS.
+- حدود القرار: لا اعتماد سعر أو خطة تجارية أو PaymentProvider أو شحن أو تجديد تلقائي.
+
+## D-036 — Phase10A وإزالة Composer lock bootstrap المنتهي
+
+- التاريخ: 24 نوفمبر 2026
+- الحالة: التنفيذ على main؛ CI للتغيير الجديد pending.
+- league/flysystem-aws-s3-v3 مثبت في composer.json وcomposer.lock بالإصدار 3.35.3؛ لذلك لم يعد prepare-s3-composer-lock.yml مطلوبًا.
+- كان workflow يملك contents:write وactions:write ويستجيب لتعديل ملفه نفسه ثم ينفذ Composer resolve/commit/push وتشغيل CI.
+- القرار: إزالة bootstrap المنتهي؛ تحديث dependencies يستمر عبر commit مراجع وComposer validation/audit المعتاد.
+- main غير محمي (protected=false) ولا توجد rulesets. تفعيل required checks يتطلب صلاحيات GitHub admin ويبقى بندًا مفتوحًا في 10B.
+

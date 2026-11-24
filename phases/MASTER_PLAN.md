@@ -33,8 +33,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
-| 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09D اجتازت CI الأربع، وآخرها `93f626c`. 09E يضيف public plan-catalog response مغلقًا افتراضيًا (`purchases_enabled=false`, `plans=[]`) دون قيم تجارية، وقيد CI. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
-| 10 | الجودة والاختبارات والإصدارات | 01–09 |
+| 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
+| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A جرد CI وحوكمة workflows) | 01–09 تدريجيًا؛ بوابة الإصدار النهائية تنتظر جاهزية النطاقات والاعتمادات الخارجية |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
@@ -212,3 +212,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Phase08I: relay لا يرسل ولا يغير سجل Push المستحق أثناء تعطيل `RAVEN23_PUSH_ENABLED`؛ يظل pending حتى إعادة التفعيل.
 - Final Backend SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`: Docker #45411252479 SUCCESS (125 SQLite / 1,382 assertions؛ 24 PostgreSQL / 493 assertions، 1 optional skip؛ S3Mock 1/8)، Auth #45411252843 SUCCESS، Pint #45411252483 SUCCESS، Security #45411252485 SUCCESS.
 - Phase08 ما زالت IN_PROGRESS لأن real S3/mail/push provider staging وnative idempotency وسياسة retention/cost تتطلب اختيارًا/موافقة/اعتمادات خارجية. Phase09 WAITING_EXTERNAL لقرارات المنتج والدفع.
+
+
+## 18. Phase09F closeout and Phase10A start — 24 November 2026
+
+- Backend main SHA 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060 passed Docker [45450292965](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292965), Authentication [45450293025](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293025), Pint [45450293004](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450293004), Security [45450292826](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45450292826): all SUCCESS.
+- Phase09F COMPLETE at code/CI; Phase09 remains IN_PROGRESS for commercial/payment decisions. No checkout, top-up or payment provider enabled.
+- Phase10 started incrementally with 10A: remove obsolete write-enabled Composer lock bootstrap; audit workflow inventory, triggers and permissions.
+- Governance finding: main is the only branch but protected=false and no rulesets exist. Required-check activation needs GitHub admin settings write and remains open; no deployment or production modification is included.
+
