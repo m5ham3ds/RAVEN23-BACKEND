@@ -129,6 +129,34 @@ class AuthLifecycleTest extends TestCase
             $table->index(['user_id', 'last_seen_at']);
         });
 
+        Queue::fake();
+    }
+
+    private function notificationToken(int $userId, string $notificationType): string
+    {
+        $record = DB::table('notification_outbox')
+            ->where('user_id', $userId)
+            ->where('notification_type', $notificationType)
+            ->orderByDesc('created_at')
+            ->first();
+
+        $this->assertNotNull($record);
+        $payload = json_decode(
+            Crypt::decryptString($record->encrypted_payload),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        $this->assertIsArray($payload);
+        $this->assertArrayHasKey('token', $payload);
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $record->id,
+            'status' => 'pending',
+        ]);
+        Queue::assertPushedOn('mail', DeliverNotificationOutboxJob::class);
+
+        return (string) $payload['token'];
     }
 
     private function enableTestAuthMail(): void
@@ -266,12 +294,7 @@ class AuthLifecycleTest extends TestCase
         $user = User::findOrFail($registration->json('user.id'));
         $this->postJson('/api/v1/auth/forgot-password', ['email' => $user->email])->assertAccepted();
 
-        $resetToken = null;
-        Notification::assertSentTo($user, PasswordResetNotification::class, function ($notification) use (&$resetToken): bool {
-            $resetToken = $notification->token;
-
-            return true;
-        });
+        $resetToken = $this->notificationToken((int) $user->id, 'password_reset');
 
         DB::table('password_reset_tokens')
             ->where('email', $user->email)
