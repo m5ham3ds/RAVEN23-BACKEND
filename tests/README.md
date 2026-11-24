@@ -14,7 +14,9 @@ The required main-branch checks are:
 1. **Backend Docker Validation** — production image build, SQLite Feature suite, PostgreSQL Integration suite, queue-worker fail-fast configuration checks, runtime/least-privilege/HTTP smoke checks.
 2. **Pint Format Report** — changed PHP test and application files.
 3. **Security Scans** — Gitleaks and Trivy filesystem/image scans.
-4. **Authentication Regression Tests** — focused SQLite and PostgreSQL authentication lifecycle coverage.\n\nThe Docker gate also starts pinned Adobe S3Mock `5.2.3` and verifies private put/get/visibility/list/delete/idempotent-delete through Laravel's actual Flysystem S3 adapter. S3Mock is an API emulator, not a substitute for provider staging.
+4. **Authentication Regression Tests** — focused SQLite and PostgreSQL authentication lifecycle coverage.
+
+The Docker gate also starts pinned Adobe S3Mock `5.2.3` and verifies private put/get/visibility/list/delete/idempotent-delete through Laravel's actual Flysystem S3 adapter. S3Mock is an API emulator, not a substitute for provider staging.
 
 ## Local commands
 
