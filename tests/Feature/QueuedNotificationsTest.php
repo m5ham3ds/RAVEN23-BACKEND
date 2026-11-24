@@ -211,6 +211,45 @@ class QueuedNotificationsTest extends TestCase
         $this->assertDatabaseHas('notification_outbox', ['id' => $outboxId, 'status' => 'pending']);
     }
 
+    public function test_pending_outbox_relay_recovers_expired_worker_claims_without_requeueing_active_claims(): void
+    {
+        Queue::fake();
+
+        $user = $this->createUser();
+        $expiredId = app(NotificationOutboxService::class)->queuePasswordReset($user, 'expired-lease-token');
+        $activeUser = User::query()->create([
+            'name' => 'RAVEN23 Active Lease',
+            'email' => 'active-'.bin2hex(random_bytes(5)).'@example.test',
+            'username' => 'active_'.bin2hex(random_bytes(5)),
+            'password' => 'Queue-Test-Password-42!',
+        ]);
+        $activeId = app(NotificationOutboxService::class)->queuePasswordReset($activeUser, 'active-lease-token');
+
+        DB::table('notification_outbox')->where('id', $expiredId)->update([
+            'status' => 'processing',
+            'claimed_at' => now()->subMinutes(2),
+            'last_dispatched_at' => now(),
+        ]);
+        DB::table('notification_outbox')->where('id', $activeId)->update([
+            'status' => 'processing',
+            'claimed_at' => now(),
+            'last_dispatched_at' => now(),
+        ]);
+
+        Artisan::call('notifications:outbox-dispatch', ['--limit' => 10]);
+
+        $this->assertCount(3, Queue::pushed(DeliverNotificationOutboxJob::class));
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $expiredId,
+            'status' => 'pending',
+            'claimed_at' => null,
+        ]);
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $activeId,
+            'status' => 'processing',
+        ]);
+    }
+
     public function test_database_worker_records_unrelated_terminal_queue_failures_in_failed_jobs(): void
     {
         Queue::pushOn('mail', new FailingQueueJob);
