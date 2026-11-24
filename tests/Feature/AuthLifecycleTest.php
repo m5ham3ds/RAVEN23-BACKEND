@@ -129,6 +129,20 @@ class AuthLifecycleTest extends TestCase
             $table->index(['user_id', 'last_seen_at']);
         });
 
+        // AuthController now checks the account's server-owned wallet before
+        // deletion. This minimal auth fixture mirrors the wallet owner schema.
+        Schema::connection('sqlite')->create('user_wallets', static function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignId('user_id')->unique()->constrained('users')->cascadeOnDelete();
+            $table->char('currency', 3)->default('USD');
+            $table->unsignedBigInteger('balance_cents')->default(0);
+            $table->unsignedBigInteger('spendable_cents')->default(0);
+            $table->string('status', 16)->default('active');
+            $table->boolean('frozen')->default(false);
+            $table->unsignedInteger('revision')->default(0);
+            $table->timestamps();
+        });
+
         Queue::fake();
     }
 
