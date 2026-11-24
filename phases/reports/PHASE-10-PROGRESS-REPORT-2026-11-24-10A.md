@@ -2,12 +2,16 @@
 
 ## Status
 
-10A implementation committed; CI on the resulting main SHA pending. Phase10 is IN_PROGRESS. This is not release readiness or deployment.
+10A COMPLETE after all four CI gates passed on the resulting main SHA. Phase10 remains IN_PROGRESS. This is not release readiness or deployment.
 
 ## Baseline
 
-- Fully verified SHA before 10A: 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060.
-- Docker, Authentication, Pint and Security all SUCCESS on that SHA.
+- Fully verified baseline before 10A: 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060.
+- 10A result SHA: 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63.
+- Docker [45455970338](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970338): SUCCESS — SQLite 144 / 1,508; PostgreSQL 31 / 541 with one optional skip; S3Mock 1 / 8.
+- Authentication [45455970334](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970334): SUCCESS — SQLite 20 / 172; PostgreSQL 4 / 99.
+- Pint [45455970270](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970270): SUCCESS; strict Pint within Docker also passed.
+- Security [45455970393](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970393): SUCCESS.
 - Branch listing: main only. GitHub branch API: protected=false. Rulesets endpoint: empty.
 
 ## Findings
@@ -36,4 +40,18 @@
 - [x] Obsolete write-enabled bootstrap identified for removal.
 - [x] Workflow inventory corrected.
 - [x] Unprotected main accurately recorded.
-- [ ] Run Docker, Authentication, Pint and Security on resulting SHA.
+- [x] Run Docker, Authentication, Pint and Security on resulting SHA.
+
+## 10B review — repository governance
+
+- main remains the only branch and is explicitly unprotected (protected=false); the rulesets list is empty.
+- Available GitHub tools do not expose a write operation for branch protection, repository rulesets or required status checks. These settings remain open for an administrator; no change is claimed.
+- Proposed blocking contexts after the owner chooses an enforcement model: Docker runtime validation, focused Authentication regression, and Security scans. The separate Pint workflow only prepares an artifact; strict Pint within Docker is the actual blocking formatter check.
+- The existing one-branch/direct-push policy conflicts with enforcing checks before updates through the normal PR gate. This policy choice needs owner/admin action before claiming required-check enforcement.
+- Docker and Security separately build the same production image; Auth repeats a focused subset of Docker tests. Both are documented for cost/latency review, not changed before check contexts are approved.
+
+## 10C start — migration rehearsal
+
+- Added tests/Feature/DatabaseMigrationRehearsalTest.php with isolated temporary SQLite databases.
+- Covers all migrations from an empty schema and a synthetic older snapshot that preserves a user, existing Sanctum token, cache entry and queue job while verifying profile/preferences/device backfill.
+- CI evidence is pending on the implementation commit. The snapshot is synthetic only and does not use production data.

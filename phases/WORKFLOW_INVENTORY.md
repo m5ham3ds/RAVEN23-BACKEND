@@ -1,6 +1,6 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest CI-verified main SHA:** 009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060  
+**Latest CI-verified main SHA before the current migration rehearsal change:** 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63  
 **تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
 **الحالة:** تحديث Phase10A؛ جرد workflows مصحح، وbootstrap ذو صلاحيات كتابة أزيل بعد انتهاء مهمته.
 
@@ -182,3 +182,14 @@ Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود ال
 - No runtime/API/schema change, production DB, secret, deploy, registry publish or AWS resource was touched.
 - 10A implementation committed; CI on the new SHA is pending.
 
+
+
+## 9. تدقيق 10A وإغلاقها — 24 نوفمبر 2026
+
+- SHA الذي أغلق 10A: 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63.
+- Docker [45455970338](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970338): SUCCESS — SQLite 144 / 1,508 assertions؛ PostgreSQL 31 passed / 541 assertions مع اختبار واحد optional skipped؛ S3Mock 1 / 8.
+- Authentication [45455970334](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970334): SUCCESS — SQLite 20 / 172؛ PostgreSQL 4 / 99.
+- Pint [45455970270](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970270): SUCCESS؛ strict Pint ضمن Docker PASS.
+- Security [45455970393](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970393): SUCCESS.
+- الـcheck runs الأربعة مكتملة ومرتبطة بالـSHA نفسه؛ لا يوجد فشل غير معالج.
+- 10B: main unprotected؛ branch protection وrulesets غير مفعلة. الـPint artifact ليس check حاجزًا مستقلاً، وDocker/Auth لهما تداخل جزئي؛ راجع تقرير Phase10 لقرار الإبقاء المؤقت وتحليل الحماية.

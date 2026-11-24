@@ -26,3 +26,12 @@
 ## تحقق حذف فروع الاختبارات — 23 نوفمبر 2026
 
 حذف المستخدم `RAVEN23-BACKEND-TEST` و`RAVEN23-BACKEND-USERS`. أعاد GitHub branch listing بعد الحذف فرعًا واحدًا فقط: `main`. جميع الاختبارات المنقولة ما زالت في main؛ لم يحذف تنظيف refs أي ملفات اختبار ولم يُعِد كتابة commit history.
+
+
+## تدقيق فرض الحماية — 24 نوفمبر 2026 (Phase10B)
+
+- GitHub يعرض main وحده، لكن protected=false ولا توجد rulesets؛ لذلك السياسة أعلاه هي سياسة عمل وليست حماية تقنية مفعلة من GitHub.
+- لا تتوفر في اتصال GitHub المستخدم هنا عملية كتابة لإعداد branch protection أو rulesets أو required status checks؛ لا يمكن تفعيلها من هذه الجلسة ولا أزعم أنها فُعّلت.
+- لا يمكن فرض required checks قبل تحديث main مع الاستمرار في direct pushes كمسار العمل الوحيد. يلزم أن يختار مالك المستودع نموذج enforcement متوافقًا مع السياسة: مراجعة/دمج PR مع checks، أو إجراء محمي آخر.
+- checks المرشحة بعد اعتماد نموذج الدمج: Build and test portable Laravel runtime، Email, password, Google verifier and guest authentication، Secret, dependency, filesystem and image scans.
+- Format changed PHP files with Laravel Pint الحالي ينشئ formatted artifact ولا يفرض وحده فشلًا عند اختلاف التنسيق؛ strict Pint داخل Docker هو فحص التنسيق الملزم.

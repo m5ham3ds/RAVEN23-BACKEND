@@ -215,3 +215,13 @@
 - 10A started: remove obsolete S3 lock bootstrap; audit actual workflow inventory and repository protection.
 - main is the only branch but protected=false and rulesets are empty. This remains open for 10B; no production DB/secrets/deploy/AWS changes.
 
+
+
+## 21. Phase10A closeout / Phase10B governance / Phase10C start — 24 نوفمبر 2026
+
+- 10A COMPLETE على SHA 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63: Docker #45455970338 SUCCESS (SQLite 144/1,508؛ PostgreSQL 31/541 مع optional skip واحد؛ S3Mock 1/8)، Auth #45455970334 SUCCESS (SQLite 20/172؛ PostgreSQL 4/99)، Pint #45455970270 SUCCESS، Security #45455970393 SUCCESS.
+- لم يكن هناك فشل في هذه الدفعة ولا تعديل runtime/API/schema.
+- 10B IN_PROGRESS: branch API يؤكد main فقط وprotected=false؛ rulesets فارغة. تفعيل required checks يحتاج Admin settings write غير متاح هنا. تم توثيق check contexts والتداخل دون إعادة تشكيل workflows قبل قرار enforcement.
+- Pint standalone workflow ليس gate تنسيق صارمًا؛ strict Pint داخل Docker هو gate. Auth Regression متداخل جزئيًا لكنه محفوظ مؤقتًا كفحص متخصص.
+- 10C IN_PROGRESS: أضيف DatabaseMigrationRehearsalTest.php لتغطية empty schema وsynthetic legacy snapshot (account/token/cache/job preservation + data backfill)؛ pending CI.
+- لا production DB أو secrets أو migrations إنتاجية أو deploy أو AWS resources.

@@ -279,3 +279,13 @@
 - القرار: إزالة bootstrap المنتهي؛ تحديث dependencies يستمر عبر commit مراجع وComposer validation/audit المعتاد.
 - main غير محمي (protected=false) ولا توجد rulesets. تفعيل required checks يتطلب صلاحيات GitHub admin ويبقى بندًا مفتوحًا في 10B.
 
+
+
+## 24 نوفمبر 2026 — Phase10A/10B CI governance
+
+- أُغلقت 10A على SHA 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63 بعد نجاح Docker/Auth/Pint/Security.
+- قرار مؤقت: لا نحذف Auth Regression ولا ندمج Security image scan داخل Docker قبل تثبيت required-check contexts؛ توثيق التداخل يسبق حذف إشارات CI.
+- قرار توصيف: workflow Pint المنفصل الحالي ينتج artifact من ملفات منسقة ولا يمثل gate صارمًا؛ pint --test داخل Docker هو gate التنسيق.
+- حماية main وrequired checks تبقى OPEN؛ GitHub API/tool surface المتاح للقراءة فقط في هذه الإعدادات. يلزم Admin يملك صلاحية settings write.
+- direct-to-main single-branch policy لا تمنع فشل commit من الوصول إلى main قبل ظهور نتيجة CI؛ يجب حسم نموذج enforcement قبل اعتبار 10B COMPLETE.
+- بدأت 10C باختبار migration rehearsal مستقل ببيانات اصطناعية، من دون الوصول إلى قاعدة الإنتاج.
