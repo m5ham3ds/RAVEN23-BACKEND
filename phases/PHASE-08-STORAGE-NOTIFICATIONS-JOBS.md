@@ -130,3 +130,36 @@
 5. اعتماد سياسة retention والسعة والتكلفة. الحصة ما زالت غير محدودة افتراضيًا، والتنظيف معطل افتراضيًا؛ لم تُحذف ملفات فعلية في CI.
 
 **المرحلة 08 تبقى IN_PROGRESS.** نجاح هذه الشرائح لا يعني جاهزية S3 أو البريد أو push للإنتاج.
+
+
+### 08E — Transactional notification outbox and idempotent recovery (24 November 2026)
+
+- Added `notification_outbox` with UUID records, a unique HMAC-SHA-256 idempotency key, Laravel-Crypt encrypted JSON payload, notification type, delivery state, attempts, availability/dispatch/claim/sent timestamps, and a sanitized last-error class.
+- Email verification token persistence and the matching outbox event now share one database transaction; queue dispatch is registered with `DB::afterCommit`. Password reset notifications are routed through the same outbox.
+- Added encrypted `DeliverNotificationOutboxJob` with a 60-second claim lease, bounded attempts/backoff, terminal failure state, and safe skip behavior for already sent/failed records.
+- Added the `notifications:outbox-dispatch` relay, scheduled every minute. It repairs pending events whose queue dispatch was lost and recovers expired processing claims while leaving active claims untouched.
+- The tests cover duplicate business events, encrypted tokens, local mail sink delivery, crash/replay with a stable idempotency key, stale queue dispatch, expired-lease recovery, and active-claim exclusion on SQLite and PostgreSQL.
+- The default mail transport adds `X-RAVEN23-Idempotency-Key`; generic SMTP is not required to deduplicate this header. Provider-enforced exactly-once delivery remains unavailable until a selected provider's native idempotency mechanism is integrated.
+
+### S3-compatible integration evidence
+
+- Composer locks `league/flysystem-aws-s3-v3` and its AWS SDK dependency.
+- Docker CI runs the private storage contract through Laravel/Flysystem against a disposable Adobe S3Mock service and verifies put/get/private visibility/list/delete/idempotent delete. This is an emulator test, not a real provider staging test.
+
+### CI proof — SHA `8f34a0b0b725eb6704149154e2558eed81bc497f`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45296772477](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772477) | SUCCESS — SQLite Feature 113/1,232; PostgreSQL Integration 18/311; S3Mock 1/8; runtime/least-privilege PASS |
+| Authentication Regression | [45296772381](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772381) | SUCCESS — SQLite 20/172; PostgreSQL 4/99 |
+| Pint Format | [45296772496](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772496) | SUCCESS |
+| Security Scans | [45296772309](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772309) | SUCCESS — Gitleaks/Trivy/production image and fixable HIGH/CRITICAL gates PASS |
+
+### Remaining Phase08 acceptance items
+
+1. Real S3-compatible provider/staging verification with test credentials after provider selection; no bucket, AWS credentials or paid cloud resource exists.
+2. External mail provider selection, provider-native idempotency support, action/deep-link staging verification; delivery remains disabled.
+3. Flutter push contract review and an approved provider adapter/test; no FCM/OneSignal secret or external push has been used.
+4. Retention, quota/capacity, cost and outbox audit-retention policy approval.
+
+**Phase08 remains IN_PROGRESS.** The local emulator and fake mail transport do not establish production provider readiness.

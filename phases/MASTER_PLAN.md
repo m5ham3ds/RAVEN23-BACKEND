@@ -32,7 +32,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ اجتازت اختبارات device convergence (2 devices)، out-of-order، idempotent retry، full resync، token revoke per-device وdaily aggregates؛ بقي 3-device/concurrent cursor/device-ID rotation/latency | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08D: encrypted mail queue/worker، private storage contract، media upload/metadata/owner authorization/signed URLs، optional quota، وdry-run-first orphan cleanup؛ Docker 109/1,196 SQLite و15/295 PostgreSQL على SHA `f4a64407`. ما زال S3 integration/push/external mail/outbox/retention مفتوحًا | 02–05 (Phase04 external mail/Google staging remains partial) |
+| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08E: encrypted mail queue/worker، private media API، optional quota، safe orphan cleanup، Flysystem S3 adapter مع S3Mock test، transactional encrypted outbox/relay/expired-claim recovery؛ Docker 113/1,232 SQLite و18/311 PostgreSQL وS3Mock 1/8 على SHA `8f34a0b`. ما زال real provider staging/native mail idempotency/push/retention مفتوحاً | 02–05 (Phase04 external mail/Google staging remains partial) |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
@@ -182,3 +182,11 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - بوابات CI الأربع على SHA نفسه ناجحة: Docker #45289473199، Authentication #45289472959، Pint #45289473303، Security #45289472973.
 - Phase08 ما زالت IN_PROGRESS؛ S3-compatible integration وexternal mail/push وoutbox/idempotency وretention policy ما زالت مفتوحة.
 - لا ينتقل العمل إلى Phase09 قبل قرارات المنتج والدفع، ولا إلى AWS/deployment قبل Phase10 والموافقات المطلوبة.
+
+
+## 15. تحديث Phase08E — 24 نوفمبر 2026
+
+- SHA `8f34a0b0b725eb6704149154e2558eed81bc497f` اجتاز البوابات الأربع: Docker #45296772477، Authentication #45296772381، Pint #45296772496، Security #45296772309.
+- تم اختبار transactional notification outbox على SQLite وPostgreSQL: تشفير الحمولات، HMAC unique event keys، after-commit rollback safety، retry/crash replay، وexpired worker-claim recovery.
+- تم التحقق من Flysystem S3 adapter عبر S3Mock محلي داخل Docker؛ لا يوجد تكامل staging مع S3 provider فعلي أو مورد AWS.
+- Phase08 تبقى IN_PROGRESS حتى مزود البريد/push الحقيقي، provider-native idempotency، S3 staging وسياسة retention/cost المعتمدة.

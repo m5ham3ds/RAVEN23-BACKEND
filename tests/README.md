@@ -42,3 +42,11 @@ Tests must use synthetic accounts and isolated databases. Do not add test creden
 - `tests/Feature/QueuedNotificationsTest.php` checks that verification and password-reset notifications are dispatched to the encrypted `mail` queue after commit, with fixed retry deadline and bounded backoff/attempt settings.
 - Docker validation also checks the worker script syntax and asserts it rejects `QUEUE_CONNECTION=sync` and a database worker timeout greater than or equal to `DB_QUEUE_RETRY_AFTER`.
 - These tests do not send SMTP traffic and do not establish that a real provider or Android action URL is configured.
+
+
+## Transactional notification outbox coverage
+
+- `tests/Feature/QueuedNotificationsTest.php` checks encrypted outbox payloads, HMAC event deduplication, local array-mailer delivery, queue-worker execution, acceptance-then-crash replay with a stable idempotency key, and stale dispatch/expired-claim recovery.
+- `tests/Integration/PostgresNotificationOutboxTest.php` checks the unique event constraint, rollback/after-commit behavior, and expired-claim recovery on the PostgreSQL integration database under the restricted application role.
+- The default SMTP transport sends an `X-RAVEN23-Idempotency-Key` header, but generic SMTP does not promise to deduplicate that header. Exactly-once external delivery is not claimed until provider-native idempotency is implemented and tested.
+- The Laravel scheduler runs `notifications:outbox-dispatch` every minute. The tests do not send external SMTP messages; the local array mailer is only a sink for rendering and worker behavior.

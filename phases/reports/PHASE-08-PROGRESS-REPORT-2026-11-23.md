@@ -127,3 +127,40 @@ Docker additionally passed strict Pint, queue worker guard tests, production APP
 - لا SMTP/provider أو FCM/OneSignal أو Flutter push contract مثبت.
 - outbox/idempotency الخارجي وسياسة الاحتفاظ/السعة/التكلفة لم تُعتمد.
 - Phase08 تبقى IN_PROGRESS؛ Phase07 كذلك IN_PROGRESS. لا staging secrets أو production DB أو deploy أو موارد سحابية تم استخدامها.
+
+
+## 12. تحديث Phase08E — Transactional Outbox + S3Mock، 24 نوفمبر 2026
+
+**Verified code SHA:** `8f34a0b0b725eb6704149154e2558eed81bc497f`
+
+### التنفيذ
+
+- Outbox transactional مشفر لرسائل email verification وpassword reset؛ HMAC idempotency key بطول 64 hex مع unique database constraint، encrypted payload، delivery status، attempt counts، timestamps، وsanitized last error type.
+- Email verification token row والـoutbox event داخل transaction واحدة، مع queue dispatch بعد commit. Password reset callback يحفظ event عبر نفس Outbox service.
+- Worker مشفر مع claim lease 60 ثانية وbounded retry/backoff. Relay مجدول كل دقيقة يستعيد pending events بعد فقد dispatch ويستعيد processing claims المنتهية دون لمس claim نشطة.
+- اختبارات SQLite تغطي التكرار/التشفير/array mail sink/worker execution/accept-then-crash replay/relay recovery.
+- `PostgresNotificationOutboxTest` يغطي 3 حالات حقيقية: idempotent uniqueness، rollback suppresses after-commit dispatch، وexpired-claim recovery مع حماية claim نشطة.
+- اختبار fake provider يعيد نفس مفتاح idempotency بعد الانهيار ويثبت dedupe داخل fake فقط. هذا لا يثبت exactly-once لدى SMTP؛ provider-native idempotency غير موجود حتى اختيار المزود.
+
+### S3-compatible adapter
+
+- تم تثبيت Flysystem S3 adapter الرسمي في Composer lock.
+- Docker شغّل S3Mock مؤقتاً، ونجح اختبار put/get/private visibility/list/delete/repeated delete عبر Laravel S3 adapter. لا يوجد AWS bucket أو مفاتيح أو موارد مدفوعة.
+
+### CI على SHA واحد
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker | [45296772477](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772477) | SUCCESS — SQLite 113/1,232؛ PostgreSQL 18/311؛ S3Mock 1/8 |
+| Authentication | [45296772381](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772381) | SUCCESS — SQLite 20/172؛ PostgreSQL 4/99 |
+| Pint | [45296772496](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772496) | SUCCESS |
+| Security | [45296772309](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772309) | SUCCESS |
+
+### المتبقي
+
+- مزود mail فعلي مع native idempotency وverification/reset staging/deep-link؛ outbound mail remains disabled.
+- Flutter push contract وprovider adapter بعد اعتماده.
+- S3-compatible provider/staging test بخدمات واعتمادات اختبار معتمدة.
+- retention/capacity/cost policy ومدة الاحتفاظ بسجلات Outbox.
+
+**Phase08 تبقى IN_PROGRESS.** Phase07 تبقى IN_PROGRESS، Phase09 WAITING_EXTERNAL، ولم يُلمس الإنتاج أو secrets أو deploy.

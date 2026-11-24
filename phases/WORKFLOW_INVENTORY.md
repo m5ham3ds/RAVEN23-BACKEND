@@ -144,3 +144,13 @@
 - Security Scans [45289472973](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45289472973) — SUCCESS.
 
 Docker steps المرصودة تشمل SQLite tests وPostgreSQL integration باعتماد application role محدود وmigration role منفصل، strict Pint، queue-worker guards، APP_DEBUG guard، non-root runtime، readiness وuploaded-PHP blocking. لم تكن هناك jobs فاشلة على هذا الرأس.
+
+
+## 10. تحقق CI على SHA `8f34a0b` — Phase08 Outbox/S3، 24 نوفمبر 2026
+
+- Docker Validation [45296772477](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772477) — SUCCESS: SQLite Feature 113/1,232؛ PostgreSQL Integration 18/311؛ S3Mock 1/8.
+- Authentication Regression [45296772381](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772381) — SUCCESS: SQLite 20/172؛ PostgreSQL 4/99.
+- Pint Format [45296772496](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772496) — SUCCESS.
+- Security Scans [45296772309](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772309) — SUCCESS: Gitleaks/Trivy وproduction image وfixable HIGH/CRITICAL gates PASS.
+
+Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود الصلاحيات؛ أضيف `PostgresNotificationOutboxTest` إلى هذه المجموعة. اختبار S3Mock يدار كخطوة منفصلة بخدمة مؤقتة.

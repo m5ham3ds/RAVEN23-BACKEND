@@ -17,7 +17,7 @@
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | أضيفت اختبارات جهازين، جلسات out-of-order، tombstones، lost-response retry على SQLite/PostgreSQL، full resync، token revocation per-device وعبور منتصف الليل؛ بقيت three-device/concurrent cursor وdevice-ID change وقياس retry/latency. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | شريحة queue/mail الأولى منفذة: إشعارات verification/reset مشفرة وبعد commit، retry/backoff ثابت، worker منفصل وفحوص CI؛ storage/S3 وpush وmail sink/provider ما زالت مفتوحة. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08E: encrypted queue/worker، private media API، quota اختيارية، orphan cleanup، S3Mock/Flysystem test، transactional notification outbox/relay/lease recovery؛ بقي real provider staging/mail native idempotency/push/retention. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
@@ -106,3 +106,15 @@
 - لا يوجد دليل على تشغيل cleanup الفعلي على تخزين مستخدمين؛ الاختبار يستخدم filesystem fake. dry-run هو الافتراضي، والتنظيف المجدول معطل ما لم يفعّل صراحة.
 - لا AWS credentials أو موارد مدفوعة أو SMTP/FCM خارجي أو قاعدة إنتاج أو deploy تم استخدامها.
 - Phase07 تبقى IN_PROGRESS ببنودها الأربعة غير المغلقة؛ Phase09 تنتظر قرارات الخطط والاستحقاقات والدفع.
+
+
+## 11. تحديث Phase08 Outbox/S3 — 24 نوفمبر 2026
+
+- آخر SHA برمجي مرصود واجتاز بوابات CI الأربع: `8f34a0b0b725eb6704149154e2558eed81bc497f`.
+- Docker #45296772477 SUCCESS: SQLite Feature 113/1,232؛ PostgreSQL Integration 18/311؛ اختبار S3Mock منفصل 1/8.
+- Authentication #45296772381 SUCCESS: SQLite 20/172؛ PostgreSQL 4/99. Pint #45296772496 SUCCESS؛ Security #45296772309 SUCCESS.
+- اختبارات PostgreSQL الجديدة لـOutbox تثبت HMAC uniqueness، التراجع دون dispatch، واستعادة claim منتهية مع عدم إعادة دفع claim نشطة.
+- أضيف Outbox مشفر transactional لرسائل التحقق وإعادة تعيين كلمة المرور، مع DB::afterCommit، worker lease/retry، وrelay مجدول كل دقيقة. يوجد header idempotency ثابت لكن لا توجد ضمانة SMTP dedupe من دون دعم المزود.
+- S3Mock اختبر put/get/private/list/delete عبر Flysystem adapter؛ لا يوجد real bucket/provider staging أو AWS credentials.
+- Phase08 تبقى IN_PROGRESS: external mail provider/native idempotency، Flutter push adapter، real S3 staging، retention/capacity/cost policy ما زالت مفتوحة.
+- Phase07 تبقى IN_PROGRESS؛ Phase09 تنتظر قرارات الخطط والاستحقاقات والدفع. لا production DB/secrets/deploy أو موارد مدفوعة مستخدمة.
