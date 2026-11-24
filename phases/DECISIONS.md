@@ -289,3 +289,13 @@
 - حماية main وrequired checks تبقى OPEN؛ GitHub API/tool surface المتاح للقراءة فقط في هذه الإعدادات. يلزم Admin يملك صلاحية settings write.
 - direct-to-main single-branch policy لا تمنع فشل commit من الوصول إلى main قبل ظهور نتيجة CI؛ يجب حسم نموذج enforcement قبل اعتبار 10B COMPLETE.
 - بدأت 10C باختبار migration rehearsal مستقل ببيانات اصطناعية، من دون الوصول إلى قاعدة الإنتاج.
+
+
+## D-037 — Migration rehearsal acceptance and API contract source of truth
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** 10C مكتملة؛ 10D قيد CI.
+- **10C:** يعتمد اختبار empty schema وsynthetic legacy snapshot في DatabaseMigrationRehearsalTest كاختبار upgrade rehearsal معزول. لا يستخدم dump أو بيانات إنتاج.
+- **النتيجة:** SHA b8c0bb91cea76db003501e81ec30dce09e3bf858 اجتاز Docker/Auth/Pint/Security. SQLite Feature 146/1,548؛ PostgreSQL 31/541 مع optional skip واحد؛ S3Mock 1/8؛ Auth SQLite 20/172 وPG 4/99.
+- **10D:** contracts/api-v1.json هو manifest المسارات والطرق وحدود المصادقة؛ contracts/API-V1.md هو وصف الاستجابات؛ ApiV1ContractTest يقارن manifest بالـRouter ويختبر response envelopes.
+- **الحدود:** لا يتغير runtime/API behavior أو قاعدة البيانات من مجرد توثيق العقد؛ أي تغيير مستقبلي يجب أن يعدل manifest والوثيقة والاختبار في commit واحد.

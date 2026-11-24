@@ -229,3 +229,10 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - 10B IN_PROGRESS: تقييم branch protection/required checks مكتمل، لكن main ما زال unprotected ولا توجد rulesets؛ تفعيل إعدادات GitHub يتطلب مالك/Administrator.
 - 10C IN_PROGRESS: migration rehearsal مستقل لقاعدة فارغة وsnapshot قديم اصطناعي قيد التحقق عبر CI.
 - لا يعتبر هذا جاهزية إصدار أو تفويضًا للنشر أو تغيير قاعدة الإنتاج.
+
+
+## تحديث 24 نوفمبر 2026 — Phase10C closeout / Phase10D start
+
+- 10C COMPLETE على SHA b8c0bb91cea76db003501e81ec30dce09e3bf858: Docker 146 SQLite / 1,548 assertions؛ PostgreSQL 31 / 541 مع optional skip؛ S3Mock 1/8؛ Auth SQLite 20/172 وPostgreSQL 4/99؛ Pint وSecurity SUCCESS. اختبار empty schema وlegacy snapshot نجحا.
+- 10D IN_PROGRESS: API v1 contract manifest (39 routes)، وثيقة العقد، وautomated router/auth/response/error contract tests بدأت على main؛ تنتظر CI.
+- 10B تبقى مفتوحة لحماية main وrequired checks لأنها تحتاج صلاحيات GitHub Admin ونموذج enforcement يطابق سياسة single-main branch.

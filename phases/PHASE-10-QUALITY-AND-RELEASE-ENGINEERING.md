@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لوجود إعدادات حماية main المطلوبة خارج صلاحيات اتصال GitHub المتاح؛ بدأ 10C باختبار migration rehearsal مستقل.  
+**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D IN_PROGRESS لعقد API v1.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -39,19 +39,33 @@
 
 ## 10C — migration rehearsal
 
-**الحالة:** IN_PROGRESS — أضيف اختبار مستقل على SQLite لقاعدة فارغة وsnapshot حسابات/جلسات/queue اصطناعي؛ ينتظر CI على commit التغيير.
+**الحالة:** COMPLETE — نجح اختبار مستقل على SQLite لقاعدة فارغة وsnapshot حسابات/جلسات/queue اصطناعي على SHA b8c0bb91cea76db003501e81ec30dce09e3bf858.
 
 - يتأكد الاختبار من تطبيق جميع ملفات migrations من الصفر وعدّ سجلات جدول migrations وموجودية الجداول الأساسية.
-- كشفت أول دفعة CI أن username المولد للحساب القديم يضاف إليه base-36 id؛ تم تصحيح assertion من `legacy_migration_user` إلى `legacy_migration_user_16` وفق سلوك `Raven23AuthSchema::generatedUsername()`، مع تصحيح assertion البريد ليتطابق مع fixture. إعادة CI على SHA التصحيح مطلوبة قبل قبول 10C.
+- كشفت أول دفعة CI أن username المولد للحساب القديم يضاف إليه base-36 id؛ صُحح assertion من legacy_migration_user إلى legacy_migration_user_16 وفق سلوك Raven23AuthSchema::generatedUsername()، وصُحح توقع البريد ليطابق fixture. نجحت إعادة CI على SHA التصحيح.
 - يعيد تشغيل السلسلة على schema قديم اصطناعي يحتوي حسابًا قديمًا وSanctum token وcache row وqueued job؛ ويتحقق من بقاء البيانات وbackfill للملف الشخصي والتفضيلات والجهاز.
 - هذا ليس dump من الإنتاج، ولا يبرر تشغيل migration على قاعدة إنتاج.
+- Docker Feature: 146 passed / 1,548 assertions؛ PostgreSQL Integration: 31 passed / 541 assertions مع اختبار optional واحد skipped؛ S3Mock المنفصل: 1 passed / 8 assertions.
+- فحص Authentication: SQLite 20 / 172 assertions؛ PostgreSQL 4 / 99. Docker وPint وSecurity وAuthentication كلها SUCCESS على SHA نفسه.
+- اختبارا empty schema وlegacy snapshot نجحا: جميع migrations سُجلت، الجداول الحالية ظهرت، وبقي الحساب وSanctum token وcache entry وqueue job محفوظة مع backfill للملف الشخصي والتفضيلات والجهاز.
 - PostgreSQL fresh migration مغطى في Docker؛ توسيع synthetic legacy rehearsal إلى PostgreSQL يبقى تحسينًا لاحقًا إذا أظهرت نتائج الاختبار حاجة لذلك.
+
+## 10D — API v1 contract regression
+
+**الحالة:** IN_PROGRESS — أضيف manifest آلي ووثيقة عقد واختبارات regression؛ ينتظر CI على commit التغيير.
+
+- contracts/api-v1.json يسجل 39 مسارًا مع HTTP method وحدود Sanctum والغرض العام لكل route.
+- contracts/API-V1.md يوثق قواعد JSON و401/422 وأشكال الاستجابات الأساسية للمصادقة والصحة والخطط والملف الشخصي والتفضيلات والاستحقاقات والمحفظة والمزامنة.
+- ApiV1ContractTest يقارن كل route manifest مع Laravel Router، ويثبت حماية Sanctum، ويختبر الأشكال الأساسية واستجابات التحقق.
+- لم تتغير controllers أو routes أو migrations؛ هذه الشريحة توثيق واختبارات عقدية فقط. لا يتضمن manifest أسرارًا أو بيانات مستخدمين أو عنوان نشر خاصًا بمزود.
+- قبول 10D يتطلب نجاح البوابات الأربع على SHA الذي يحتوي الاختبارات.
+
 
 ## الشرائح التالية
 
 - 10B: required checks وحماية main وتقييم تداخل workflows.
-- 10C: migrations على schema فارغ وsnapshot اصطناعي سابق.
-- 10D: API contract regression.
+- 10C COMPLETE: migrations على schema فارغ وsnapshot اصطناعي سابق.
+- 10D IN_PROGRESS: API contract regression.
 - 10E: synthetic load وقياس latency/volume/conflict دون production.
 - 10F: immutable image digest وربط artifact بالـSHA وSBOM/provenance.
 - 10G: release manifest وتجربة rollback في بيئة معزولة.

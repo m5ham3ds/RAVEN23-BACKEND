@@ -193,3 +193,11 @@ Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود ال
 - Security [45455970393](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45455970393): SUCCESS.
 - الـcheck runs الأربعة مكتملة ومرتبطة بالـSHA نفسه؛ لا يوجد فشل غير معالج.
 - 10B: main unprotected؛ branch protection وrulesets غير مفعلة. الـPint artifact ليس check حاجزًا مستقلاً، وDocker/Auth لهما تداخل جزئي؛ راجع تقرير Phase10 لقرار الإبقاء المؤقت وتحليل الحماية.
+
+
+## 13. Phase10C/10D validation — 24 November 2026
+
+- Phase10C migration rehearsal accepted on SHA b8c0bb91cea76db003501e81ec30dce09e3bf858: Docker [45495207983](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207983) SUCCESS — SQLite Feature 146/1,548؛ PostgreSQL 31/541 مع optional skip؛ S3Mock 1/8. Both empty-schema and synthetic legacy snapshot tests passed.
+- Authentication [45495207832](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207832) SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Pint [45495207864](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207864) SUCCESS؛ Security [45495208148](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495208148) SUCCESS.
+- Phase10D started: contracts/api-v1.json defines 39 API route/method/auth records; contracts/API-V1.md documents consumer-visible behavior; tests/Feature/ApiV1ContractTest.php locks router registration, authentication boundaries and response/error shapes. Pending CI on its own commit.

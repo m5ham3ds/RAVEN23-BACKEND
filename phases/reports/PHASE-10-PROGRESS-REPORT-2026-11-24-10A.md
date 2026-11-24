@@ -64,3 +64,29 @@
 - A separate email assertion was also aligned to the actual synthetic fixture value `legacy_migration_user@example.test`.
 - Docker run [45494513992](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494513992) on SHA `fda51c0` failed with 1 Feature failure and 145 passed / 1,537 assertions. Pint run [45494514057](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494514057) failed while building the development Composer image because that Docker build runs the same Feature suite; the actual Pint formatting step was skipped. Authentication [45494513820](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45494513820) passed. Docker/Security failures were not formatting issues.
 - Corrected the generated username expectation to `legacy_migration_user_16` on the next commit. CI acceptance remains pending on the corrected SHA.
+
+
+## 10C closeout — 24 November 2026
+
+**Final tested SHA:** b8c0bb91cea76db003501e81ec30dce09e3bf858
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker runtime validation | [45495207983](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207983) | SUCCESS — SQLite Feature 146 / 1,548 assertions؛ PostgreSQL Integration 31 / 541 مع optional skip واحد؛ S3Mock 1 / 8 |
+| Authentication regression | [45495207832](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207832) | SUCCESS — SQLite 20 / 172؛ PostgreSQL 4 / 99 |
+| Pint | [45495207864](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207864) | SUCCESS — Docker strict Pint passed |
+| Security | [45495208148](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495208148) | SUCCESS — Gitleaks, filesystem/image scans and fixable HIGH/CRITICAL gate passed |
+
+- Both migration rehearsal tests passed: fresh empty schema and synthetic legacy snapshot.
+- The legacy rehearsal preserved one account, Sanctum token/device metadata, cache value and queued job; profile/preferences/device backfill assertions passed.
+- Initial failure history retained above: the first fixture expected the wrong generated username; corrected expectation is legacy_migration_user_16 because account id 42 is encoded base-36 as 16. The corrected SHA passed all four gates.
+- No production DB, secret, production migration, deployment or AWS resource was used.
+
+**10C: COMPLETE.**
+
+## 10D start — API contract regression
+
+- Added contracts/api-v1.json with 39 method/path/auth entries and contracts/API-V1.md as the human-readable response contract.
+- Added tests/Feature/ApiV1ContractTest.php: route/method and Sanctum boundary comparison plus public health/billing, registration/profile/preferences/entitlement/wallet response shapes, protected endpoint 401s and validation 422 envelope checks.
+- No API controller, route, schema or production runtime behavior was modified.
+- CI is pending for the first 10D contract-test commit.
