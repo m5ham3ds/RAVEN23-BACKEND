@@ -45,6 +45,7 @@ try {
         throw new RuntimeException('Parallel sync start barrier timed out.');
     }
 
+    $requestBody = json_encode($payload, JSON_THROW_ON_ERROR);
     $request = Request::create(
         '/api/v1/sync/wellness',
         'POST',
@@ -57,15 +58,21 @@ try {
             'CONTENT_TYPE' => 'application/json',
             'REMOTE_ADDR' => '127.0.0.1',
         ],
-        json_encode($payload, JSON_THROW_ON_ERROR),
+        $requestBody,
     );
+    $startedAt = hrtime(true);
     $response = $kernel->handle($request);
-    $body = json_decode((string) $response->getContent(), true);
+    $responseContent = (string) $response->getContent();
+    $elapsedMilliseconds = (hrtime(true) - $startedAt) / 1_000_000;
+    $body = json_decode($responseContent, true);
     $kernel->terminate($request, $response);
 
     fwrite(STDOUT, json_encode([
         'status' => $response->getStatusCode(),
         'success' => is_array($body) && ($body['success'] ?? false) === true,
+        'request_bytes' => strlen($requestBody),
+        'response_bytes' => strlen($responseContent),
+        'latency_ms' => round($elapsedMilliseconds, 3),
     ], JSON_THROW_ON_ERROR));
     exit($response->isSuccessful() ? 0 : 1);
 } catch (Throwable $error) {

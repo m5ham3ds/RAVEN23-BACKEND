@@ -565,14 +565,22 @@ class PostgresWellnessSyncTest extends TestCase
         }
 
         $owner = $this->createAccount();
-        $tokens = [
-            $owner['token'],
-            $this->createDeviceToken($owner['id'], 'parallel device b'),
-            $this->createDeviceToken($owner['id'], 'parallel device c'),
-        ];
+        $tokens = [$owner['token']];
+        for ($index = 1; $index < 8; $index++) {
+            $tokens[] = $this->createDeviceToken($owner['id'], 'parallel device '.chr(65 + $index));
+        }
         $sessionId = 'abababab-abab-4bab-8bab-abababababac';
-        $stamps = [3000, 1000, 5000];
-        $titles = ['Device A update', 'Stale device B update', 'Device C newest update'];
+        $stamps = [3000, 1000, 5000, 2000, 4000, 1500, 3500, 4500];
+        $titles = [
+            'Device A update',
+            'Device B update',
+            'Device C newest update',
+            'Device D update',
+            'Device E update',
+            'Device F update',
+            'Device G update',
+            'Device H update',
+        ];
 
         DB::table('user_sync_revisions')->insertOrIgnore([
             'user_id' => $owner['id'],
@@ -588,6 +596,7 @@ class PostgresWellnessSyncTest extends TestCase
         $worker = base_path('tests/Fixtures/ConcurrentWellnessSyncWorker.php');
         $processes = [];
         $pipes = [];
+        $workerMetrics = [];
 
         try {
             $baseEnvironment = getenv();
@@ -691,6 +700,10 @@ class PostgresWellnessSyncTest extends TestCase
                 $result = json_decode(trim((string) $stdout), true, 32, JSON_THROW_ON_ERROR);
                 $this->assertSame(200, $result['status']);
                 $this->assertTrue($result['success']);
+                $this->assertGreaterThan(0, $result['request_bytes']);
+                $this->assertGreaterThan(0, $result['response_bytes']);
+                $this->assertGreaterThanOrEqual(0, $result['latency_ms']);
+                $workerMetrics[] = $result;
             }
         } finally {
             foreach ($processes as $index => $process) {
@@ -730,8 +743,40 @@ class PostgresWellnessSyncTest extends TestCase
         $dailyPayload = json_decode((string) $dailyRow->payload, true);
         $this->assertSame(60000, (int) $dailyPayload['watched_ms']);
         $this->assertSame(1, (int) $dailyPayload['session_count']);
-    }
 
+        $changeStamps = DB::table('user_wellness_changes')
+            ->where('user_id', $owner['id'])
+            ->where('entity_type', 'session')
+            ->where('entity_key', $sessionId)
+            ->pluck('payload')
+            ->map(fn ($payload): int => (int) json_decode((string) $payload, true, 32, JSON_THROW_ON_ERROR)['updated_at_utc'])
+            ->all();
+        $stampCounts = array_count_values($changeStamps);
+        $staleConflictWrites = array_sum(array_map(fn (int $count): int => max(0, $count - 1), $stampCounts));
+        $this->assertCount(count($tokens), $changeStamps);
+        $this->assertGreaterThanOrEqual(0, $staleConflictWrites);
+        $this->assertLessThanOrEqual(count($tokens) - 1, $staleConflictWrites);
+
+        $requestBytes = array_sum(array_column($workerMetrics, 'request_bytes'));
+        $responseBytes = array_sum(array_column($workerMetrics, 'response_bytes'));
+        $latencies = array_map(fn (array $metric): float => (float) $metric['latency_ms'], $workerMetrics);
+        sort($latencies);
+        $averageLatency = array_sum($latencies) / count($latencies);
+        $maximumLatency = max($latencies);
+        $conflictRate = $staleConflictWrites / count($tokens);
+
+        fwrite(STDERR, 'RAVEN23_SYNC_SYNTHETIC_METRICS '.json_encode([
+            'concurrent_clients' => count($tokens),
+            'uploaded_session_records' => count($tokens),
+            'request_bytes' => $requestBytes,
+            'response_bytes' => $responseBytes,
+            'average_request_latency_ms' => round($averageLatency, 3),
+            'max_request_latency_ms' => round($maximumLatency, 3),
+            'stale_conflict_writes' => $staleConflictWrites,
+            'stale_conflict_rate' => round($conflictRate, 4),
+            'winning_updated_at_utc' => (int) $stored->updated_at_utc,
+        ], JSON_THROW_ON_ERROR).PHP_EOL);
+    }
     protected function tearDown(): void
     {
         foreach (array_reverse($this->createdTokens) as $tokenId) {
