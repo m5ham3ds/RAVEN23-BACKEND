@@ -49,7 +49,7 @@ RUN set -eu; \
 RUN composer validate --strict \
     && composer install --no-interaction --prefer-dist --no-progress --optimize-autoloader \
     && composer audit --no-interaction \
-    && php -r '$required = ["curl","ctype","dom","fileinfo","filter","hash","mbstring","openssl","pcre","PDO","session","tokenizer","xml","pdo_pgsql","pdo_sqlite"]; foreach ($required as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing required PHP extension: ".$extension.PHP_EOL); exit(1); } }'
+    && php -r '$required = ["curl","ctype","dom","fileinfo","filter","hash","mbstring","openssl","pcre","PDO","session","simplexml","tokenizer","xml","pdo_pgsql","pdo_sqlite"]; foreach ($required as $extension) { if (!extension_loaded($extension)) { fwrite(STDERR, "Missing required PHP extension: ".$extension.PHP_EOL); exit(1); } }'
 
 # Source-level checks and deterministic SQLite Feature suite.
 RUN set -eu; \
