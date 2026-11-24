@@ -66,14 +66,14 @@ class DispatchPendingNotificationOutbox extends Command
                         now()->lessThan($record->available_at)
                         || ($record->last_dispatched_at !== null && $record->last_dispatched_at > $cutoff)
                     ) {
-                        return false;
+                        return null;
                     }
                 } elseif ($record->status === 'processing') {
                     if ($record->claimed_at !== null && $record->claimed_at > $claimCutoff) {
-                        return false;
+                        return null;
                     }
                 } else {
-                    return false;
+                    return null;
                 }
 
                 DB::table('notification_outbox')
