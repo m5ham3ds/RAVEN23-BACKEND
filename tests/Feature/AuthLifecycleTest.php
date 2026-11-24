@@ -100,7 +100,6 @@ class AuthLifecycleTest extends TestCase
             $table->index(['status', 'last_dispatched_at']);
         });
 
-
         Schema::connection('sqlite')->create('user_profiles', static function (Blueprint $table): void {
             $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
             $table->unsignedSmallInteger('profile_id')->default(0);
