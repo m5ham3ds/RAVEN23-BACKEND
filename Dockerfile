@@ -41,7 +41,7 @@ RUN set -eu; \
       tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
       tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
-      tests/Integration/PostgresAuthLifecycleTest.php tests/Integration/PostgresUserMediaTest.php docker/Caddyfile docker/entrypoint.sh \
+      tests/Integration/PostgresAuthLifecycleTest.php tests/Integration/PostgresUserMediaTest.php \\\n      tests/Integration/S3PrivateObjectStorageTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/queue-worker.sh docker/php-production.ini; do \
         test -s "$file" || { echo "Required project file missing or empty: $file" >&2; exit 1; }; \
     done
