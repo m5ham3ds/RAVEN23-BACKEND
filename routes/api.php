@@ -33,6 +33,11 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::post('/devices/register', [PushSubscriptionController::class, 'registerFcm'])->middleware('throttle:auth-device-management');
+        Route::post('/push/subscriptions', [PushSubscriptionController::class, 'registerOneSignal'])->middleware('throttle:auth-device-management');
+        Route::delete('/push/subscriptions/{subscriptionId}', [PushSubscriptionController::class, 'unregisterOneSignal'])
+            ->whereUuid('subscriptionId')
+            ->middleware('throttle:auth-device-management');
         Route::post('/auth/email/verification-notification', [AuthController::class, 'sendEmailVerification'])->middleware('throttle:auth-email-verification');
         Route::get('/user/devices', [AuthController::class, 'devices'])->middleware('throttle:auth-device-management');
         Route::delete('/user/devices', [AuthController::class, 'revokeAllDevices'])->middleware('throttle:auth-device-management');
