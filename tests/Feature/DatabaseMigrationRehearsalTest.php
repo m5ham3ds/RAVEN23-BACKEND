@@ -103,7 +103,7 @@ class DatabaseMigrationRehearsalTest extends TestCase
         $this->assertNotNull($user);
         $this->assertSame('legacy_migration_user', $user->username);
         $this->assertFalse((bool) $user->is_guest);
-        $this->assertSame('legacy@example.test', $user->email);
+        $this->assertSame('legacy_migration_user@example.test', $user->email);
 
         $this->assertDatabaseHas('personal_access_tokens', [
             'id' => 71,

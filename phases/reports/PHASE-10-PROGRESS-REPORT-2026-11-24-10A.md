@@ -55,3 +55,10 @@
 - Added tests/Feature/DatabaseMigrationRehearsalTest.php with isolated temporary SQLite databases.
 - Covers all migrations from an empty schema and a synthetic older snapshot that preserves a user, existing Sanctum token, cache entry and queue job while verifying profile/preferences/device backfill.
 - CI evidence is pending on the implementation commit. The snapshot is synthetic only and does not use production data.
+
+
+### 10C pre-CI fixture correction — 24 November 2026
+
+- During source review of the synthetic legacy snapshot test, corrected an assertion whose expected email did not match the fixture value. The fixture remains `legacy_migration_user@example.test`; the assertion now checks that exact persisted value.
+- This was caught by review before the Docker Feature suite completed; it is not recorded as a completed CI failure.
+- The 10C test acceptance remains pending CI on the corrected commit.
