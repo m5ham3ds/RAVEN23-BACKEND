@@ -777,6 +777,7 @@ class PostgresWellnessSyncTest extends TestCase
             'winning_updated_at_utc' => (int) $stored->updated_at_utc,
         ], JSON_THROW_ON_ERROR).PHP_EOL);
     }
+
     protected function tearDown(): void
     {
         foreach (array_reverse($this->createdTokens) as $tokenId) {
