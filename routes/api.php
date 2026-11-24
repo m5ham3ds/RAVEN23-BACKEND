@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookmarkSyncController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PlaylistSyncController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\PreferenceSyncController;
 use App\Http\Controllers\Api\RecentlyWatchedSyncController;
 use App\Http\Controllers\Api\UserMediaController;
