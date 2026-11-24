@@ -1,6 +1,6 @@
 # المرحلة 08 — تخزين الملفات والإشعارات والمهام الخلفية
 
-**الحالة:** IN_PROGRESS — 08A–08F منفذة محليًا ومختبرة: queue/worker، private media API، quota/orphan cleanup، Flysystem/S3Mock، transactional outbox، وPush subscription registration المشفر المتوافق مع Flutter. ما زالت real provider staging وpush delivery وmail provider/native idempotency وسياسات retention/cost مفتوحة.  
+**الحالة:** IN_PROGRESS — 08A–08I منفذة ومجتازة CI: queue/worker، private media API، quota/orphan cleanup، Flysystem/S3Mock، transactional mail outbox، Push subscription registry، provider-neutral encrypted push outbox، default-off/worker guards، outbox status summary وrelay pause عند تعطيل Push. ما زالت real provider staging/delivery وnative idempotency وسياسات retention/cost مفتوحة.  
 **الاعتماديات:** 02 و03 و05 COMPLETE؛ Phase04 PARTIAL في تكامل البريد/Google الخارجي. تسمح الاعتمادية الحالية بتطوير queue abstraction وإبقاء الإرسال معطلاً إلى حين staging/provider approval.
 
 ## الهدف
@@ -210,3 +210,45 @@
 
 - Backend CI الأربع ناجحة على هذا الرأس؛ Docker/PostgreSQL integration suite تضم Push subscription tests ضمن 22 اختبارًا ناجحًا و417 assertion.
 - يثبت هذا التسجيل المشفر والـHMAC idempotency ونقل/حصر الملكية. لا يثبت sender أو وصول إشعار حقيقي؛ لا provider credentials أو production/staging delivery جرى استخدامها.
+
+
+### 08G — Provider-neutral push outbox and safe queue contract (24 November 2026)
+
+- أضيف `PushNotificationTransport` كعقد لا يعتمد على FCM أو OneSignal SDK؛ الـbinding الافتراضي هو `DisabledPushNotificationTransport`.
+- أضيف `NotificationOutboxService::queuePush()` لإنشاء رسالة مشفرة لكل اشتراك مملوك للحساب الحالي، وبحسب provider مختار، مع HMAC idempotency key ثابت لكل (user, subscription, event).
+- يضمّن encrypted payload provider وsubscription ID والرسالة؛ يضمن ذلك ألا تُحوّل الأحداث القديمة إلى مزود آخر عند تغيير الإعداد بعد enqueue.
+- يرسل Outbox إلى queue منفصل `push`; عامل التشغيل الافتراضي يستمع إلى `mail,push,default`.
+- أضيف worker guard: عند تفعيل `RAVEN23_PUSH_ENABLED` يجب أن تحتوي `QUEUE_WORKER_QUEUES` على `push` وإلا يخرج العامل بخطأ واضح. القيم الافتراضية `RAVEN23_PUSH_ENABLED=false` و`RAVEN23_PUSH_PROVIDER=none`.
+- يتم التحقق وقت التنفيذ من أن الاشتراك ما زال موجودًا وتحت مالك الرسالة قبل استدعاء adapter؛ الاشتراك المحذوف لا يستقبل رسالة queued لاحقة.
+
+### 08H — Read-only notification outbox health summary (24 November 2026)
+
+- أضيف Artisan command: `php artisan notifications:outbox-status`، و`--json` لإخراج machine-readable.
+- يعرض aggregate counts حسب النوع والحالة، pending due/scheduled، processing، expired claims، failed، sent، وعمر أقدم pending due.
+- لا يعرض user IDs/emails، tokens، payload، idempotency keys أو error detail. Feature وPostgreSQL tests تؤكد aggregate counts واستبعاد الحقول الخاصة.
+
+### 08I — Preserve due push events while delivery is disabled (24 November 2026)
+
+- يفحص Outbox relay مفتاح `RAVEN23_PUSH_ENABLED` قبل إعادة جدولة أي `push_delivery` event.
+- عند التعطيل لا يضيف job أخرى ولا يغيّر `last_dispatched_at` أو حالة السجل؛ يبقى الحدث pending حتى إعادة تفعيل معتمدة.
+- يوجد Feature regression test يثبت توقف dispatch مع بقاء event محفوظًا وعدم تضاعف وظائف push في queue fake.
+
+### Final CI evidence — Backend SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479) | SUCCESS — SQLite Feature 125 / 1,382 assertions؛ PostgreSQL Integration 24 / 493 assertions، 1 optional skip؛ S3Mock 1 / 8 |
+| Authentication Regression | [45411252843](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252843) | SUCCESS |
+| Pint Format | [45411252483](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252483) | SUCCESS |
+| Security Scans | [45411252485](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252485) | SUCCESS |
+
+Docker strict Pint، queue-worker guards، PostgreSQL least-privilege، separate migration role، web liveness دون DB، readiness، non-root runtime وPHP asset blocking جميعها PASS.
+
+### Phase08 remaining acceptance — WAITING_EXTERNAL
+
+1. Real S3-compatible staging/provider verification بعد اختيار حساب ومفاتيح اختبار معتمدة؛ S3Mock لا يثبت اتصال مزود فعلي.
+2. Mail provider selection، action/deep-link staging verification وprovider-native idempotency. الإرسال يبقى disabled حتى اعتماد المزود.
+3. اختيار FCM أو OneSignal وتركيب sender adapter حقيقي واختبار وصول على Android/TV. لا credentials أو رسائل خارجية مستخدمة.
+4. اعتماد retention، quota/capacity، cost وoutbox audit-retention policy.
+
+**Phase08 remains IN_PROGRESS.** لا تتخطى Phase09؛ تبقى WAITING_EXTERNAL لقرارات الخطط والأسعار والاستحقاقات ومزود الدفع.

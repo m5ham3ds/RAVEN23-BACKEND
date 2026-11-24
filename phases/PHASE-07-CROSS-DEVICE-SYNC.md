@@ -1,6 +1,6 @@
 # المرحلة 07 — المزامنة بين الأجهزة والعمل عند انقطاع الاتصال
 
-**الحالة:** IN_PROGRESS — أضيف Wellness API واجتاز جميع بوابات CI؛ بقية قبول multi-device/offline ما زالت مفتوحة.  
+**الحالة:** COMPLETE — تحققت متطلبات التقارب، concurrent PostgreSQL writes، دورة device identity/account switch، retry/backoff وقياسات الحجم/الزمن/التعارض بأدلة App/Backend CI الموضحة في قسم الإغلاق.  
 **الاعتماديات:** المرحلتان 05 و06 COMPLETE
 
 ## الهدف
@@ -155,3 +155,52 @@ Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restric
 2. Synthetic load test with measured request volume, latency distribution and conflict rate; current counters are local/in-memory only.
 
 **Phase07 remains IN_PROGRESS.**
+
+
+## إغلاق المرحلة 07 النهائي — 24 نوفمبر 2026
+
+### Flutter client evidence
+
+- App SHA `d9418ea5d83658ee82a9bc04062f97a6c9452f65`؛ Android CI [45328849434](https://github.com/m5ham3ds/RAVEN23/actions/runs/45328849434) SUCCESS.
+- `flutter analyze` وscoped formatting ناجحان؛ 496 Flutter tests و25 Android ABI/offline-download tests ناجحة.
+- APK ARM64 فقط (`arm64-v8a`)، 47,853,410 bytes (45.64 MiB).
+- اختبارات التثبيت/auth تثبت ثبات install `device_id` عبر sign-out وتبديل الحساب، واستخدامه في request من Auth Injector. اختبارات SessionViewModel/Coordinator/SyncRunner تثبت رفض owner-old requests/local writes وإيقاف retry القديم عند generation change.
+
+### Backend final evidence
+
+على SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`:
+
+- Docker [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479): SUCCESS — SQLite Feature 125 / 1,382 assertions؛ PostgreSQL Integration 24 passed / 493 assertions، 1 optional skip؛ S3Mock 1/8.
+- Authentication [45411252843](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252843): SUCCESS.
+- Pint [45411252483](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252483): SUCCESS.
+- Security [45411252485](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252485): SUCCESS.
+
+### PostgreSQL concurrent sync metrics
+
+ثمانية PHP workers مستقلة، كل منها يملك اتصال PostgreSQL منفصلًا، أرسلت ثمانية تحديثات متعارضة للجلسة نفسها:
+
+| Measure | Value |
+|---|---:|
+| Concurrent clients | 8 |
+| Uploaded session records | 8 |
+| Total request bytes | 4,191 |
+| Total response bytes | 546 |
+| Average latency | 166.538 ms |
+| Maximum latency | 209.686 ms |
+| Stale conflict writes | 5 / 8 (62.5%) |
+| Winning timestamp | 5000 |
+
+فازت النسخة الأحدث، وبقي سجل الجلسة متفردًا مع daily summary متسق (60,000 ms watched، session_count=1).
+
+**حد القياس:** هذه تجربة CI اصطناعية صغيرة، ولا تمثل production load benchmark أو SLO.
+
+### معايير القبول والقرار
+
+- Multi-device convergence، tombstones، stale writes، idempotent replay وcursor recovery: PASS.
+- Concurrent PostgreSQL uploads مع حسابات/عمليات مستقلة وdaily consistency: PASS.
+- Stable install device identity وaccount switch وowner isolation عبر Flutter/Backend: PASS.
+- Bounded transient retry/backoff ووقف الدورة القديمة عند owner/generation change: PASS.
+- Synthetic request/response volume وlatency وconflict metrics: PASS للحد الاصطناعي المحدد، وليس production capacity.
+- جميع بوابات CI الأربع على Backend SHA النهائي وAndroid CI على App SHA النهائي: PASS.
+
+**القرار: Phase07 COMPLETE.** التقارير السابقة التي كانت تسجل IN_PROGRESS هي snapshots تاريخية وقد حُسمت بنجاح هذا الإغلاق.

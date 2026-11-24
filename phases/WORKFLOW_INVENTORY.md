@@ -154,3 +154,15 @@ Docker steps المرصودة تشمل SQLite tests وPostgreSQL integration ب�
 - Security Scans [45296772309](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45296772309) — SUCCESS: Gitleaks/Trivy وproduction image وfixable HIGH/CRITICAL gates PASS.
 
 Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود الصلاحيات؛ أضيف `PostgresNotificationOutboxTest` إلى هذه المجموعة. اختبار S3Mock يدار كخطوة منفصلة بخدمة مؤقتة.
+
+
+## 11. Final CI verification — Backend SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3` — 24 November 2026
+
+- Docker Validation [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479) — SUCCESS: SQLite Feature 125/1,382; PostgreSQL Integration 24/493 مع اختبار اختياري واحد skipped؛ S3Mock 1/8.
+- Authentication Regression [45411252843](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252843) — SUCCESS.
+- Pint Format [45411252483](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252483) — SUCCESS؛ Docker strict Pint على changed PHP files نجح.
+- Security Scans [45411252485](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252485) — SUCCESS؛ Gitleaks/source scan وproduction image scan وfixable HIGH/CRITICAL gate PASS.
+- Docker runtime steps نجحت: queue worker safety, APP_DEBUG guard, no-DB liveness/503 readiness، PostgreSQL restricted app role/migration role، non-root HTTP runtime، readiness، PHP asset blocking.
+- Outbox tests: push relay pauses without mutating due push while feature flag disabled; outbox-status emits aggregate counters only.
+- PostgreSQL concurrency metric in this same Docker run: 8 clients، 4,191 request bytes، 546 response bytes، average latency 166.538ms، max 209.686ms، 5/8 stale conflicts، winning stamp=5000. Synthetic CI measurement only.
+- The single optional skipped PostgreSQL test is separately covered by the successful S3Mock integration step. This run does not prove real S3 provider staging.

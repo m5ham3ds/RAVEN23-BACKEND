@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified implementation SHA: f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19 — 24 نوفمبر 2026  
+> latest fully CI-verified implementation SHA: 1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3 — 24 نوفمبر 2026  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -28,7 +28,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–06 COMPLETE، وPhase07/08 IN_PROGRESS. Phase07 لديها الآن اختبارات 3-device out-of-order convergence وPostgreSQL pagination/cursor recovery؛ وتغطي Phase08F تخزين Push subscriptions مشفرًا، دون تفعيل إرسال الإشعارات.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، وPhase08 IN_PROGRESS حتى 08I. Phase07 أُغلقت بعد تحقق دورة device identity/account switch، حواجز owner-generation، concurrent PostgreSQL sync واختبارات Flutter/Android. Phase08 تشمل الآن provider-neutral Push outbox، تعطيل الإرسال افتراضيًا، مراقبة Outbox المجمعة، وإيقاف relay لإشعارات Push أثناء تعطيل المفتاح العام؛ لا يوجد sender خارجي أو اعتماد مزود حتى الآن.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

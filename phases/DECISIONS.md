@@ -182,3 +182,26 @@
 - **المقاييس الحالية:** آخر عدد محاولات، مدة الدورة بالميلي ثانية، وعدد دورات الفشل المتتالية؛ محفوظة في ValueNotifiers داخل الذاكرة فقط. لم تُربط بعد بخدمة telemetry مركزية أو تخزين دائم.
 - **الاختبارات:** transient retry/backoff، validation non-retry، cancellation on owner change، وpreserved coalescing/owner behavior مغطاة في `test/data/sync_runner_test.dart`، وأُضيفت إلى Android focused pre-build test inventory والـscoped formatter.
 - **الأثر على Phase07:** يغلق جانب retry policy الأولي، لكنه لا يغلق end-to-end device-ID rotation/account switching ولا synthetic load/latency/volume/conflict acceptance.
+
+
+## D-024 — Provider-neutral encrypted Push outbox and default-off delivery
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** مطبق ومختبر على Backend SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`؛ real provider adapter/delivery WAITING_EXTERNAL.
+- **القرار:** جميع Push events تذهب عبر transactional encrypted outbox مع queue باسم `push` وعقد `PushNotificationTransport`. provider وsubscription المستهدف يثبتان في encrypted payload مع HMAC idempotency key ثابت. لا يحتفظ queue payload برموز أو محتوى رسالة مكشوف.
+- **الحماية:** الـbinding الافتراضي DisabledPushNotificationTransport؛ `RAVEN23_PUSH_ENABLED=false` و`RAVEN23_PUSH_PROVIDER=none`. العامل يرفض تفعيل Push إذا لم تكن queue `push` ضمن `QUEUE_WORKER_QUEUES`. يفحص delivery وجود subscription وملكيته قبل الإرسال.
+- **حدود القرار:** لا FCM/OneSignal sender SDK أو credentials أو actual Android/TV delivery مفعّل. موافقة المزود وإعداد staging اختبار منفصل.
+
+## D-025 — Read-only notification outbox health command
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** مطبق ومختبر على Backend SHA `1d354f7`.
+- **القرار:** `notifications:outbox-status` يقدم counts مجمعة فقط حسب type/status، due/scheduled backlog، processing، expired claims، failed/sent، وعمر أقدم pending due. يدعم JSON ولا يعرض user identifiers، email، tokens، encrypted payload، idempotency keys أو last error detail.
+- **الغرض:** يتيح تشخيص تراكم الطابور دون استخدام سجلات رسائل المستخدم أو كشف بيانات حساسة.
+
+## D-026 — Pause Push relay while the global delivery switch is disabled
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** مطبق ومختبر على Backend SHA `1d354f7`.
+- **القرار:** لا يعيد relay جدولة Push event إذا كان `RAVEN23_PUSH_ENABLED=false`. تظل حالة Outbox و`last_dispatched_at` كما هي، ويُستأنف dispatch فقط بعد إعادة التفعيل. العامل نفسه يتحقق من المفتاح وقت delivery كطبقة حماية ثانية.
+- **السبب:** يجب أن يمنع إيقاف الإرسال كلاً من الرسائل الجديدة والقديمة دون فقد الأحداث أو تكرار queue jobs أثناء التعطيل.

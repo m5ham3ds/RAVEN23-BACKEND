@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 24 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19`
+**Latest fully CI-verified implementation SHA:** `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -16,8 +16,8 @@
 | 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
-| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | اجتاز اختبار PostgreSQL لثلاث عمليات PHP مستقلة تكتب بالتزامن على جلسة واحدة مع timestamps متعارضة؛ النسخة الأحدث فازت والملخص اليومي بقي متسقاً. أضيفت سياسة Flutter retry/backoff محدودة ومقاييس مدة/محاولات وفحوص owner-generation؛ بقيت دورة device-ID rotation/account switch كاملة وقياسات volume/conflict/latency تحت حمل اصطناعي. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08F: private media وS3Mock، encrypted queue/outbox، وPush subscription registration مع token مشفر وHMAC index؛ اجتازت اختبارات FCM/OneSignal على SQLite/PostgreSQL. بقي push sender/delivery وcredentials/staging، S3 staging الحقيقي، mail provider/native idempotency وسياسات retention/cost. |
+| 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08I: private media/quota/orphan cleanup، S3Mock، encrypted mail/push outbox، push subscription registry، provider-neutral transport، worker queue guard، global push kill switch، read-only outbox status، والاحتفاظ بالرسائل due دون إعادة dispatch أثناء تعطيل Push. CI الأربع ناجحة على `1d354f7`. ما زال real S3/mail/push provider staging، native idempotency وسياسة retention/cost ينتظر الاعتماد الخارجي. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
@@ -164,3 +164,41 @@
 2. حمل اصطناعي قابل للقياس وتسجيل latency/volume/conflict rate؛ المقاييس المحلية الحالية وحدها لا تكفي.
 
 **الحالة: IN_PROGRESS.**
+
+
+## 14. إغلاق Phase07 والتحقق من Phase08G–08I — 24 نوفمبر 2026
+
+### الحالة المعتمدة
+
+- Phase07: **COMPLETE**. هذا التحديث هو المرجع الأحدث ويلغي حالات IN_PROGRESS الواردة في تقارير المتابعة التاريخية السابقة.
+- Phase08: **IN_PROGRESS** بعد تنفيذ 08A–08I. لا يُدّعى إرسال Push حقيقي أو mail خارجي أو اتصال S3 بمزود فعلي.
+- Branch listing: `main` فقط؛ لا توجد PRs مفتوحة.
+
+### إغلاق Phase07
+
+- App `m5ham3ds/RAVEN23` SHA `d9418ea5d83658ee82a9bc04062f97a6c9452f65`: Android CI [45328849434](https://github.com/m5ham3ds/RAVEN23/actions/runs/45328849434) SUCCESS؛ 496 Flutter tests و25 Android ABI/offline tests؛ APK واحد `arm64-v8a` بحجم 47,853,410 bytes (45.64 MiB).
+- Backend concurrent sync evidence — Docker [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479) على SHA `1d354f7`: ثمانية PHP worker processes واتصالات PostgreSQL مستقلة؛ request bytes=4,191، response bytes=546، متوسط latency=166.538 ms، الحد الأقصى=209.686 ms، stale conflicts=5/8 (62.5%)، winning timestamp=5000؛ السجل النهائي والملخص اليومي متسقان.
+- اختبارات Flutter تغطي ثبات install `device_id` عبر sign-out/account switch، وتمريره من Auth Injector، رفض payload للمالك السابق، منع إحياء بيانات الحساب السابق، وإيقاف retry/backoff عند owner-generation change.
+- حدود القياس: concurrency workload صناعي صغير داخل CI، وليس benchmark إنتاجيًا أو SLO.
+
+### Phase08G–08I CI proof على Backend SHA `1d354f7`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479) | SUCCESS — SQLite Feature 125 / 1,382 assertions؛ PostgreSQL Integration 24 passed / 493 assertions، 1 optional skipped؛ S3Mock 1 / 8 |
+| Authentication Regression | [45411252843](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252843) | SUCCESS |
+| Pint Format | [45411252483](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252483) | SUCCESS |
+| Security Scans | [45411252485](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252485) | SUCCESS |
+
+- Docker أكمل strict Pint، worker guards، PostgreSQL least-privilege، migration role منفصل، liveness/readiness دون DB، non-root HTTP runtime وPHP asset blocking.
+- فشل Docker السابق على commit وسيط `acea8d1` كان اختلاف Pint فقط في Relay؛ أُصلح بتطبيق صيغة Pint والتحقق من تطابق الملف، ثم اجتازت SHAهات لاحقة strict Pint.
+- Authentication Regression وPint وSecurity وDocker على SHA النهائي أعلاه كلّها SUCCESS.
+
+### ما بقي خارجيًا في Phase08
+
+1. اختيار مزود S3-compatible/حساب staging واختبار الاتصال بمفاتيح اختبار معتمدة؛ لا bucket أو AWS credentials أو مورد مدفوع أُنشئ.
+2. اختيار mail provider وإعداد action/deep-link والتحقق من staging، ثم اعتماد provider-native idempotency قبل ادعاء exactly-once.
+3. اختيار FCM أو OneSignal، وتركيب adapter فعلي واختبار وصول على Android/TV؛ Push ما زال disabled-by-default ولا توجد credentials.
+4. موافقة سياسة retention، quota/capacity، cost وoutbox audit retention.
+
+**Phase08 تظل IN_PROGRESS، ولا يجوز الانتقال إلى Phase09 قبل قرار المنتج/الاشتراكات والدفع، أو تخطي اعتمادياتها.**

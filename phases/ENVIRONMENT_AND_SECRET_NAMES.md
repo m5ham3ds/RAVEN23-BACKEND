@@ -92,3 +92,13 @@ LARAVEL_API_URL هو account/data API؛ RAVEN23_API_URL هو scraper/source serv
 - Database URL values, OAuth secrets, app keys and tokens belong in selected secret manager/GitHub Environments.
 - When Phase 11 is ready, replace Neon credentials only after AWS account/region/cost and migration are approved.
 - Inventory shows names only; it does not prove that any secret is configured in the linked GitHub account.
+
+
+## 8. Notification outbox and Push worker configuration
+
+- `QUEUE_CONNECTION`: asynchronous queue connection؛ عامل الإنتاج لا يقبل `sync` أو `null`.
+- `QUEUE_WORKER_QUEUES`: قائمة الطوابير للعامل؛ المثال الافتراضي `mail,push,default`. إذا فُعّل Push يجب تضمين `push` وإلا يرفض worker startup.
+- `RAVEN23_PUSH_ENABLED`: الافتراضي `false`؛ يظل الإرسال مغلقًا إلى حين اعتماد provider adapter وstaging.
+- `RAVEN23_PUSH_PROVIDER`: الافتراضي `none`؛ الاختيارات المدعومة في عقد المجال `fcm` و`onesignal` فقط بعد اعتماد الاختيار.
+- `NOTIFICATION_OUTBOX_DISPATCH_BATCH` و`NOTIFICATION_OUTBOX_REDISPATCH_AFTER_SECONDS`: حدود أمر relay المجدول.
+- `notifications:outbox-status`: أمر تشخيص aggregate read-only؛ لا يحتاج secret إضافي ولا يخرج PII أو notification payload.

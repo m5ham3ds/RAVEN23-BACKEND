@@ -31,8 +31,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
-| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ SQLite/PostgreSQL اختبارات 3 أجهزة وcursor recovery ناجحة، واختبار PostgreSQL بثلاث عمليات PHP متزامنة حقيقية يثبت فوز timestamp الأحدث واتساق daily aggregate. Flutter retry/backoff والـin-memory duration/attempt telemetry مضافة ومختبرة؛ المتبقي دورة device-ID rotation/account switch كاملة وقياسات volume/latency/conflict تحت حمل اصطناعي | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08F: private media/quota/orphan cleanup، S3Mock، encrypted queue/transactional outbox، وPush subscription registry لـFCM/OneSignal مع encrypted tokens وHMAC indexes. CI على `f0b9823` ناجح؛ لا يوجد push sender/provider credentials أو S3/mail staging فعلي، وتبقى native mail idempotency وسياسات retention/cost مفتوحة | 02–05 (Phase04 external mail/Google staging remains partial) |
+| 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
+| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I: private media/S3Mock، mail queue/outbox، push registry، provider-neutral encrypted push outbox، default-off/worker queue guard، outbox status summary، relay pause while push disabled. Backend CI الأربع على `1d354f7` SUCCESS؛ يبقى S3/mail/push provider staging وretention/cost approval خارجيًا. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
@@ -200,3 +200,15 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - CI proof: Docker [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852)، Authentication [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671)، Pint [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645)، Security [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) — كلها SUCCESS على SHA نفسه.
 - Phase07 و08 تظلان IN_PROGRESS. لا يجوز وصف sequential interleaving بأنه concurrent transaction stress test، أو وصف تخزين Push بأنه actual notification delivery.
 - Phase09 تظل WAITING_EXTERNAL حتى قرارات المنتج والدفع. لا production DB/secrets/deploy/AWS paid resources.
+
+
+## 17. إغلاق Phase07 وتقدم Phase08G–08I — 24 نوفمبر 2026
+
+- Phase07 COMPLETE على أدلة App `d9418ea` / Android CI [45328849434](https://github.com/m5ham3ds/RAVEN23/actions/runs/45328849434) وBackend concurrent sync Docker [45411252479](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45411252479).
+- App: 496 Flutter tests، 25 Android tests، ARM64-only APK بحجم 45.64 MiB.
+- Backend 8-process PostgreSQL sync: request_bytes=4191، response_bytes=546، average=166.538ms، max=209.686ms، stale_conflicts=5/8، winning timestamp=5000؛ اختبارات التقارب والملخص اليومي نجحت.
+- Phase08G: provider-neutral Push transport contract مع encrypted outbox، stable idempotency key، queue باسم `push`، provider مثبت داخل encrypted event، stale subscription suppression، global kill switch، وdefault binding إلى disabled transport.
+- Phase08H: `notifications:outbox-status` يعرض counts/ages فقط دون PII أو payload أو token أو idempotency key.
+- Phase08I: relay لا يرسل ولا يغير سجل Push المستحق أثناء تعطيل `RAVEN23_PUSH_ENABLED`؛ يظل pending حتى إعادة التفعيل.
+- Final Backend SHA `1d354f7e57ee3b5c03ee003f0fb2dbc1eff78ca3`: Docker #45411252479 SUCCESS (125 SQLite / 1,382 assertions؛ 24 PostgreSQL / 493 assertions، 1 optional skip؛ S3Mock 1/8)، Auth #45411252843 SUCCESS، Pint #45411252483 SUCCESS، Security #45411252485 SUCCESS.
+- Phase08 ما زالت IN_PROGRESS لأن real S3/mail/push provider staging وnative idempotency وسياسة retention/cost تتطلب اختيارًا/موافقة/اعتمادات خارجية. Phase09 WAITING_EXTERNAL لقرارات المنتج والدفع.
