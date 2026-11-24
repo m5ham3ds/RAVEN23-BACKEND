@@ -61,6 +61,11 @@ class User extends Authenticatable
         return $this->hasMany(UserMedia::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(UserPushSubscription::class);
+    }
+
     public function sendPasswordResetNotification($token): void
     {
         app(NotificationOutboxService::class)->queuePasswordReset($this, (string) $token);
