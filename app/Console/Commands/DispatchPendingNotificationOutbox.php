@@ -51,14 +51,14 @@ class DispatchPendingNotificationOutbox extends Command
 
         $dispatched = 0;
         foreach ($ids as $id) {
-            $reserved = DB::transaction(function () use ($id, $cutoff, $claimCutoff): bool {
+            $queue = DB::transaction(function () use ($id, $cutoff, $claimCutoff): ?string {
                 $record = DB::table('notification_outbox')
                     ->where('id', $id)
                     ->lockForUpdate()
                     ->first();
 
                 if ($record === null) {
-                    return false;
+                    return null;
                 }
 
                 if ($record->status === 'pending') {
@@ -85,15 +85,15 @@ class DispatchPendingNotificationOutbox extends Command
                         'updated_at' => now(),
                     ]);
 
-                return true;
+                return $record->notification_type === 'push_delivery' ? 'push' : 'mail';
             });
 
-            if (! $reserved) {
+            if ($queue === null) {
                 continue;
             }
 
             try {
-                Queue::pushOn('mail', new DeliverNotificationOutboxJob((string) $id));
+                Queue::pushOn($queue, new DeliverNotificationOutboxJob((string) $id, $queue));
                 $dispatched++;
             } catch (Throwable $exception) {
                 DB::table('notification_outbox')

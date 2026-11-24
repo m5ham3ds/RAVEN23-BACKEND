@@ -2,7 +2,7 @@
 set -eu
 
 connection="${QUEUE_CONNECTION:-database}"
-queues="${QUEUE_WORKER_QUEUES:-mail,default}"
+queues="${QUEUE_WORKER_QUEUES:-mail,push,default}"
 sleep_seconds="${QUEUE_SLEEP:-3}"
 tries="${QUEUE_TRIES:-5}"
 timeout="${QUEUE_TIMEOUT:-45}"

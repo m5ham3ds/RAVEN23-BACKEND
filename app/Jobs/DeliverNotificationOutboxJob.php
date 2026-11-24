@@ -31,9 +31,9 @@ class DeliverNotificationOutboxJob implements ShouldBeEncrypted, ShouldQueue
 
     private const CLAIM_LEASE_SECONDS = 60;
 
-    public function __construct(public readonly string $outboxId)
+    public function __construct(public readonly string $outboxId, string $queue = 'mail')
     {
-        $this->onQueue('mail');
+        $this->onQueue($queue);
     }
 
     public function backoff(): array

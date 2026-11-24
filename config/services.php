@@ -23,6 +23,11 @@ return [
         'mail_enabled' => (bool) env('RAVEN23_AUTH_MAIL_ENABLED', false),
         'action_url' => env('RAVEN23_AUTH_ACTION_URL', ''),
     ],
+    'raven23_push' => [
+        // A provider must be selected and its adapter explicitly approved before sending.
+        'enabled' => (bool) env('RAVEN23_PUSH_ENABLED', false),
+        'provider' => env('RAVEN23_PUSH_PROVIDER', 'none'),
+    ],
     'google' => [
         // Same public Web OAuth client ID used by the Flutter GoogleSignIn client.
         // An empty/missing Render value falls back to this matching client ID.

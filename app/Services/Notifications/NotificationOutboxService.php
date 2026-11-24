@@ -4,6 +4,7 @@ namespace App\Services\Notifications;
 
 use App\Jobs\DeliverNotificationOutboxJob;
 use App\Models\User;
+use App\Models\UserPushSubscription;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +27,65 @@ final class NotificationOutboxService
         );
     }
 
+    /**
+     * Reserve one encrypted outbox event per subscription owned by the account.
+     * No event is created unless a provider has been explicitly selected and enabled.
+     *
+     * @return array<int, string> Outbox IDs, one per current provider subscription.
+     */
+    public function queuePush(
+        User $user,
+        string $eventKey,
+        string $title,
+        string $body,
+        array $data = [],
+    ): array {
+        if (! (bool) config('services.raven23_push.enabled', false)) {
+            return [];
+        }
+
+        $provider = (string) config('services.raven23_push.provider', 'none');
+        if (! in_array($provider, ['fcm', 'onesignal'], true)) {
+            throw new RuntimeException('Push delivery requires an approved provider selection.');
+        }
+
+        $eventKey = trim($eventKey);
+        $title = trim($title);
+        $body = trim($body);
+        if ($eventKey === '' || Str::length($eventKey) > 180) {
+            throw new RuntimeException('The push business event key is invalid.');
+        }
+        if ($title === '' || Str::length($title) > 100 || $body === '' || Str::length($body) > 1000) {
+            throw new RuntimeException('The push notification title or body is invalid.');
+        }
+
+        $message = ['title' => $title, 'body' => $body, 'data' => $data];
+        if (strlen(json_encode($message, JSON_THROW_ON_ERROR)) > 4096) {
+            throw new RuntimeException('The push notification payload exceeds the 4 KiB limit.');
+        }
+
+        $subscriptions = UserPushSubscription::query()
+            ->where('user_id', $user->getKey())
+            ->where('provider', $provider)
+            ->orderBy('id')
+            ->get(['id']);
+
+        $outboxIds = [];
+        foreach ($subscriptions as $subscription) {
+            $outboxIds[] = $this->enqueue(
+                $user,
+                'push_delivery',
+                [
+                    'subscription_id' => (int) $subscription->getKey(),
+                    'message' => $message,
+                ],
+                'push-delivery:'.$user->getKey().':'.$subscription->getKey().':'.$eventKey,
+            );
+        }
+
+        return $outboxIds;
+    }
+
     public function queuePasswordReset(User $user, string $token): string
     {
         $tokenHash = hash('sha256', $token);
@@ -40,7 +100,7 @@ final class NotificationOutboxService
 
     private function enqueue(User $user, string $notificationType, array $payload, string $eventKey): string
     {
-        if (! in_array($notificationType, ['email_verification', 'password_reset'], true)) {
+        if (! in_array($notificationType, ['email_verification', 'password_reset', 'push_delivery'], true)) {
             throw new RuntimeException('Unsupported notification outbox type.');
         }
 
@@ -93,7 +153,12 @@ final class NotificationOutboxService
     private function pushReserved(string $outboxId): void
     {
         try {
-            Queue::pushOn('mail', new DeliverNotificationOutboxJob($outboxId));
+            $notificationType = DB::table('notification_outbox')->where('id', $outboxId)->value('notification_type');
+            if ($notificationType === null) {
+                return;
+            }
+            $queue = $notificationType === 'push_delivery' ? 'push' : 'mail';
+            Queue::pushOn($queue, new DeliverNotificationOutboxJob($outboxId, $queue));
         } catch (Throwable $exception) {
             DB::table('notification_outbox')
                 ->where('id', $outboxId)

@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Contracts\Notifications\NotificationOutboxTransport;
+use App\Contracts\Notifications\PushNotificationTransport;
 use App\Jobs\DeliverNotificationOutboxJob;
 use App\Models\User;
+use App\Models\UserPushSubscription;
 use App\Notifications\EmailVerificationNotification;
 use App\Notifications\PasswordResetNotification;
 use App\Services\Notifications\NotificationOutboxService;
@@ -16,6 +18,7 @@ use Illuminate\Support\Facades\Queue;
 use RuntimeException;
 use Tests\Fixtures\FailingQueueJob;
 use Tests\Fixtures\IdempotentNotificationOutboxTransportFake;
+use Tests\Fixtures\PushNotificationTransportFake;
 use Tests\TestCase;
 
 class QueuedNotificationsTest extends TestCase
@@ -248,6 +251,156 @@ class QueuedNotificationsTest extends TestCase
             'id' => $activeId,
             'status' => 'processing',
         ]);
+    }
+
+    public function test_push_outbox_is_disabled_by_default_and_does_not_create_delivery_events(): void
+    {
+        Queue::fake();
+        $user = $this->createUser();
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:synthetic-fcm-token', (string) config('app.key')),
+            'token' => 'synthetic-fcm-token-0123456789abcdef',
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+
+        $ids = app(NotificationOutboxService::class)->queuePush(
+            $user,
+            'media-ready:'.$user->getKey(),
+            'Media ready',
+            'Your upload has finished.',
+        );
+
+        $this->assertSame([], $ids);
+        $this->assertDatabaseCount('notification_outbox', 0);
+        Queue::assertNothingPushed();
+    }
+
+    public function test_push_outbox_encrypts_and_deduplicates_one_event_per_selected_subscription(): void
+    {
+        Queue::fake();
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createUser();
+        $fcmToken = 'synthetic-fcm-token-0123456789abcdef';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:'.$fcmToken, (string) config('app.key')),
+            'token' => $fcmToken,
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+        $oneSignalId = '11111111-1111-4111-8111-111111111111';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'onesignal',
+            'token_hash' => hash_hmac('sha256', 'onesignal:'.$oneSignalId, (string) config('app.key')),
+            'token' => $oneSignalId,
+            'platform' => 'tv',
+            'last_seen_at' => now(),
+        ]);
+
+        $service = app(NotificationOutboxService::class);
+        $first = $service->queuePush($user, 'media-ready:'.$user->getKey(), 'Media ready', 'Your upload has finished.', ['media_id' => 'test-media-42']);
+        $second = $service->queuePush($user, 'media-ready:'.$user->getKey(), 'Media ready', 'Your upload has finished.', ['media_id' => 'test-media-42']);
+
+        $this->assertCount(1, $first);
+        $this->assertSame($first, $second);
+        $this->assertDatabaseCount('notification_outbox', 1);
+        $record = DB::table('notification_outbox')->where('id', $first[0])->first();
+        $this->assertSame('push_delivery', $record->notification_type);
+        $this->assertSame('pending', $record->status);
+        $this->assertStringNotContainsString('Media ready', $record->encrypted_payload);
+        $this->assertStringNotContainsString($fcmToken, $record->encrypted_payload);
+        Queue::assertPushedOn('push', DeliverNotificationOutboxJob::class);
+        $this->assertCount(1, Queue::pushed(DeliverNotificationOutboxJob::class));
+    }
+
+    public function test_push_outbox_uses_the_provider_transport_and_replays_with_the_same_idempotency_key(): void
+    {
+        Queue::fake();
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createUser();
+        $token = 'synthetic-fcm-token-replay-0123456789abcdef';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:'.$token, (string) config('app.key')),
+            'token' => $token,
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+
+        $fake = new PushNotificationTransportFake;
+        $fake->crashAfterFirstAcceptance = true;
+        $this->app->instance(PushNotificationTransport::class, $fake);
+        $transport = app(NotificationOutboxTransport::class);
+        $ids = app(NotificationOutboxService::class)->queuePush(
+            $user,
+            'release-ready:'.$user->getKey(),
+            'Release ready',
+            'A new release is ready.',
+            ['release_id' => '42'],
+        );
+        $this->assertCount(1, $ids);
+        $outboxId = $ids[0];
+        $job = new DeliverNotificationOutboxJob($outboxId, 'push');
+
+        try {
+            $job->handle($transport);
+            $this->fail('The synthetic push transport should crash after provider acceptance.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame('synthetic push transport crash after acceptance', $exception->getMessage());
+        }
+
+        $this->assertDatabaseHas('notification_outbox', ['id' => $outboxId, 'status' => 'pending']);
+        DB::table('notification_outbox')->where('id', $outboxId)->update(['available_at' => now()]);
+        $job->handle($transport);
+
+        $this->assertCount(2, $fake->calls);
+        $this->assertSame($token, $fake->calls[0]['token']);
+        $this->assertSame('fcm', $fake->calls[0]['provider']);
+        $this->assertSame($fake->calls[0]['idempotency_key'], $fake->calls[1]['idempotency_key']);
+        $this->assertCount(1, $fake->accepted);
+        $this->assertSame('Release ready', $fake->calls[0]['message']['title']);
+        $this->assertDatabaseHas('notification_outbox', ['id' => $outboxId, 'status' => 'sent', 'attempts' => 2]);
+    }
+
+    public function test_push_outbox_does_not_send_to_a_subscription_removed_before_delivery(): void
+    {
+        Queue::fake();
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createUser();
+        $subscription = UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:revoked-token', (string) config('app.key')),
+            'token' => 'revoked-token-synthetic',
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+        $fake = new PushNotificationTransportFake;
+        $this->app->instance(PushNotificationTransport::class, $fake);
+        $transport = app(NotificationOutboxTransport::class);
+        $ids = app(NotificationOutboxService::class)->queuePush($user, 'security-alert:'.$user->getKey(), 'Security alert', 'Review your account activity.');
+        $this->assertCount(1, $ids);
+
+        $subscription->delete();
+        (new DeliverNotificationOutboxJob($ids[0], 'push'))->handle($transport);
+
+        $this->assertSame([], $fake->calls);
+        $this->assertDatabaseHas('notification_outbox', ['id' => $ids[0], 'status' => 'sent']);
     }
 
     public function test_database_worker_records_unrelated_terminal_queue_failures_in_failed_jobs(): void

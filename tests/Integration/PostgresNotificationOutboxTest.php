@@ -4,6 +4,7 @@ namespace Tests\Integration;
 
 use App\Jobs\DeliverNotificationOutboxJob;
 use App\Models\User;
+use App\Models\UserPushSubscription;
 use App\Services\Notifications\NotificationOutboxService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -133,6 +134,48 @@ class PostgresNotificationOutboxTest extends TestCase
             'id' => $activeId,
             'status' => 'processing',
         ]);
+    }
+
+    public function test_postgresql_push_outbox_is_encrypted_idempotent_and_queued_after_commit(): void
+    {
+        config([
+            'services.raven23_push.enabled' => true,
+            'services.raven23_push.provider' => 'fcm',
+        ]);
+        $user = $this->createAccount('push-outbox');
+        $token = 'postgres-fcm-synthetic-token-0123456789abcdef';
+        UserPushSubscription::query()->create([
+            'user_id' => $user->getKey(),
+            'provider' => 'fcm',
+            'token_hash' => hash_hmac('sha256', 'fcm:'.$token, (string) config('app.key')),
+            'token' => $token,
+            'platform' => 'android',
+            'last_seen_at' => now(),
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $ids = app(NotificationOutboxService::class)->queuePush($user, 'postgres-media-ready:'.$user->getKey(), 'Media ready', 'Your media is available.');
+            $this->assertCount(1, $ids);
+            $this->assertDatabaseHas('notification_outbox', ['id' => $ids[0], 'notification_type' => 'push_delivery']);
+            DB::rollBack();
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+
+            throw $exception;
+        }
+
+        Queue::assertNothingPushed();
+        $ids = app(NotificationOutboxService::class)->queuePush($user, 'postgres-media-ready:'.$user->getKey(), 'Media ready', 'Your media is available.');
+
+        $this->assertCount(1, $ids);
+        $record = DB::table('notification_outbox')->where('id', $ids[0])->first();
+        $this->assertSame('push_delivery', $record->notification_type);
+        $this->assertSame('pending', $record->status);
+        $this->assertStringNotContainsString('Media ready', $record->encrypted_payload);
+        $this->assertStringNotContainsString($token, $record->encrypted_payload);
+        $this->assertDatabaseCount('notification_outbox', 1);
+        Queue::assertPushedOn('push', DeliverNotificationOutboxJob::class);
     }
 
     protected function tearDown(): void

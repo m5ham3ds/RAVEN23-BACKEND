@@ -3,8 +3,10 @@
 namespace App\Providers;
 
 use App\Contracts\Notifications\NotificationOutboxTransport;
+use App\Contracts\Notifications\PushNotificationTransport;
 use App\Contracts\Storage\PrivateObjectStorage;
 use App\Services\Notifications\LaravelNotificationOutboxTransport;
+use App\Services\Notifications\DisabledPushNotificationTransport;
 use App\Services\Storage\FilesystemPrivateObjectStorage;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -18,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(NotificationOutboxTransport::class, LaravelNotificationOutboxTransport::class);
+        $this->app->singleton(PushNotificationTransport::class, DisabledPushNotificationTransport::class);
 
         $this->app->singleton(PrivateObjectStorage::class, static function (): PrivateObjectStorage {
             $disk = (string) config('filesystems.private_disk', 'private_media');
