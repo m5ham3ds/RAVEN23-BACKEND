@@ -2,16 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Jobs\DeliverNotificationOutboxJob;
 use App\Models\User;
-use App\Notifications\EmailVerificationNotification;
-use App\Notifications\PasswordResetNotification;
 use App\Support\GoogleIdTokenVerifier;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\PersonalAccessToken;
 use Tests\TestCase;
@@ -82,6 +82,25 @@ class AuthLifecycleTest extends TestCase
             $table->timestamp('created_at')->nullable();
         });
 
+        Schema::connection('sqlite')->create('notification_outbox', static function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->unsignedBigInteger('user_id');
+            $table->char('idempotency_key', 64)->unique();
+            $table->string('notification_type', 40);
+            $table->text('encrypted_payload');
+            $table->string('status', 16)->default('pending');
+            $table->unsignedSmallInteger('attempts')->default(0);
+            $table->timestamp('available_at');
+            $table->timestamp('last_dispatched_at')->nullable();
+            $table->timestamp('claimed_at')->nullable();
+            $table->timestamp('sent_at')->nullable();
+            $table->string('last_error_type', 190)->nullable();
+            $table->timestamps();
+            $table->index(['status', 'available_at']);
+            $table->index(['status', 'last_dispatched_at']);
+        });
+
+
         Schema::connection('sqlite')->create('user_profiles', static function (Blueprint $table): void {
             $table->foreignId('user_id')->primary()->constrained('users')->cascadeOnDelete();
             $table->unsignedSmallInteger('profile_id')->default(0);
@@ -126,18 +145,11 @@ class AuthLifecycleTest extends TestCase
 
     public function test_email_verification_uses_hashed_one_time_tokens_and_rejects_replay(): void
     {
-        Notification::fake();
         $this->enableTestAuthMail();
 
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
         $user = User::findOrFail($registration->json('user.id'));
-        $plainToken = null;
-
-        Notification::assertSentTo($user, EmailVerificationNotification::class, function ($notification) use (&$plainToken): bool {
-            $plainToken = $notification->token;
-
-            return true;
-        });
+        $plainToken = $this->notificationToken((int) $user->id, 'email_verification');
 
         $this->assertIsString($plainToken);
         $this->assertDatabaseHas('email_verification_tokens', [
@@ -166,19 +178,12 @@ class AuthLifecycleTest extends TestCase
 
     public function test_expired_email_verification_token_is_rejected(): void
     {
-        Notification::fake();
         $this->enableTestAuthMail();
 
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
-        $userId = $registration->json('user.id');
+        $userId = (int) $registration->json('user.id');
         $user = User::findOrFail($userId);
-        $plainToken = null;
-
-        Notification::assertSentTo($user, EmailVerificationNotification::class, function ($notification) use (&$plainToken): bool {
-            $plainToken = $notification->token;
-
-            return true;
-        });
+        $plainToken = $this->notificationToken($userId, 'email_verification');
 
         DB::table('email_verification_tokens')
             ->where('user_id', $userId)
@@ -194,7 +199,6 @@ class AuthLifecycleTest extends TestCase
 
     public function test_password_reset_is_non_enumerating_one_time_and_revokes_all_sessions(): void
     {
-        Notification::fake();
         $this->enableTestAuthMail();
 
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
@@ -209,12 +213,7 @@ class AuthLifecycleTest extends TestCase
         ])->assertAccepted()->json();
         $this->assertSame($existing, $unknown);
 
-        $resetToken = null;
-        Notification::assertSentTo($user, PasswordResetNotification::class, function ($notification) use (&$resetToken): bool {
-            $resetToken = $notification->token;
-
-            return true;
-        });
+        $resetToken = $this->notificationToken((int) $user->id, 'password_reset');
 
         $stored = DB::table('password_reset_tokens')->where('email', $user->email)->first();
         $this->assertNotNull($stored);
@@ -260,7 +259,6 @@ class AuthLifecycleTest extends TestCase
 
     public function test_password_reset_expiry_is_enforced_by_the_password_broker(): void
     {
-        Notification::fake();
         $this->enableTestAuthMail();
         config(['auth.passwords.users.expire' => 1]);
 
@@ -336,7 +334,6 @@ class AuthLifecycleTest extends TestCase
 
     public function test_email_change_revokes_old_recovery_tokens_and_reissues_verification(): void
     {
-        Notification::fake();
         $this->enableTestAuthMail();
 
         $registration = $this->postJson('/api/v1/auth/register', $this->registrationData())->assertCreated();
@@ -364,7 +361,7 @@ class AuthLifecycleTest extends TestCase
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
         $this->assertDatabaseHas('email_verification_tokens', ['user_id' => $user->id]);
 
-        Notification::assertSentTo($updatedUser, EmailVerificationNotification::class);
+        $this->assertIsString($this->notificationToken((int) $updatedUser->id, 'email_verification'));
     }
 
     private function registrationData(array $overrides = []): array
