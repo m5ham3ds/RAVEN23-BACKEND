@@ -38,6 +38,7 @@ class EmailVerificationNotification extends Notification implements ShouldBeEncr
         public readonly int $userId,
         public readonly string $token,
         public readonly int $expiresInMinutes,
+        public readonly ?string $idempotencyKey = null,
     ) {
         $this->retryDeadlineAt = now()->addMinutes(20)->toDateTimeImmutable();
         $this->onQueue('mail')->afterCommit();
@@ -58,11 +59,19 @@ class EmailVerificationNotification extends Notification implements ShouldBeEncr
         ], '', '&', PHP_QUERY_RFC3986);
         $url = $base.(str_contains($base, '?') ? '&' : '?').$query;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Verify your RAVEN23 email address')
             ->greeting('Welcome to RAVEN23')
             ->line('Verify your email address to complete your account setup.')
             ->action('Verify email address', $url)
             ->line('This one-time link expires in '.$this->expiresInMinutes.' minutes.');
+
+        if ($this->idempotencyKey !== null) {
+            $mail->withSymfonyMessage(function ($message): void {
+                $message->getHeaders()->addTextHeader('X-RAVEN23-Idempotency-Key', $this->idempotencyKey);
+            });
+        }
+
+        return $mail;
     }
 }

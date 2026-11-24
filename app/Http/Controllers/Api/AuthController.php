@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\DeletePrivateObjectJob;
 use App\Models\User;
-use App\Notifications\EmailVerificationNotification;
+use App\Services\Notifications\NotificationOutboxService;
 use App\Support\GoogleIdTokenVerifier;
 use Illuminate\Auth\Passwords\PasswordBroker;
 use Illuminate\Http\JsonResponse;
@@ -118,24 +118,30 @@ class AuthController extends Controller
         $tokenHash = hash('sha256', $plainToken);
         $expiresInMinutes = max(1, (int) config('security.email_verification_expire_minutes', 60));
 
-        DB::table('email_verification_tokens')->updateOrInsert(
-            ['user_id' => $user->getKey()],
-            [
-                'token_hash' => $tokenHash,
-                'expires_at' => now()->addMinutes($expiresInMinutes),
-                'created_at' => now(),
-            ],
-        );
-
         try {
-            $user->notify(new EmailVerificationNotification((int) $user->getKey(), $plainToken, $expiresInMinutes));
+            DB::transaction(function () use ($user, $plainToken, $tokenHash, $expiresInMinutes): void {
+                DB::table('email_verification_tokens')->updateOrInsert(
+                    ['user_id' => $user->getKey()],
+                    [
+                        'token_hash' => $tokenHash,
+                        'expires_at' => now()->addMinutes($expiresInMinutes),
+                        'created_at' => now(),
+                    ],
+                );
+
+                app(NotificationOutboxService::class)->queueEmailVerification(
+                    $user,
+                    $plainToken,
+                    $expiresInMinutes,
+                );
+            });
         } catch (Throwable $exception) {
             DB::table('email_verification_tokens')
                 ->where('user_id', $user->getKey())
                 ->where('token_hash', $tokenHash)
                 ->delete();
 
-            Log::warning('RAVEN23 email verification delivery failed', [
+            Log::warning('RAVEN23 email verification outbox enqueue failed', [
                 'request_id' => $request?->attributes->get('raven23_request_id'),
                 'exception_type' => get_class($exception),
             ]);

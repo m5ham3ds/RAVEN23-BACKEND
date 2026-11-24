@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use App\Notifications\PasswordResetNotification;
+use App\Services\Notifications\NotificationOutboxService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -63,7 +63,7 @@ class User extends Authenticatable
 
     public function sendPasswordResetNotification($token): void
     {
-        $this->notify(new PasswordResetNotification((string) $token));
+        app(NotificationOutboxService::class)->queuePasswordReset($this, (string) $token);
     }
 
     public function toRavenArray(): array

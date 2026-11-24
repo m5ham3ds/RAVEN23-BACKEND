@@ -34,7 +34,7 @@ class PasswordResetNotification extends Notification implements ShouldBeEncrypte
         return $this->retryDeadlineAt;
     }
 
-    public function __construct(public readonly string $token)
+    public function __construct(public readonly string $token, public readonly ?string $idempotencyKey = null)
     {
         $this->retryDeadlineAt = now()->addMinutes(20)->toDateTimeImmutable();
         $this->onQueue('mail')->afterCommit();
@@ -56,11 +56,19 @@ class PasswordResetNotification extends Notification implements ShouldBeEncrypte
         $url = $base.(str_contains($base, '?') ? '&' : '?').$query;
         $expires = max(1, (int) config('auth.passwords.users.expire', 60));
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject('Reset your RAVEN23 password')
             ->greeting('Password reset requested')
             ->line('Use the one-time link below to choose a new password.')
             ->action('Reset password', $url)
             ->line('This link expires in '.$expires.' minutes. If you did not request it, no action is required.');
+
+        if ($this->idempotencyKey !== null) {
+            $mail->withSymfonyMessage(function ($message): void {
+                $message->getHeaders()->addTextHeader('X-RAVEN23-Idempotency-Key', $this->idempotencyKey);
+            });
+        }
+
+        return $mail;
     }
 }
