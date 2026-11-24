@@ -172,6 +172,129 @@ class PostgresWellnessSyncTest extends TestCase
         $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
     }
 
+
+    public function test_postgresql_pagination_keeps_its_snapshot_when_new_writes_commit_between_pages_and_recovers_from_a_corrupt_cursor(): void
+    {
+        $owner = $this->createAccount();
+        $firstId = '11111111-1111-4111-8111-111111111111';
+        $secondId = '22222222-2222-4222-8222-222222222222';
+        $laterId = '33333333-3333-4333-8333-333333333333';
+
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [
+                    $this->wellnessSession($firstId, 1000),
+                    $this->wellnessSession($secondId, 2000),
+                ],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('server_revision', 3);
+
+        Auth::forgetGuards();
+        $first = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('has_more', true)
+            ->assertJsonCount(1, 'sessions');
+
+        $cursor = $first->json('next_cursor');
+        $this->assertIsString($cursor);
+
+        Auth::forgetGuards();
+        $later = $this->wellnessSession($laterId, 3000);
+        $later['deviceId'] = 'postgres-concurrent-writer';
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$later],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $second = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'cursor' => $cursor,
+                'limit' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('has_more', true)
+            ->assertJsonCount(1, 'sessions');
+
+        Auth::forgetGuards();
+        $third = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'cursor' => $second->json('next_cursor'),
+                'limit' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('server_revision', 3)
+            ->assertJsonPath('has_more', false)
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('daily.0.watched_ms', 120000);
+
+        $snapshotIds = [
+            $first->json('sessions.0.id'),
+            $second->json('sessions.0.id'),
+        ];
+        sort($snapshotIds);
+        $this->assertSame([$firstId, $secondId], $snapshotIds);
+
+        Auth::forgetGuards();
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'cursor' => 'tampered.cursor',
+                'limit' => 1,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('error', 'invalid_sync_cursor');
+
+        Auth::forgetGuards();
+        $fullRecovery = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('full', true)
+            ->assertJsonPath('has_more', false)
+            ->assertJsonCount(3, 'sessions')
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('daily.0.watched_ms', 180000);
+
+        $recoveredIds = array_column($fullRecovery->json('sessions'), 'id');
+        sort($recoveredIds);
+        $this->assertSame([$firstId, $secondId, $laterId], $recoveredIds);
+        $this->assertGreaterThan(3, (int) $fullRecovery->json('server_revision'));
+    }
+
     public function test_postgresql_wellness_upload_replay_after_lost_response_is_idempotent(): void
     {
         $owner = $this->createAccount();
