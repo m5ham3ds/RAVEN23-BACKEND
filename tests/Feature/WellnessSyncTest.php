@@ -391,6 +391,70 @@ class WellnessSyncTest extends TestCase
         $this->assertGreaterThan(0, (int) $merged->json('server_revision'));
     }
 
+    public function test_three_devices_converge_after_conflicting_out_of_order_session_updates(): void
+    {
+        $account = $this->registerAccount();
+        $deviceB = $this->createSecondDeviceToken($account['id']);
+        $deviceC = $this->createSecondDeviceToken($account['id']);
+        $sessionId = 'abababab-abab-4bab-8bab-abababababab';
+
+        $deviceAUpdate = $this->wellnessSession($sessionId, 3000, null, 'Device A update');
+        $deviceAUpdate['deviceId'] = 'device-a';
+        $this->upload($account['token'], [$deviceAUpdate]);
+
+        Auth::forgetGuards();
+        $staleDeviceBUpdate = $this->wellnessSession($sessionId, 2000, null, 'Stale device B update');
+        $staleDeviceBUpdate['deviceId'] = 'device-b';
+        $this->upload($deviceB, [$staleDeviceBUpdate]);
+
+        Auth::forgetGuards();
+        $deviceCDelete = $this->wellnessSession($sessionId, 4000, 4000, 'Device C deletion');
+        $deviceCDelete['deviceId'] = 'device-c';
+        $this->upload($deviceC, [$deviceCDelete]);
+
+        Auth::forgetGuards();
+        $staleDeviceAReplay = $this->wellnessSession($sessionId, 3500, null, 'Stale device A replay');
+        $staleDeviceAReplay['deviceId'] = 'device-a';
+        $this->upload($account['token'], [$staleDeviceAReplay]);
+
+        Auth::forgetGuards();
+        $deviceBResume = $this->wellnessSession($sessionId, 5000, null, 'Device B resumed');
+        $deviceBResume['deviceId'] = 'device-b';
+        $this->upload($deviceB, [$deviceBResume]);
+
+        foreach ([$account['token'], $deviceB, $deviceC] as $token) {
+            Auth::forgetGuards();
+            $pull = $this->withToken($token)
+                ->postJson('/api/v1/sync/wellness', [
+                    'client_time_utc' => $this->clientTime(),
+                    'sessions' => [],
+                    'daily' => [],
+                    'since_revision' => 0,
+                    'limit' => 450,
+                ])
+                ->assertOk()
+                ->assertJsonCount(1, 'sessions')
+                ->assertJsonCount(1, 'daily')
+                ->assertJsonPath('sessions.0.id', $sessionId)
+                ->assertJsonPath('sessions.0.title', 'Device B resumed')
+                ->assertJsonPath('sessions.0.updated_at_utc', 5000)
+                ->assertJsonPath('sessions.0.deleted', false)
+                ->assertJsonPath('daily.0.watched_ms', 60000)
+                ->assertJsonPath('daily.0.session_count', 1);
+
+            $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
+        }
+
+        $this->assertDatabaseCount('user_wellness_sessions', 1);
+        $this->assertDatabaseCount('user_wellness_daily', 1);
+        $this->assertDatabaseHas('user_wellness_sessions', [
+            'user_id' => $account['id'],
+            'session_id' => $sessionId,
+            'updated_at_utc' => 5000,
+            'deleted_at_utc' => null,
+        ]);
+    }
+
     public function test_daily_aggregates_split_cross_midnight_segments_and_completion_day(): void
     {
         $account = $this->registerAccount();
@@ -606,6 +670,23 @@ class WellnessSyncTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonPath('error', 'invalid_sync_cursor');
+
+        Auth::forgetGuards();
+        $recovered = $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [],
+                'daily' => [],
+                'since_revision' => 0,
+                'limit' => 450,
+            ])
+            ->assertOk()
+            ->assertJsonPath('full', true)
+            ->assertJsonCount(1, 'sessions')
+            ->assertJsonCount(1, 'daily')
+            ->assertJsonPath('sessions.0.id', $id);
+
+        $this->assertGreaterThan(0, (int) $recovered->json('server_revision'));
 
         Auth::forgetGuards();
         $this->withToken('invalid-wellness-token')

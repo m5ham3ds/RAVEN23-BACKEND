@@ -294,6 +294,118 @@ class PostgresWellnessSyncTest extends TestCase
         $this->assertGreaterThan(3, (int) $fullRecovery->json('server_revision'));
     }
 
+    public function test_postgresql_three_devices_converge_after_conflicting_out_of_order_updates(): void
+    {
+        $owner = $this->createAccount();
+        $deviceB = User::query()->findOrFail($owner['id'])
+            ->createToken('PostgreSQL wellness device B')->plainTextToken;
+        $this->createdTokens[] = (int) PersonalAccessToken::findToken($deviceB)->getKey();
+        $deviceC = User::query()->findOrFail($owner['id'])
+            ->createToken('PostgreSQL wellness device C')->plainTextToken;
+        $this->createdTokens[] = (int) PersonalAccessToken::findToken($deviceC)->getKey();
+        $sessionId = 'abababab-abab-4bab-8bab-abababababab';
+
+        $deviceAUpdate = $this->wellnessSession($sessionId, 3000);
+        $deviceAUpdate['deviceId'] = 'postgres-device-a';
+        $deviceAUpdate['title'] = 'Device A update';
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$deviceAUpdate],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $staleDeviceBUpdate = $this->wellnessSession($sessionId, 2000);
+        $staleDeviceBUpdate['deviceId'] = 'postgres-device-b';
+        $staleDeviceBUpdate['title'] = 'Stale device B update';
+        $this->withToken($deviceB)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$staleDeviceBUpdate],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $deviceCDelete = $this->wellnessSession($sessionId, 4000, 4000);
+        $deviceCDelete['deviceId'] = 'postgres-device-c';
+        $deviceCDelete['title'] = 'Device C deletion';
+        $this->withToken($deviceC)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$deviceCDelete],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $staleDeviceAReplay = $this->wellnessSession($sessionId, 3500);
+        $staleDeviceAReplay['deviceId'] = 'postgres-device-a';
+        $staleDeviceAReplay['title'] = 'Stale device A replay';
+        $this->withToken($owner['token'])
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$staleDeviceAReplay],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        Auth::forgetGuards();
+        $deviceBResume = $this->wellnessSession($sessionId, 5000);
+        $deviceBResume['deviceId'] = 'postgres-device-b';
+        $deviceBResume['title'] = 'Device B resumed';
+        $this->withToken($deviceB)
+            ->postJson('/api/v1/sync/wellness', [
+                'client_time_utc' => $this->clientTime(),
+                'sessions' => [$deviceBResume],
+                'daily' => [],
+                'limit' => 450,
+            ])
+            ->assertOk();
+
+        foreach ([$owner['token'], $deviceB, $deviceC] as $token) {
+            Auth::forgetGuards();
+            $pull = $this->withToken($token)
+                ->postJson('/api/v1/sync/wellness', [
+                    'client_time_utc' => $this->clientTime(),
+                    'sessions' => [],
+                    'daily' => [],
+                    'since_revision' => 0,
+                    'limit' => 450,
+                ])
+                ->assertOk()
+                ->assertJsonCount(1, 'sessions')
+                ->assertJsonCount(1, 'daily')
+                ->assertJsonPath('sessions.0.id', $sessionId)
+                ->assertJsonPath('sessions.0.title', 'Device B resumed')
+                ->assertJsonPath('sessions.0.updated_at_utc', 5000)
+                ->assertJsonPath('sessions.0.deleted', false)
+                ->assertJsonPath('daily.0.watched_ms', 60000)
+                ->assertJsonPath('daily.0.session_count', 1);
+
+            $this->assertGreaterThan(0, (int) $pull->json('server_revision'));
+        }
+
+        $this->assertSame(1, DB::table('user_wellness_sessions')
+            ->where('user_id', $owner['id'])
+            ->count());
+        $this->assertSame(1, DB::table('user_wellness_daily')
+            ->where('user_id', $owner['id'])
+            ->count());
+        $this->assertDatabaseHas('user_wellness_sessions', [
+            'user_id' => $owner['id'],
+            'session_id' => $sessionId,
+            'updated_at_utc' => 5000,
+            'deleted_at_utc' => null,
+        ]);
+    }
+
     public function test_postgresql_wellness_upload_replay_after_lost_response_is_idempotent(): void
     {
         $owner = $this->createAccount();
