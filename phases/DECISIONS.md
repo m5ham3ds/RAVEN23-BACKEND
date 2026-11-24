@@ -299,3 +299,20 @@
 - **النتيجة:** SHA b8c0bb91cea76db003501e81ec30dce09e3bf858 اجتاز Docker/Auth/Pint/Security. SQLite Feature 146/1,548؛ PostgreSQL 31/541 مع optional skip واحد؛ S3Mock 1/8؛ Auth SQLite 20/172 وPG 4/99.
 - **10D:** contracts/api-v1.json هو manifest المسارات والطرق وحدود المصادقة؛ contracts/API-V1.md هو وصف الاستجابات؛ ApiV1ContractTest يقارن manifest بالـRouter ويختبر response envelopes.
 - **الحدود:** لا يتغير runtime/API behavior أو قاعدة البيانات من مجرد توثيق العقد؛ أي تغيير مستقبلي يجب أن يعدل manifest والوثيقة والاختبار في commit واحد.
+
+
+## D-038 — API v1 manifest and regression contract accepted
+
+- **التاريخ:** 25 نوفمبر 2026
+- **الحالة:** 10D COMPLETE على Backend SHA `44ed546c9881bc2d7ca16d6c97024c6ae77ba047`؛ CI الأربع SUCCESS.
+- **القرار:** `contracts/api-v1.json` هو المصدر الآلي لمسارات API v1 (39 route/method/auth records)، و`contracts/API-V1.md` يصف السلوك المرئي للمستهلك. أي تعديل route/method/auth/response shape يجب أن يحدّث manifest والوثيقة واختبارات `ApiV1ContractTest` معًا.
+- **إثبات CI:** Docker SQLite 150/1,704؛ PostgreSQL Integration 31/541 مع optional skip واحد؛ S3Mock 1/8؛ Authentication/Pint/Security SUCCESS.
+- **الحدود:** لا يثبت هذا القرار توافق كل نسخة Flutter أو تكامل provider staging؛ ولا يغير runtime/controller/migration.
+
+## D-039 — Synthetic PostgreSQL load metrics are a CI baseline, not an SLO
+
+- **التاريخ:** 25 نوفمبر 2026
+- **الحالة:** 10E قيد التنفيذ؛ انتظار CI على الاختبار الموسع.
+- **القرار:** قياس التزامن في PostgreSQL disposable باستخدام ثمانية عمال PHP مستقلين، مع توثيق request/response bytes، P50/P95 (nearest-rank)، average/max latency، wall-clock duration، throughput، stale-conflict rate وwinning timestamp.
+- **السبب:** يجب أن تكون التجربة قابلة لإعادة التشغيل وتعطي توزيعًا للزمن وحجم الحركة، لا متوسطًا منفردًا فقط.
+- **الحدود:** لا يُفرض latency SLO قبل اعتماد حمل متوقع، ولا تُستخدم production DB أو production API؛ نتائج CI لا تمثل السعة الإنتاجية.

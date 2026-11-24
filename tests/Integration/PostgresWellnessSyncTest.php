@@ -686,6 +686,7 @@ class PostgresWellnessSyncTest extends TestCase
                 $missingWorkers,
                 'Parallel sync workers failed before the start barrier: '.implode(' | ', $missingWorkers),
             );
+            $concurrencyStartedAt = hrtime(true);
             file_put_contents($barrier, 'go');
 
             foreach ($processes as $index => $process) {
@@ -705,6 +706,7 @@ class PostgresWellnessSyncTest extends TestCase
                 $this->assertGreaterThanOrEqual(0, $result['latency_ms']);
                 $workerMetrics[] = $result;
             }
+            $concurrencyDurationMs = (hrtime(true) - $concurrencyStartedAt) / 1_000_000;
         } finally {
             foreach ($processes as $index => $process) {
                 if (is_resource($process)) {
@@ -763,13 +765,27 @@ class PostgresWellnessSyncTest extends TestCase
         sort($latencies);
         $averageLatency = array_sum($latencies) / count($latencies);
         $maximumLatency = max($latencies);
+        // Use nearest-rank percentiles so the reported sample method is stable in CI.
+        $p50Latency = $latencies[max(0, (int) ceil(count($latencies) * 0.50) - 1)];
+        $p95Latency = $latencies[max(0, (int) ceil(count($latencies) * 0.95) - 1)];
+        $throughputRequestsPerSecond = count($workerMetrics) / max($concurrencyDurationMs / 1000, 0.001);
         $conflictRate = $staleConflictWrites / count($tokens);
+
+        $this->assertCount(count($tokens), $workerMetrics);
+        $this->assertGreaterThan(0, $concurrencyDurationMs);
+        $this->assertGreaterThan(0, $throughputRequestsPerSecond);
+        $this->assertGreaterThanOrEqual($p50Latency, $p95Latency);
 
         fwrite(STDERR, 'RAVEN23_SYNC_SYNTHETIC_METRICS '.json_encode([
             'concurrent_clients' => count($tokens),
+            'successful_requests' => count($workerMetrics),
             'uploaded_session_records' => count($tokens),
+            'concurrency_wall_clock_ms' => round($concurrencyDurationMs, 3),
+            'throughput_requests_per_second' => round($throughputRequestsPerSecond, 3),
             'request_bytes' => $requestBytes,
             'response_bytes' => $responseBytes,
+            'p50_request_latency_ms' => round($p50Latency, 3),
+            'p95_request_latency_ms' => round($p95Latency, 3),
             'average_request_latency_ms' => round($averageLatency, 3),
             'max_request_latency_ms' => round($maximumLatency, 3),
             'stale_conflict_writes' => $staleConflictWrites,

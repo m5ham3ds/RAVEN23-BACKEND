@@ -1,8 +1,8 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
-**آخر تحديث:** 24 نوفمبر 2026
+**آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `009d2f1a9e8bf1a0f7ee82cc7f4939719eda8060`
+**Latest fully CI-verified implementation SHA:** `44ed546c9881bc2d7ca16d6c97024c6ae77ba047`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -19,7 +19,7 @@
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
-| 10 — الجودة والإصدارات | IN_PROGRESS (10A قيد CI) | جرد CI الفعلي وحذف S3 Composer lock bootstrap غير اللازم؛ main غير محمي؛ يتبقى CI verify ثم 10B–10G. |
+| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D COMPLETE؛ 10B و10E–10G مفتوحة) | 10D API v1 contract اجتاز البوابات الأربع على 44ed546؛ 10B ينتظر Admin protection، و10E يضيف قياسات P50/P95/throughput لحمل PostgreSQL الاصطناعي. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
@@ -244,3 +244,15 @@
 - 10D started on main: 39-route API v1 manifest, human-readable contract, and ApiV1ContractTest added. CI pending on the contract-test SHA.
 - 10B remains IN_PROGRESS: main is unprotected and rulesets empty; GitHub settings write is unavailable in this connection.
 - No production database, secret, production migration, deployment or AWS resources touched.
+
+
+## 25 نوفمبر 2026 — Phase10D closeout / Phase10E start
+
+- Latest fully CI-verified Backend SHA: `44ed546c9881bc2d7ca16d6c97024c6ae77ba047`.
+- Phase10D COMPLETE: Docker [45503594954](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594954) SUCCESS — SQLite Feature 150/1,704؛ PostgreSQL Integration 31/541 مع optional skip واحد؛ S3Mock 1/8؛ HTTP runtime guards PASS.
+- Authentication [45503594980](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594980)، Pint [45503594941](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594941)، Security [45503594952](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594952): جميعها SUCCESS. Trivy image summary Clean وبوابة fixable HIGH/CRITICAL PASS.
+- API contract manifest يغطي 39 route؛ اختبارات ApiV1ContractTest الثلاثة نجحت. لم يتغير controller أو route أو migration أو runtime behavior.
+- فشل 10D الأول كان assertion بصيغة token غير مطابقة لمخرجات Sanctum؛ صُحح regex في 44ed546 واجتازت الاختبارات بعد ذلك.
+- 10E IN_PROGRESS: توسيع اختبار PostgreSQL المتوازي ليقيس P50/P95 وwall-clock duration وthroughput، إلى جانب request/response bytes وconflict rate.
+- 10B remains IN_PROGRESS: main unprotected وrequired-check settings تحتاج صلاحية repository Admin.
+- لا production DB أو secrets أو deployment أو AWS resources تم استخدامها.

@@ -1,7 +1,7 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest CI-verified main SHA before the current migration rehearsal change:** 8889f4f8da2acaedad2ed7420d30e6a35d8f2f63  
-**تاريخ التحديث:** 23 نوفمبر 2026 — سجل 21 نوفمبر تاريخي  
+**Latest fully CI-verified main SHA:** 44ed546c9881bc2d7ca16d6c97024c6ae77ba047  
+**تاريخ التحديث:** 25 نوفمبر 2026 — السجل الأقدم تاريخي  
 **الحالة:** تحديث Phase10A؛ جرد workflows مصحح، وbootstrap ذو صلاحيات كتابة أزيل بعد انتهاء مهمته.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
@@ -201,3 +201,22 @@ Docker يشغّل `tests/Integration` ككل بدور PostgreSQL محدود ال
 - Authentication [45495207832](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207832) SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
 - Pint [45495207864](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495207864) SUCCESS؛ Security [45495208148](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45495208148) SUCCESS.
 - Phase10D started: contracts/api-v1.json defines 39 API route/method/auth records; contracts/API-V1.md documents consumer-visible behavior; tests/Feature/ApiV1ContractTest.php locks router registration, authentication boundaries and response/error shapes. Pending CI on its own commit.
+
+
+## 14. Phase10D — API v1 contract regression accepted — 25 November 2026
+
+**Verified commit:** `44ed546c9881bc2d7ca16d6c97024c6ae77ba047`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45503594954](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594954) | SUCCESS — SQLite Feature 150 / 1,704 assertions; PostgreSQL Integration 31 / 541 assertions with one optional skip; S3Mock 1 / 8; non-root runtime/readiness/PHP asset blocking PASS |
+| Authentication Regression | [45503594980](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594980) | SUCCESS |
+| Pint Format | [45503594941](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594941) | SUCCESS — changed PHP test passed Pint |
+| Security Scans | [45503594952](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594952) | SUCCESS — Gitleaks/source scan PASS; Trivy image Clean; fixable HIGH/CRITICAL gate PASS |
+
+- API v1 manifest covers 39 routes. All three ApiV1ContractTest cases passed: router/method/auth boundary; health/billing; registration/profile/preferences/entitlements/wallet/authentication/validation envelopes.
+- Historical first attempt on SHA 28b7df1 failed at token regex only: test expected lowercase 64-char hex while Sanctum returned an opaque mixed-case alphanumeric token. Assertion corrected in 44ed546; Docker then reported SQLite Feature 150 passed / 1,704 assertions.
+- Current Docker PostgreSQL concurrency sample on the existing 8-worker fixture: 8 successful clients; 4,191 request bytes; 545 response bytes; average 115.311 ms; max 149.676 ms; 6 stale conflict writes / 8 (75%); winning timestamp 5000. Synthetic CI sample only, not production capacity.
+- Phase10D COMPLETE. Phase10E begins by enhancing the PostgreSQL synthetic concurrency report with p50/p95, full wall-clock duration and throughput.
+
+No production DB, secrets, deployments, production API writes or AWS resources were used.

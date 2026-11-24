@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D IN_PROGRESS لعقد API v1.  
+**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D COMPLETE على SHA 44ed546؛ 10E IN_PROGRESS لقياس الحمل الاصطناعي.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -52,7 +52,7 @@
 
 ## 10D — API v1 contract regression
 
-**الحالة:** IN_PROGRESS — أضيف manifest آلي ووثيقة عقد واختبارات regression؛ ينتظر CI على commit التغيير.
+**الحالة:** COMPLETE — manifest آلي ووثيقة عقد واختبارات regression اجتازت بوابات CI الأربع على SHA 44ed546.
 
 - contracts/api-v1.json يسجل 39 مسارًا مع HTTP method وحدود Sanctum والغرض العام لكل route.
 - contracts/API-V1.md يوثق قواعد JSON و401/422 وأشكال الاستجابات الأساسية للمصادقة والصحة والخطط والملف الشخصي والتفضيلات والاستحقاقات والمحفظة والمزامنة.
@@ -61,12 +61,29 @@
 - قبول 10D يتطلب نجاح البوابات الأربع على SHA الذي يحتوي الاختبارات.
 
 
+## 10D — نتائج الإغلاق على SHA 44ed546
+
+- Docker [45503594954](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594954): SUCCESS — SQLite Feature 150 / 1,704 assertions؛ PostgreSQL Integration 31 / 541 assertions مع اختبار optional واحد skipped؛ S3Mock 1 / 8؛ HTTP non-root/readiness/PHP asset blocking PASS.
+- Authentication [45503594980](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594980): SUCCESS. Pint [45503594941](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594941): SUCCESS. Security [45503594952](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45503594952): SUCCESS — Gitleaks/source scan PASS؛ Trivy image summary Clean؛ بوابة fixable HIGH/CRITICAL PASS.
+- اجتازت اختبارات ApiV1ContractTest الثلاثة: manifest/method/auth boundary، health/billing response shapes، registration/profile/preferences/entitlements/wallet/protected 401/validation 422.
+- فشل التشغيل الأول على SHA 28b7df1 بسبب regex افترض lowercase hex بطول 64؛ رمز Sanctum الفعلي opaque alphanumeric. أُصلح assertion في SHA 44ed546 إلى معرّف رقمي وقيمة أبجدية رقمية بطول 40–64، دون تغيير كود المصادقة.
+
+## 10E — synthetic PostgreSQL load baseline
+
+**الحالة:** IN_PROGRESS — إضافة قياسات زمن النافذة الكاملة ومعدل الطلبات وP50/P95 إلى اختبار التزامن الموجود.
+
+- الاختبار يستخدم ثمانية عمال PHP مستقلين، ولكل عامل Sanctum token واتصال PostgreSQL مستقل، مع حاجز إطلاق مشترك. التشغيل عبر Docker يستخدم PostgreSQL disposable فقط.
+- ستشمل القياسات عدد الطلبات الناجحة، زمن نافذة التزامن الكلي، throughput requests/sec، request/response bytes، P50/P95 بطريقة nearest-rank، average/max latency، وعدد/معدل stale conflicts والنسخة الفائزة.
+- baseline المسجل على Docker run 45503594954 قبل إضافة هذه المقاييس: 8 clients؛ 4,191 request bytes؛ 545 response bytes؛ average latency 115.311 ms؛ max 149.676 ms؛ stale conflicts 6/8 (75%)؛ winning timestamp 5000.
+- هذه عينة CI اصطناعية صغيرة وليست production load benchmark أو SLO. لن نضيف حد latency اعتباطياً قبل اعتماد workload وهدف أداء متوقع.
+- قبول 10E يتطلب نجاح البوابات الأربع على SHA الذي يحتوي القياسات، ثم تسجيل القيم النهائية من Docker logs.
+
 ## الشرائح التالية
 
 - 10B: required checks وحماية main وتقييم تداخل workflows.
 - 10C COMPLETE: migrations على schema فارغ وsnapshot اصطناعي سابق.
-- 10D IN_PROGRESS: API contract regression.
-- 10E: synthetic load وقياس latency/volume/conflict دون production.
+- 10D COMPLETE: API v1 contract regression verified on SHA 44ed546.
+- 10E IN_PROGRESS: synthetic PostgreSQL load instrumentation (P50/P95/throughput/volume/conflict).
 - 10F: immutable image digest وربط artifact بالـSHA وSBOM/provenance.
 - 10G: release manifest وتجربة rollback في بيئة معزولة.
 
