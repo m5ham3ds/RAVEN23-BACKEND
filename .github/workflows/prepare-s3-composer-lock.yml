@@ -1,0 +1,64 @@
+name: RAVEN23 S3 Composer Dependency Lock
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prepare-s3-composer-lock.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  resolve-s3-dependency:
+    name: Resolve and commit the official Flysystem S3 dependency lock
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP 8.4 and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, dom, mbstring, pdo_pgsql, pdo_sqlite, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Resolve the official S3 filesystem adapter and lock transitive dependencies
+        env:
+          COMPOSER_MAX_PARALLEL_HTTP: '4'
+        run: |
+          set -eu
+          composer require 'league/flysystem-aws-s3-v3:^3.35.3' \
+            --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          composer validate --strict
+          composer audit --no-interaction
+
+      - name: Commit the generated Composer manifest and lock
+        run: |
+          set -eu
+          if git diff --quiet -- composer.json composer.lock; then
+            echo "Composer S3 dependency is already locked."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add composer.json composer.lock
+            git commit -m "build(storage): add locked Flysystem S3 adapter"
+            git push origin HEAD:main
+          fi
+
+      - name: Dispatch the four required CI gates on the new main head
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          gh workflow run docker-build.yml --ref main
+          gh workflow run users-auth-tests.yml --ref main
+          gh workflow run pint-format-report.yml --ref main
+          gh workflow run security-scans.yml --ref main
