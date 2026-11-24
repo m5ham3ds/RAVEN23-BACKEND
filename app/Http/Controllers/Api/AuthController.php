@@ -938,24 +938,55 @@ class AuthController extends Controller
             'acknowledge_wallet_credit' => ['sometimes', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($user): void {
+        $acknowledgeWalletCredit = $request->boolean('acknowledge_wallet_credit');
+
+        $deleted = DB::transaction(function () use ($user, $acknowledgeWalletCredit): bool {
+            // Serialize account deletion with trusted wallet-ledger writes.
+            $owner = User::query()
+                ->whereKey($user->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+            $wallet = $owner->wallet()->lockForUpdate()->first();
+
+            if (
+                $wallet !== null
+                && (int) $wallet->balance_cents > 0
+                && ! $acknowledgeWalletCredit
+            ) {
+                return false;
+            }
+
             // Encrypted cleanup jobs retain only server-generated object keys.
             // afterCommit prevents deletion before the account transaction commits.
             if (Schema::hasTable('user_media')) {
-                foreach ($user->media()->orderBy('id')->pluck('object_key') as $objectKey) {
+                foreach ($owner->media()->orderBy('id')->pluck('object_key') as $objectKey) {
                     DeletePrivateObjectJob::dispatch((string) $objectKey);
                 }
             }
 
             // Tokens are deliberately cleaned before removing the account row:
             // neither Sanctum nor temporary auth-token tables have a user FK.
-            $user->tokens()->delete();
-            DB::table('email_verification_tokens')->where('user_id', $user->getKey())->delete();
+            $owner->tokens()->delete();
+            DB::table('email_verification_tokens')->where('user_id', $owner->getKey())->delete();
             DB::table((string) config('auth.passwords.users.table', 'password_reset_tokens'))
-                ->where('email', $user->email)
+                ->where('email', $owner->email)
                 ->delete();
-            $user->delete();
+            $owner->delete();
+
+            return true;
         });
+
+        if (! $deleted) {
+            $message = 'Your wallet has a remaining balance. Review it and explicitly acknowledge that it will be lost before deleting the account.';
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors' => [
+                    'wallet_credit_remaining' => [$message],
+                ],
+            ], 422);
+        }
 
         return response()->json(['success' => true, 'message' => 'Account deleted.']);
     }
