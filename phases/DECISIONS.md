@@ -241,3 +241,12 @@
 - **القرار:** يسجل SubscriptionEventLedger الحدث ويحدّث current entitlement في transaction واحدة. يتلقى كل event aggregate_revision متزايدًا لكل user/entitlement وprojection_status ثابتًا عند الإدخال.
 - **الترتيب:** event time الأقدم من last_event_occurred_at يُحفظ stale دون تغيير current projection؛ event replay بالمفتاح نفسه يعيد السجل السابق ولا يزيد revision.
 - **الحدود:** لا route عامة ولا webhook أو payment provider؛ event ledger هو السجل الداخلي وuser_entitlements هو read model الحالي.
+
+
+## D-031 — Preview-first due-entitlement expiry reconciliation
+
+- **التاريخ:** 24 نوفمبر 2026
+- **الحالة:** تنفيذ 09D قيد CI.
+- **القرار:** الأمر `subscriptions:expire-due` يعرض المرشحين فقط افتراضيًا؛ التسجيل يتطلب `--apply`. حد المعالجة الافتراضي 500 وأقصاه 5000 لكل تشغيل.
+- **المصدر:** جميع أحداث expired تسجل عبر SubscriptionEventLedger بمفتاح idempotency مرتبط entitlement ID/revision وoccurred_at يساوي وقت expiry. stale guard يحمي أحدث renewal/correction.
+- **الحدود:** لا scheduler تلقائي في هذه الشريحة؛ لا مزود دفع أو webhook أو تغيير للأسعار والخطط.

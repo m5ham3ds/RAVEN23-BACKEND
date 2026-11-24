@@ -33,7 +33,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
-| 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A/09B اجتازتا CI الأربع (`fd7ab5b` و`a3f321ee`). 09C يضيف إسقاط الأحداث ذريًا وترتيبًا يمنع stale-event regression، وقيد CI. لا plan pricing/payment integration حتى اعتماد المنتج والمزود. | 03–05؛ 09A–09C مستقلة عن اختيار بوابة الدفع؛ Phase04 staging ما تزال PARTIAL |
+| 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09C اجتازت CI الأربع (`fd7ab5b`، `a3f321ee`، `c3cb81c`). 09D: أمر expiry preview-first يكتب عبر ledger عند `--apply` فقط، وقيد CI. لا plan pricing/payment integration حتى اعتماد المنتج والمزود. | 03–05؛ 09A–09D مستقلة عن اختيار بوابة الدفع؛ Phase04 staging ما تزال PARTIAL |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |

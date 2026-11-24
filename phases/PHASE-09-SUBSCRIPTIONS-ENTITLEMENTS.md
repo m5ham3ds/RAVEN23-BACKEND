@@ -1,6 +1,6 @@
 # المرحلة 09 — الاشتراكات والصلاحيات والميزات المدفوعة
 
-**الحالة:** IN_PROGRESS — 09A و09B COMPLETE؛ 09C قيد التحقق (الإسقاط الذري من سجل الأحداث إلى الاستحقاق الحالي ومقاومة الأحداث القديمة). الخطط والأسعار ومزود الدفع WAITING_EXTERNAL.  
+**الحالة:** IN_PROGRESS — 09A و09B و09C COMPLETE؛ 09D قيد CI (مراجعة/تسجيل الاستحقاقات المنتهية بأمر preview-first). الخطط والأسعار ومزود الدفع WAITING_EXTERNAL.  
 **الاعتماديات:** 03 و05 COMPLETE على مستوى الكود والاختبارات؛ Phase04 ما تزال PARTIAL بسبب Google Android والبريد الحقيقي في staging. يسمح ذلك بجرد العقد وتنفيذ أساس entitlement read-only، ولا يثبت جاهزية المصادقة/الدفع للإنتاج.
 
 ## الهدف
@@ -55,6 +55,20 @@
 - replay بالمفتاح نفسه يعيد event السابق بلا زيادة revision.
 - لا public API أو webhook أو payment provider أو تسعير أو شراء حقيقي.
 
+### 09C — نتيجة CI النهائية
+
+- Backend SHA `c3cb81c61c2711b6ad73ada262a5f230b89f9841` اجتاز Docker [45432047055](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45432047055)، Authentication [45432047070](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45432047070)، Pint [45432046860](https://github.com/m5ham3s/RAVEN23-BACKEND/actions/runs/45432046860)، Security [45432046759](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45432046759) — كلها SUCCESS.
+- SQLite Feature: 136 tests / 1,441 assertions. PostgreSQL Integration: 28 passed / 518 assertions مع اختبار S3 اختياري واحد skipped؛ S3Mock منفصل 1 passed / 8 assertions.
+- اختبارات 09C تثبت projection ذرية، aggregate revisions، وعدم تراجع الاستحقاق عند وصول حدث أقدم.
+
+### 09D — تسجيل الاستحقاقات المنتهية
+
+- أضيف الأمر `subscriptions:expire-due` لفحص الاستحقاقات التي بدأت وانتهى وقتها وما زالت غير ملغاة.
+- الوضع الافتراضي preview-only؛ لا يكتب أي سجل. لا يحدث التعديل إلا مع `--apply`.
+- كل عملية expiry تمر عبر `SubscriptionEventLedger` مع occurred_at مساويًا لوقت انتهاء الاستحقاق، ومفتاح idempotency مرتبط بمعرف سجل الاستحقاق ومراجعته.
+- تستخدم الخدمة نفسها stale-event protection؛ إذا وصل renew/correction أحدث من حدث الانتهاء، يُحفظ expiry event كـstale ولا يسحب استحقاقًا أحدث.
+- الحد الأعلى الافتراضي 500 وبحد أقصى 5000 لكل تشغيل؛ لا scheduler تلقائي في هذه الشريحة.
+
 ### ما لم ينفذ في 09A
 
 - لم ينشأ plan catalog أو تسعير أو trial أو renewal terms.
@@ -65,7 +79,7 @@
 
 ## العمل المتبقي في Phase09
 
-1. إكمال والتحقق من 09C (atomic projection وevent ordering وstale-event safety).
+1. إكمال والتحقق من 09D (preview/apply expiry reconciliation) ثم متابعة 09E.
 
 1. اعتماد قائمة الخطط والمزايا والحدود والفترة والعملة والسعر وسياسات التجديد/التجربة/الإلغاء/الاسترداد.
 2. بناء plan/entitlement catalog مستقلين عن طريقة الدفع بعد اعتماد القيم.

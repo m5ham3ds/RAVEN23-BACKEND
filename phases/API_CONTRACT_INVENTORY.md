@@ -268,3 +268,12 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - aggregate_revision متزايد ضمن user/entitlement؛ event time الأقدم من last_event_occurred_at ينتج projection_status=stale ولا يغير read model.
 - granted/corrected تنشئ أو تستعيد فترة الصلاحية؛ revoked/expired/refunded تسجل الإلغاء وتحفظ حدود الفترة التاريخية.
 - event row immutable؛ applied/stale يتم تعيينها وقت الإدخال. لا client grant أو payment/webhook provider.
+
+
+## 17. Phase09-09D — أمر انتهاء الاستحقاق دون HTTP API
+
+- أضيف Artisan command `subscriptions:expire-due`؛ لا يضيف API route ولا يغير Flutter contract.
+- الوضع الافتراضي يقرأ عدد المرشحين ضمن limit فقط. يكتب أحداث expired عند `--apply` فقط.
+- ينشئ الحدث عبر SubscriptionEventLedger، ويستخدم occurred_at من expires_at، وidempotency key يتضمن entitlement ID/revision.
+- يعتمد على projection_status=stale عند وجود event أحدث، فلا يسحب صلاحية حالية بسبب انتهاء قديم وصل متأخرًا.
+- لا يوجد scheduling تلقائي لهذه العملية في 09D.
