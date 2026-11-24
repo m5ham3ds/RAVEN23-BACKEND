@@ -5,7 +5,7 @@ All regression, feature and integration tests are maintained on the `main` branc
 ## Suites
 
 - `tests/Feature`: Laravel HTTP/API behavior, validation, authorization, ownership, migrations, account/library/sync workflows, and `QueuedNotificationsTest` for encrypted after-commit mail jobs and retry policy. The Docker build runs this suite against an isolated in-memory SQLite database.
-- `tests/Integration`: PostgreSQL-specific behavior and restricted-application-role checks, plus `S3PrivateObjectStorageTest` for a disposable S3-compatible API endpoint. GitHub Actions runs PostgreSQL against an ephemeral PostgreSQL 16 service and the S3 adapter test against Adobe S3Mock; neither test uses production services.
+- `tests/Integration`: PostgreSQL-specific behavior and restricted-application-role checks, plus `S3PrivateObjectStorageTest` for a disposable S3-compatible API endpoint. GitHub Actions runs PostgreSQL against an ephemeral PostgreSQL 16 service and the S3 adapter test against Adobe S3Mock; neither test uses production services. `QueuedNotificationsTest` exercises the encrypted notification outbox, crash replay, stable idempotency keys, local mail sink, and pending-outbox relay.
 
 ## CI gates
 
@@ -15,6 +15,8 @@ The required main-branch checks are:
 2. **Pint Format Report** — changed PHP test and application files.
 3. **Security Scans** — Gitleaks and Trivy filesystem/image scans.
 4. **Authentication Regression Tests** — focused SQLite and PostgreSQL authentication lifecycle coverage.
+
+The notification outbox stores only an application-encrypted payload, with an HMAC idempotency key and a unique database constraint. A scheduled relay repairs missed queue dispatches; the queue job marks successful delivery and retains terminal failures for inspection. The default mail transport includes a stable `X-RAVEN23-Idempotency-Key` header, but SMTP providers are not required to deduplicate it. Provider-enforced exactly-once delivery remains unproven until a selected provider's native idempotency facility is integrated and tested.
 
 The Docker gate also starts pinned Adobe S3Mock `5.2.3` and verifies private put/get/visibility/list/delete/idempotent-delete through Laravel's actual Flysystem S3 adapter. S3Mock is an API emulator, not a substitute for provider staging.
 

@@ -24,9 +24,10 @@ RUN set -eu; \
       app/Http/Controllers/Api/AuthController.php app/Http/Controllers/Api/HealthController.php \
       app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
       app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
-      app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Http/Controllers/Api/UserMediaController.php app/Console/Commands/CleanupOrphanedPrivateMedia.php \
-      database/migrations/2026_11_23_000014_create_user_media_table.php \
-      config/cors.php config/security.php \
+      app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Jobs/DeliverNotificationOutboxJob.php app/Http/Controllers/Api/UserMediaController.php app/Console/Commands/CleanupOrphanedPrivateMedia.php app/Console/Commands/DispatchPendingNotificationOutbox.php \
+      app/Contracts/Notifications/NotificationOutboxTransport.php app/Services/Notifications/NotificationOutboxService.php app/Services/Notifications/LaravelNotificationOutboxTransport.php \
+      database/migrations/2026_11_23_000014_create_user_media_table.php database/migrations/2026_11_24_000015_create_notification_outbox_table.php \
+      config/cors.php config/security.php config/notifications.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
       database/migrations/0001_01_01_000000_create_users_table.php \
       database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php \
@@ -40,7 +41,7 @@ RUN set -eu; \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
       tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
+      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Fixtures/IdempotentNotificationOutboxTransportFake.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
       tests/Integration/PostgresAuthLifecycleTest.php tests/Integration/PostgresUserMediaTest.php \
       tests/Integration/S3PrivateObjectStorageTest.php docker/Caddyfile docker/entrypoint.sh \
       docker/queue-worker.sh docker/php-production.ini; do \
