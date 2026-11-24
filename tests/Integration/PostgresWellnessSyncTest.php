@@ -626,6 +626,7 @@ class PostgresWellnessSyncTest extends TestCase
                         JSON_THROW_ON_ERROR,
                     )),
                     'RAVEN23_SYNC_READY_FILE' => $directory.'/ready-'.$index,
+                    'RAVEN23_SYNC_ERROR_FILE' => $directory.'/error-'.$index,
                     'RAVEN23_SYNC_BARRIER_FILE' => $barrier,
                 ]);
                 $process = proc_open(
@@ -659,12 +660,23 @@ class PostgresWellnessSyncTest extends TestCase
                 usleep(10_000);
             }
 
+            $missingWorkers = [];
             for ($index = 0; $index < count($tokens); $index++) {
-                $this->assertFileExists(
-                    $directory.'/ready-'.$index,
-                    'A sync worker did not reach the concurrency barrier.',
-                );
+                if (! is_file($directory.'/ready-'.$index)) {
+                    $errorFile = $directory.'/error-'.$index;
+                    $diagnostic = is_file($errorFile)
+                        ? trim((string) file_get_contents($errorFile))
+                        : 'worker did not report a startup error';
+                    $state = proc_get_status($processes[$index]);
+                    $missingWorkers[] = 'worker '.$index.' (running='
+                        .($state['running'] ? 'yes' : 'no').'): '.$diagnostic;
+                }
             }
+            $this->assertSame(
+                [],
+                $missingWorkers,
+                'Parallel sync workers failed before the start barrier: '.implode(' | ', $missingWorkers),
+            );
             file_put_contents($barrier, 'go');
 
             foreach ($processes as $index => $process) {
