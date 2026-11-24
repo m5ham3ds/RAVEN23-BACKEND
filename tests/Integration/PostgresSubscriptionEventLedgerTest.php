@@ -71,6 +71,7 @@ class PostgresSubscriptionEventLedgerTest extends TestCase
         $user = $this->createAccount();
         $ledger = app(SubscriptionEventLedger::class);
         $at = now('UTC');
+        $expiresAt = $at->copy()->addDays(30);
 
         $event = $ledger->record(
             $user,
@@ -80,7 +81,7 @@ class PostgresSubscriptionEventLedgerTest extends TestCase
             'pg-event-key-0001',
             $at,
             $at,
-            $at->copy()->addDays(30),
+            $expiresAt,
             'synthetic-event-ref',
             'test_purchase',
         );
@@ -93,7 +94,7 @@ class PostgresSubscriptionEventLedgerTest extends TestCase
             'pg-event-key-0001',
             $at,
             $at,
-            $at->copy()->addDays(30),
+            $expiresAt,
             'synthetic-event-ref',
             'test_purchase',
         );

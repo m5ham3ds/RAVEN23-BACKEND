@@ -43,6 +43,7 @@ class SubscriptionEventLedgerTest extends TestCase
         $user = $this->account();
         $ledger = app(SubscriptionEventLedger::class);
         $occurredAt = now('UTC')->subMinute();
+        $expiresAt = now('UTC')->addDays(30);
 
         $first = $ledger->record(
             $user,
@@ -52,7 +53,7 @@ class SubscriptionEventLedgerTest extends TestCase
             'event-key-0001',
             $occurredAt,
             $occurredAt,
-            now('UTC')->addDays(30),
+            $expiresAt,
             'support-ticket-123',
             'courtesy_period',
         );
@@ -64,7 +65,7 @@ class SubscriptionEventLedgerTest extends TestCase
             'event-key-0001',
             $occurredAt,
             $occurredAt,
-            now('UTC')->addDays(30),
+            $expiresAt,
             'support-ticket-123',
             'courtesy_period',
         );
