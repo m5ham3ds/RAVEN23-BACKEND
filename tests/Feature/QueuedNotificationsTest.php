@@ -352,6 +352,8 @@ class QueuedNotificationsTest extends TestCase
         );
         $this->assertCount(1, $ids);
         $outboxId = $ids[0];
+        // Provider selection may change after enqueue; queued events retain their original target.
+        config(['services.raven23_push.provider' => 'onesignal']);
         $job = new DeliverNotificationOutboxJob($outboxId, 'push');
 
         try {

@@ -181,6 +181,37 @@ jobs:
           fi
           grep -Fq "requires an asynchronous queue connection" "$output_file"
           rm -f "$output_file"
+
+          output_file="$(mktemp)"
+          if docker run --rm \
+            --entrypoint /usr/local/bin/raven23-queue-worker \
+            -e RAVEN23_PUSH_ENABLED=true \
+            -e RAVEN23_PUSH_PROVIDER=fcm \
+            -e QUEUE_WORKER_QUEUES=mail,default \
+            raven23-backend:ci >"$output_file" 2>&1; then
+            echo "::error::Queue worker accepted enabled push without listening to the push queue."
+            cat "$output_file"
+            rm -f "$output_file"
+            exit 1
+          fi
+          grep -Fq "RAVEN23_PUSH_ENABLED=true requires QUEUE_WORKER_QUEUES to include push" "$output_file"
+          rm -f "$output_file"
+
+          output_file="$(mktemp)"
+          if docker run --rm \
+            --entrypoint /usr/local/bin/raven23-queue-worker \
+            -e RAVEN23_PUSH_ENABLED=true \
+            -e RAVEN23_PUSH_PROVIDER=fcm \
+            -e QUEUE_WORKER_QUEUES=mail,push,default \
+            -e QUEUE_CONNECTION=sync \
+            raven23-backend:ci >"$output_file" 2>&1; then
+            echo "::error::Queue worker accepted the synchronous driver with push enabled."
+            cat "$output_file"
+            rm -f "$output_file"
+            exit 1
+          fi
+          grep -Fq "requires an asynchronous queue connection" "$output_file"
+          rm -f "$output_file"
       - name: Verify the Wellness controller Pint baseline
         run: |
           set -euo pipefail

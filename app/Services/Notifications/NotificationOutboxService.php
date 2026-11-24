@@ -77,6 +77,7 @@ final class NotificationOutboxService
                 'push_delivery',
                 [
                     'subscription_id' => (int) $subscription->getKey(),
+                    'provider' => $provider,
                     'message' => $message,
                 ],
                 'push-delivery:'.$user->getKey().':'.$subscription->getKey().':'.$eventKey,

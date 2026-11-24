@@ -33,6 +33,19 @@ if [ -z "$queues" ]; then
     exit 64
 fi
 
+push_enabled="${RAVEN23_PUSH_ENABLED:-false}"
+case "$push_enabled" in
+    1|true|TRUE|True|yes|YES|Yes|on|ON|On)
+        case ",$queues," in
+            *,push,*) ;;
+            *)
+                echo "RAVEN23_PUSH_ENABLED=true requires QUEUE_WORKER_QUEUES to include push." >&2
+                exit 64
+                ;;
+        esac
+        ;;
+esac
+
 if [ "$connection" = "sync" ] || [ "$connection" = "null" ]; then
     echo "A long-lived queue worker requires an asynchronous queue connection." >&2
     exit 64

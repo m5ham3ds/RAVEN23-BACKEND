@@ -25,7 +25,7 @@ RUN set -eu; \
       app/Http/Middleware/RequestCorrelationId.php app/Providers/AppServiceProvider.php \
       app/Models/UserProfile.php app/Models/UserPreference.php app/Models/UserDevice.php \
       app/Models/UserMedia.php app/Jobs/DeletePrivateObjectJob.php app/Jobs/DeliverNotificationOutboxJob.php app/Http/Controllers/Api/UserMediaController.php app/Console/Commands/CleanupOrphanedPrivateMedia.php app/Console/Commands/DispatchPendingNotificationOutbox.php \
-      app/Contracts/Notifications/NotificationOutboxTransport.php app/Services/Notifications/NotificationOutboxService.php app/Services/Notifications/LaravelNotificationOutboxTransport.php \
+      app/Contracts/Notifications/NotificationOutboxTransport.php app/Contracts/Notifications/PushNotificationTransport.php app/Services/Notifications/DisabledPushNotificationTransport.php app/Services/Notifications/NotificationOutboxService.php app/Services/Notifications/LaravelNotificationOutboxTransport.php \
       database/migrations/2026_11_23_000014_create_user_media_table.php database/migrations/2026_11_24_000015_create_notification_outbox_table.php \
       config/cors.php config/security.php config/notifications.php \
       app/Support/GoogleIdTokenVerifier.php app/Support/Raven23AuthSchema.php \
