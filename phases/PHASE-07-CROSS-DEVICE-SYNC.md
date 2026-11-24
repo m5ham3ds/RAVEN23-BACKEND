@@ -83,12 +83,13 @@ Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restric
 - cursor snapshot ثابت يستبعد التغييرات التي تمت بعد الصفحة الأولى.
 - جلسة تعبر منتصف الليل توزع المدة على اليومين وتضع completed count في يوم النهاية.
 
+تحديث 24 نوفمبر 2026: اختبارات ثلاثة أجهزة بتحديثات متعارضة out-of-order نجحت على SQLite وPostgreSQL، كما نجح PostgreSQL pagination مع كتابة لاحقة committed بين الصفحات ثم cursor corruption وfull resync. لا تمثل هذه الاختبارات معاملات متوازية فعلياً.
+
 تبقى متطلبات الإغلاق التالية:
 
-1. اختبار تقارب ثلاثة أجهزة مع كتابات متزامنة ومتعارضة، لا مجرد وصول out-of-order في اختبار جهازين.
-2. pagination مع كتابة متزامنة تحت PostgreSQL وفقدان/تلف cursor فعلي ثم إعادة بناء كل بيانات العميل.
-3. device-ID rotation/account switch عبر دورة عميل وخادم كاملة، مع إثبات عدم إرسال الطلبات القديمة بعد تبديل الحساب.
-4. توثيق retry/backoff الخاص بمزامنة العميل وقياس sync latency/volume/conflict rate تحت حمل اصطناعي.
+1. اختبار race حقيقي بمعاملات/طلبات متوازية في PostgreSQL لتعارضات الأجهزة الثلاثة، لا مجرد ترتيب وصول متداخل.
+2. device-ID rotation/account switch عبر دورة Flutter/Backend كاملة، تشمل تبديل identifier وإثبات عدم إرسال أي طلب قديم أو checkpoint لحساب آخر.
+3. توثيق retry/backoff للمزامنة وقياس sync latency/volume/conflict rate تحت حمل اصطناعي.
 
 **القرار:** Phase07 تبقى IN_PROGRESS؛ البنود التي اجتازت اختبارات backend لا تُعاد كتابتها كأنها ما زالت غير منفذة، لكن لا تُغلق المرحلة قبل قبول العناصر الأربعة المتبقية.
 
@@ -103,3 +104,22 @@ Docker also passed strict Pint, APP_DEBUG guard, no-DB startup/liveness, restric
 - Security [45204060417](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45204060417): SUCCESS.
 
 الـCI الكلي يشمل الاختبارات السابقة والجديدة؛ لا تُنسب جميع assertions إلى Wellness وحده.
+
+## تحديث التنفيذ والتحقق — 24 نوفمبر 2026
+
+- أضيف اختبار SQLite باسم test_three_devices_converge_after_conflicting_out_of_order_session_updates، واختبار PostgreSQL باسم test_postgresql_three_devices_converge_after_conflicting_out_of_order_updates.
+- يحاكي السيناريو تحديث جهاز A، ورفعًا أقدم من B، وحذفًا tombstone من C، وإعادة رفع قديمة من A، ثم استئنافًا أحدث من B. تسحب الأجهزة الثلاثة حالة السجل والملخص اليومي نفسها.
+- أضيفت تغطية full recovery بعد invalid_sync_cursor في Feature tests.
+- أضيف اختبار PostgreSQL pagination يحافظ على snapshot عند commit كتابة جديدة بين الصفحات؛ cursor التالف يُرفض، ثم full resync يعيد الجلسات الثلاث والملخص اليومي الكامل.
+- هذه اختبارات interleaving/ordered requests وليست اختبارًا لسباق معاملات متزامنة في نفس اللحظة.
+
+### CI proof — SHA df390286cbe2170d4b18a96dad06835379091019
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852) | SUCCESS — SQLite Feature 118/1,332 assertions; PostgreSQL Integration 21 passed/394 assertions, 1 skipped; S3Mock 1/8 |
+| Authentication Regression | [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671) | SUCCESS |
+| Pint Format | [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645) | SUCCESS |
+| Security Scans | [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) | SUCCESS — Gitleaks/Trivy and fixable HIGH/CRITICAL gate PASS |
+
+**الحالة:** Phase07 ما زالت IN_PROGRESS حتى تغلق عناصر المعاملات المتوازية، دورة device-ID/account-switch، وقياسات retry/latency.

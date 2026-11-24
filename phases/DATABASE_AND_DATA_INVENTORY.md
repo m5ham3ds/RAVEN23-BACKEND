@@ -1,6 +1,6 @@
 # جرد قاعدة البيانات والبيانات — RAVEN23
 
-**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
+**Backend implementation SHA:** df390286cbe2170d4b18a96dad06835379091019 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE على مستوى source inventory — مبني على جميع migrations/models/client data stores؛ لم يتم الاتصال بقاعدة الإنتاج وفق قواعد السلامة.
 
@@ -167,3 +167,14 @@ Sanctum bearer sessions:
 - إشعارات verification/reset تُرسل كـqueued jobs مشفّرة؛ لذلك تخزن queue payloads بصورة مشفرة باستخدام Laravel queue encryption.
 - يستخدم database queue في الإعداد النموذجي؛ worker مستقل عن HTTP web process، ويجب تشغيله فقط مع `APP_KEY` ثابت وPostgreSQL المشترك بعد إعداد deployment.
 - لم يتم تشغيل worker على قاعدة إنتاج أو قراءة صفوف jobs/failed_jobs الحية.
+
+## 10. Push subscriptions — 24 نوفمبر 2026
+
+- Migration: 2026_11_24_000015_create_user_push_subscriptions_table.php.
+- Table: user_push_subscriptions.
+- Columns: id, user_id (FK cascade), provider, token_hash (HMAC-SHA-256 hex), token (Laravel encrypted cast serialized in text column), platform, app_version, last_seen_at, timestamps.
+- Unique key (provider, token_hash) يمنع تسجيل الرمز نفسه مرتين ضمن provider نفسه؛ index (user_id, provider) لدعم قراءة اشتراكات المالك.
+- HMAC uses provider namespace and APP_KEY-derived keyed digest; raw FCM/OneSignal values are encrypted at rest and are not the indexed lookup value.
+- Re-registering the same provider/token transfers association to the authenticated account performing registration; OneSignal deletion is user-scoped. Deleting user cascades subscriptions.
+- PostgreSQL and SQLite Feature tests cover encrypted storage, idempotency, owner transfer/deletion, validation and cascade.
+- No production database migration was executed; no real push tokens or provider credentials were used.

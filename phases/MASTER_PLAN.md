@@ -31,8 +31,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
-| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ اجتازت اختبارات device convergence (2 devices)، out-of-order، idempotent retry، full resync، token revoke per-device وdaily aggregates؛ بقي 3-device/concurrent cursor/device-ID rotation/latency | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08E: encrypted mail queue/worker، private media API، optional quota، safe orphan cleanup، Flysystem S3 adapter مع S3Mock test، transactional encrypted outbox/relay/expired-claim recovery؛ Docker 113/1,232 SQLite و18/311 PostgreSQL وS3Mock 1/8 على SHA `8f34a0b`. ما زال real provider staging/native mail idempotency/push/retention مفتوحاً | 02–05 (Phase04 external mail/Google staging remains partial) |
+| 07 | المزامنة بين الأجهزة والعمل دون اتصال — IN_PROGRESS؛ اجتازت اختبارات 3 أجهزة مع تعارضات out-of-order على SQLite/PostgreSQL، وPostgreSQL pagination مع كتابة لاحقة بين الصفحات واستعادة cursor تالف عبر full resync؛ بقيت المعاملات المتوازية فعلياً، دورة device-ID rotation/account switch، وتوثيق retry/backoff وقياسات الحمل | 05–06 |
+| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08F: private media/quota/orphan cleanup، S3Mock، encrypted queue/transactional outbox، وPush subscription registry لـFCM/OneSignal مع encrypted tokens وHMAC indexes واختبارات SQLite/PostgreSQL. لا يوجد push sender/provider credentials أو S3/mail staging فعلي، وتبقى native mail idempotency وسياسات retention/cost مفتوحة | 02–05 (Phase04 external mail/Google staging remains partial) |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة | 03–05 وقرارات المنتج |
 | 10 | الجودة والاختبارات والإصدارات | 01–09 |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
@@ -190,3 +190,13 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - تم اختبار transactional notification outbox على SQLite وPostgreSQL: تشفير الحمولات، HMAC unique event keys، after-commit rollback safety، retry/crash replay، وexpired worker-claim recovery.
 - تم التحقق من Flysystem S3 adapter عبر S3Mock محلي داخل Docker؛ لا يوجد تكامل staging مع S3 provider فعلي أو مورد AWS.
 - Phase08 تبقى IN_PROGRESS حتى مزود البريد/push الحقيقي، provider-native idempotency، S3 staging وسياسة retention/cost المعتمدة.
+
+## 16. تحديث التنفيذ على main — 24 نوفمبر 2026
+
+آخر SHA برمجي اجتاز CI الكامل: df390286cbe2170d4b18a96dad06835379091019.
+
+- Phase07: ثلاثة أجهزة تتقارب بعد تحديثات متضاربة out-of-order؛ اختبارات SQLite/PostgreSQL تؤكد السجل النهائي والملخص اليومي. PostgreSQL pagination يحافظ على snapshot عند commit كتابة بعد الصفحة الأولى، ثم يستعيد full sync بعد cursor تالف.
+- Phase08F: مسارات تسجيل Push التي يستهلكها تطبيق Flutter متاحة خلف Sanctum: POST /api/v1/devices/register لـFCM، POST /api/v1/push/subscriptions لـOneSignal، وDELETE /api/v1/push/subscriptions/{subscriptionId}. تخزين token مشفر، وفهرسة hash عبر HMAC، idempotency وowner scoping.
+- CI proof: Docker [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852)، Authentication [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671)، Pint [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645)، Security [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) — كلها SUCCESS على SHA نفسه.
+- Phase07 و08 تظلان IN_PROGRESS. لا يجوز وصف sequential interleaving بأنه concurrent transaction stress test، أو وصف تخزين Push بأنه actual notification delivery.
+- Phase09 تظل WAITING_EXTERNAL حتى قرارات المنتج والدفع. لا production DB/secrets/deploy/AWS paid resources.

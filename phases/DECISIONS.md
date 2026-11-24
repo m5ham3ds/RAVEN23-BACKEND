@@ -161,3 +161,12 @@
 - **العامل:** تشغيل منفصل عبر `/usr/local/bin/raven23-queue-worker`، ولا يُدمج مع HTTP process. يرفض sync/null ويمنع timeout يساوي/يتجاوز database retry_after.
 - **التوافق:** يعاد استخدام جداول Laravel القياسية jobs/job_batches/failed_jobs؛ لا migration جديدة ولا تغيير API response.
 - **حدود القرار:** mail enabled يبقى false وMAIL_MAILER=log حتى اختيار مزود وموافقة وإعداد action URL وتجربة staging. لا يجيز إنشاء موارد مدفوعة أو قراءة/إضافة secrets. ولا يثبت SMTP delivery أو exactly-once semantics.
+
+## D-022 — Secure Push subscription registry before provider activation
+
+- التاريخ: 24 نوفمبر 2026
+- الحالة: تنفيذ محلي واختبارات CI ناجحة على SHA df390286cbe2170d4b18a96dad06835379091019؛ provider delivery remains WAITING_EXTERNAL.
+- القرار: يطابق Backend مسارات تطبيق Flutter لتسجيل FCM token وOneSignal subscription UUID. تحفظ قيمة token عبر Laravel encrypted cast، ويحسب HMAC-SHA-256 scoped بالـprovider لتحديد التسجيلات المتكررة دون فهرسة token الخام. unique(provider, token_hash) يجعل التسجيل idempotent.
+- ملكية الرمز: إعادة التسجيل من جلسة مصادق عليها تنقل association إلى المستخدم الحالي، بما يسمح بتبديل الحساب على نفس التطبيق. OneSignal unregister لا يحذف إلا التسجيل المرتبط بالمستخدم المصادق؛ حذف الحساب يحذف الصفوف عبر FK cascade.
+- حدود القرار: لا يفعّل هذا القرار FCM/OneSignal sender ولا يرسل Push ولا يضيف credentials. لا تتم أي عملية خارجية قبل اختيار provider والموافقة وإعداد staging.
+- الأثر: migration 2026_11_24_000015_create_user_push_subscriptions_table.php، model/controller/routes، Feature/PostgreSQL tests وFlutter contract match. CI الأربع ناجحة على SHA المذكور.

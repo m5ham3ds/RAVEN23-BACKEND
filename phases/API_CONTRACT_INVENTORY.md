@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
 **تاريخ الجرد:** 24 نوفمبر 2026
-**Backend implementation SHA:** f4a64407b3c5ca5b8de72def9e7e13009eca57d0
+**Backend implementation SHA:** df390286cbe2170d4b18a96dad06835379091019
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -29,6 +29,9 @@
 | POST | /api/v1/auth/reset-password | عام | المسار موجود لكن يعيد 503؛ غير مكتمل |
 | GET | /api/v1/users/check-username | عام | التحقق من توفر اسم المستخدم |
 | POST | /api/v1/auth/logout | Bearer | إلغاء token الحالي |
+| POST | /api/v1/devices/register | Bearer | تسجيل/تحديث FCM token مشفر ومرتبط بالمستخدم الحالي؛ fcm_token, platform, app_version |
+| POST | /api/v1/push/subscriptions | Bearer | تسجيل/تحديث OneSignal subscription UUID مشفر وidempotent؛ subscription_id, platform, app_version |
+| DELETE | /api/v1/push/subscriptions/{subscriptionId} | Bearer | إلغاء OneSignal subscription ضمن نطاق مالك الحساب الحالي |
 | GET | /api/v1/user/media/{owner}/{media}/temporary | رابط signed مؤقت | قراءة ملف يملكه المسار؛ التوقيع ووقت الانتهاء إلزاميان، TTL الافتراضي 5 دقائق (حد أقصى 15) |
 | POST | /api/v1/user/media | Bearer | رفع avatar أو attachment؛ validation للمحتوى والنوع والحجم والحصة الاختيارية |
 | GET | /api/v1/user/media/{media} | Bearer | تنزيل/عرض ملف المالك فقط |
@@ -219,3 +222,12 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - SHA الحالي الموثق `f4a64407b3c5ca5b8de72def9e7e13009eca57d0`.
 - CI الأربعة ناجحة؛ Docker: SQLite Feature 109 tests / 1,196 assertions، PostgreSQL Integration 15 tests / 295 assertions.
 - لا توجد PRs مفتوحة والفرع الدائم الوحيد هو `main`.
+
+## 12. Push registration contract — 24 نوفمبر 2026
+
+- تم التحقق من العقد في lib/data/repositories/device_repository.dart في تطبيق Flutter.
+- Backend routes الثلاثة موضوعة خلف Sanctum وrate limiter الخاص بإدارة الأجهزة.
+- FCM token وOneSignal subscription ID لا يعادان في response ولا يستخدمان كقيم index نصية؛ token مشفر في model، وHMAC hash هو مفتاح idempotency والبحث.
+- إعادة تسجيل الرمز نفسه تحدّث الحساب المرتبط به إلى الحساب الذي أرسل registration الحالي؛ DELETE OneSignal يتطلب المصادقة ويحدّث صف المالك الحالي فقط.
+- التسجيل لا يرسل إشعارات ولا يثبت وصولها؛ provider sender/credentials/staging خارج هذا العقد الحالي.
+- CI على SHA df390286cbe2170d4b18a96dad06835379091019: Docker [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852)، Auth [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671)، Pint [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645)، Security [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) — كلها SUCCESS.

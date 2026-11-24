@@ -1,8 +1,8 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
-**آخر تحديث:** 23 نوفمبر 2026
+**آخر تحديث:** 24 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `dd861fa9afd6f876ff300f65aae58a35b16f3112`
+**Latest fully CI-verified implementation SHA:** `df390286cbe2170d4b18a96dad06835379091019`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -16,8 +16,8 @@
 | 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
-| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | أضيفت اختبارات جهازين، جلسات out-of-order، tombstones، lost-response retry على SQLite/PostgreSQL، full resync، token revocation per-device وعبور منتصف الليل؛ بقيت three-device/concurrent cursor وdevice-ID change وقياس retry/latency. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08E: encrypted queue/worker، private media API، quota اختيارية، orphan cleanup، S3Mock/Flysystem test، transactional notification outbox/relay/lease recovery؛ بقي real provider staging/mail native idempotency/push/retention. |
+| 07 — المزامنة بين الأجهزة والعمل دون اتصال | IN_PROGRESS | اجتازت اختبارات ثلاثة أجهزة بتعارضات out-of-order على SQLite/PostgreSQL، وPostgreSQL pagination مع كتابة لاحقة بين الصفحات واستعادة full sync بعد cursor تالف؛ بقي اختبار معاملات متوازية فعلي، دورة device-ID rotation/account switch كاملة، وتوثيق retry/backoff وقياسات الحمل. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08F: private media وS3Mock، encrypted queue/outbox، وPush subscription registration مع token مشفر وHMAC index واختبارات FCM/OneSignal؛ بقي push delivery/provider credentials، S3 staging الحقيقي، mail provider/native idempotency وسياسات retention/cost. |
 | 09 — الاشتراكات والصلاحيات | WAITING_EXTERNAL | تتطلب قرارات الخطط والأسعار والاستحقاقات ومزود الدفع. |
 | 10 — الجودة والإصدارات | NOT_STARTED | release engineering وcontract/load/rollback gates. |
 | 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
@@ -118,3 +118,16 @@
 - S3Mock اختبر put/get/private/list/delete عبر Flysystem adapter؛ لا يوجد real bucket/provider staging أو AWS credentials.
 - Phase08 تبقى IN_PROGRESS: external mail provider/native idempotency، Flutter push adapter، real S3 staging، retention/capacity/cost policy ما زالت مفتوحة.
 - Phase07 تبقى IN_PROGRESS؛ Phase09 تنتظر قرارات الخطط والاستحقاقات والدفع. لا production DB/secrets/deploy أو موارد مدفوعة مستخدمة.
+
+## 12. تحديث Phase07/08 — 24 نوفمبر 2026
+
+- آخر تنفيذ برمجي اجتاز بوابات CI الأربع على SHA df390286cbe2170d4b18a96dad06835379091019.
+- Docker [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852): SUCCESS — SQLite Feature 118/1,332 assertions؛ PostgreSQL Integration 21 passed/394 assertions مع اختبار واحد skipped؛ S3Mock منفصل 1/8.
+- Authentication [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671): SUCCESS. Pint [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645): SUCCESS.
+- Security [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702): SUCCESS؛ Gitleaks وTrivy وصورة الإنتاج وبوابة fixable HIGH/CRITICAL ناجحة.
+- Phase07: أضيف تقارب ثلاثة أجهزة مع تحديثات قديمة وحذف tombstone ثم استئناف أحدث؛ الأجهزة الثلاثة تسحب النتيجة النهائية نفسها على SQLite وPostgreSQL. أضيف PostgreSQL stable pagination مع كتابة جديدة committed بين الصفحات، واختبار cursor تالف ثم full resync. هذه اختبارات interleaving وليست إثباتًا لتشغيل معاملات متوازية فعليًا.
+- Phase07 تبقى IN_PROGRESS: اختبار race بمعاملات متوازية، دورة device-ID rotation/account-switch كاملة من Flutter إلى Backend، وتوثيق retry/backoff وقياسات latency/volume/conflict تحت حمل اصطناعي.
+- Phase08: اكتملت شريحة 08F لتسجيل FCM وOneSignal subscriptions وفق عقد Flutter؛ token يخزن مشفرًا ويُفهرس عبر HMAC hash، والتسجيل idempotent وowner-scoped، مع نقل ارتباط token للحساب الذي يسجل الدخول حالياً. اختبارات SQLite وPostgreSQL تؤكد التشفير والتكرار وتبديل المالك وحصر الإلغاء.
+- Phase08 تبقى IN_PROGRESS؛ التسجيل لا يعني إرسال Push أو وصول إشعار. لا provider adapter أو credentials أو إرسال خارجي مفعل. S3 الحقيقي وmail provider وprovider-native idempotency وretention/cost ما زالت مفتوحة.
+- Phase09 تبقى WAITING_EXTERNAL لقرارات الخطط والأسعار والاستحقاقات ومزود الدفع.
+- branch listing ظل main وحده ولا توجد PRs مفتوحة. لا إنتاج DB أو secrets أو deploy أو DNS cutover أو موارد AWS مدفوعة استُخدمت.

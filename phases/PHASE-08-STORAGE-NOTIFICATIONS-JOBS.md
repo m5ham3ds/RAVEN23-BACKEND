@@ -1,6 +1,6 @@
 # المرحلة 08 — تخزين الملفات والإشعارات والمهام الخلفية
 
-**الحالة:** IN_PROGRESS — 08A–08D منفذة ومختبرة (queue/mail baseline، private storage contract، media upload/metadata/owner access/temporary signed URLs، optional quota، وorphan cleanup آمن). ما زالت S3-compatible integration وpush وmail provider وoutbox/retention policy مفتوحة.  
+**الحالة:** IN_PROGRESS — 08A–08F منفذة محليًا ومختبرة: queue/worker، private media API، quota/orphan cleanup، Flysystem/S3Mock، transactional outbox، وPush subscription registration المشفر المتوافق مع Flutter. ما زالت real provider staging وpush delivery وmail provider/native idempotency وسياسات retention/cost مفتوحة.  
 **الاعتماديات:** 02 و03 و05 COMPLETE؛ Phase04 PARTIAL في تكامل البريد/Google الخارجي. تسمح الاعتمادية الحالية بتطوير queue abstraction وإبقاء الإرسال معطلاً إلى حين staging/provider approval.
 
 ## الهدف
@@ -163,3 +163,44 @@
 4. Retention, quota/capacity, cost and outbox audit-retention policy approval.
 
 **Phase08 remains IN_PROGRESS.** The local emulator and fake mail transport do not establish production provider readiness.
+
+### 08F — Push subscription registration and secure ownership (24 November 2026)
+
+#### عقد Flutter الذي تمت مطابقته
+
+- POST /api/v1/devices/register يستقبل fcm_token وplatform وapp_version.
+- POST /api/v1/push/subscriptions يستقبل subscription_id (OneSignal UUID) وplatform وapp_version.
+- DELETE /api/v1/push/subscriptions/{subscriptionId} يلغي اشتراك OneSignal الخاص بالحساب المصادق.
+- تمت مطابقة الحقول والمسارات مع DeviceRepository في Flutter بدل اختراع عقد جديد.
+
+#### التنفيذ والأمان
+
+- migration 2026_11_24_000015_create_user_push_subscriptions_table.php تنشئ جدول user_push_subscriptions مع FK cascade إلى المستخدم وفهارس provider/token hash.
+- UserPushSubscription يستخدم Laravel encrypted cast لحقل token؛ لا يخزن token في عمود index مكشوف.
+- token_hash هو HMAC-SHA-256 مع provider namespace ومفتاح التطبيق، ويستخدم للبحث الفريد ومنع ازدواج تسجيل الرمز.
+- التسجيل idempotent على (provider, token_hash)، ويحدّث owner الحالي عند تسجيل نفس token من حساب آخر؛ الإلغاء OneSignal owner-scoped وإعادته idempotent.
+- اختبارات Feature وPostgreSQL تغطي التشفير، FCM/OneSignal registration، duplicate registration، نقل الملكية بين حسابين، منع الحساب السابق من الإلغاء، cascade عند حذف الحساب، ورفض token غير صالح أو طلب غير مصادق.
+
+#### حدود الشريحة
+
+- هذه الشريحة تضيف تسجيل/تخزين الاشتراكات فقط؛ لا تحتوي على sender adapter أو push delivery أو إثبات وصول إشعار إلى Android/TV.
+- لم تتم إضافة FCM/OneSignal credentials أو تفعيل provider خارجي. الاختبارات تستخدم tokens اصطناعية.
+- تبقى موافقة اختيار provider/credentials/staging شرطًا منفصلاً قبل إرسال Push حقيقي.
+
+### CI proof — SHA df390286cbe2170d4b18a96dad06835379091019
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45320144852](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144852) | SUCCESS — SQLite Feature 118/1,332; PostgreSQL Integration 21 passed/394 assertions, 1 skipped; S3Mock 1/8 |
+| Authentication Regression | [45320144671](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144671) | SUCCESS |
+| Pint Format | [45320144645](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144645) | SUCCESS |
+| Security Scans | [45320144702](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45320144702) | SUCCESS |
+
+### Remaining Phase08 acceptance items
+
+1. Real S3-compatible provider/staging verification with approved test credentials; no bucket or paid resource created.
+2. Select real mail provider and verify action/deep-link delivery; integrate provider-native idempotency before claiming exactly-once delivery. Mail remains disabled in sample config.
+3. Select and approve push provider, add sender adapter and staging/device delivery tests; do not infer that subscription storage proves delivery.
+4. Approve retention, quota/capacity, cost, and outbox audit-retention policy.
+
+**Phase08 remains IN_PROGRESS.**
