@@ -15,10 +15,13 @@ class PostgresWellnessSyncTest extends TestCase
 
     private array $createdTokens = [];
 
+    private string $databaseUrl = '';
+
     protected function setUp(): void
     {
         parent::setUp();
         $databaseUrl = trim((string) (getenv('NEON_DB_URL') ?: getenv('DB_URL')));
+        $this->databaseUrl = $databaseUrl;
         if ($databaseUrl === '') {
             $this->markTestSkipped('DB_URL is not configured for PostgreSQL integration tests.');
         }
@@ -57,6 +60,16 @@ class PostgresWellnessSyncTest extends TestCase
         $this->createdTokens[] = (int) $stored->getKey();
 
         return ['id' => (int) $user->getKey(), 'token' => $plainText];
+    }
+
+    private function createDeviceToken(int $userId, string $label): string
+    {
+        $user = User::query()->findOrFail($userId);
+        $token = $user->createToken('PostgreSQL wellness '.$label)->plainTextToken;
+        $stored = PersonalAccessToken::findToken($token);
+        $this->createdTokens[] = (int) $stored->getKey();
+
+        return $token;
     }
 
     private function clientTime(): int
@@ -543,6 +556,168 @@ class PostgresWellnessSyncTest extends TestCase
         $this->assertDatabaseCount('user_wellness_upload_receipts', 4);
         $this->assertSame(2, $ownerPull->json('server_revision'));
         $this->assertSame(0, $otherPull->json('server_revision'));
+    }
+
+    public function test_postgresql_parallel_device_uploads_converge_to_the_newest_session_version(): void
+    {
+        if (! function_exists('proc_open')) {
+            $this->markTestSkipped('proc_open is required for the PostgreSQL concurrency test.');
+        }
+
+        $owner = $this->createAccount();
+        $tokens = [
+            $owner['token'],
+            $this->createDeviceToken($owner['id'], 'parallel device b'),
+            $this->createDeviceToken($owner['id'], 'parallel device c'),
+        ];
+        $sessionId = 'abababab-abab-4bab-8bab-abababababac';
+        $stamps = [3000, 1000, 5000];
+        $titles = ['Device A update', 'Stale device B update', 'Device C newest update'];
+
+        DB::table('user_sync_revisions')->insertOrIgnore([
+            'user_id' => $owner['id'],
+            'domain' => 'wellness',
+            'revision' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $directory = sys_get_temp_dir().'/raven23-sync-race-'.bin2hex(random_bytes(6));
+        $this->assertTrue(mkdir($directory, 0700, true));
+        $barrier = $directory.'/start';
+        $worker = base_path('tests/Fixtures/ConcurrentWellnessSyncWorker.php');
+        $processes = [];
+        $pipes = [];
+
+        try {
+            $baseEnvironment = getenv();
+            if (! is_array($baseEnvironment)) {
+                $baseEnvironment = [];
+            }
+            unset($baseEnvironment['NEON_DB_URL']);
+            $baseEnvironment = array_merge($baseEnvironment, [
+                'APP_ENV' => 'testing',
+                'APP_KEY' => (string) config('app.key'),
+                'APP_URL' => 'http://localhost',
+                'DB_CONNECTION' => 'pgsql',
+                'DB_URL' => $this->databaseUrl,
+                'CACHE_STORE' => 'array',
+                'SESSION_DRIVER' => 'array',
+                'QUEUE_CONNECTION' => 'sync',
+                'MAIL_MAILER' => 'array',
+                'LOG_CHANNEL' => 'stderr',
+            ]);
+
+            foreach ($tokens as $index => $token) {
+                $session = $this->wellnessSession($sessionId, $stamps[$index]);
+                $session['deviceId'] = 'parallel-device-'.$index;
+                $session['title'] = $titles[$index];
+                $payload = [
+                    'client_time_utc' => $this->clientTime(),
+                    'sessions' => [$session],
+                    'daily' => [],
+                    'limit' => 450,
+                ];
+
+                $environment = array_merge($baseEnvironment, [
+                    'RAVEN23_SYNC_TOKEN' => $token,
+                    'RAVEN23_SYNC_PAYLOAD' => base64_encode(json_encode(
+                        $payload,
+                        JSON_THROW_ON_ERROR,
+                    )),
+                    'RAVEN23_SYNC_READY_FILE' => $directory.'/ready-'.$index,
+                    'RAVEN23_SYNC_BARRIER_FILE' => $barrier,
+                ]);
+                $process = proc_open(
+                    [PHP_BINARY, $worker],
+                    [
+                        0 => ['pipe', 'r'],
+                        1 => ['pipe', 'w'],
+                        2 => ['pipe', 'w'],
+                    ],
+                    $workerPipes,
+                    base_path(),
+                    $environment,
+                );
+                $this->assertIsResource($process, 'Unable to start a parallel sync worker.');
+                fclose($workerPipes[0]);
+                $processes[] = $process;
+                $pipes[] = [$workerPipes[1], $workerPipes[2]];
+            }
+
+            $deadline = microtime(true) + 20;
+            while (microtime(true) < $deadline) {
+                $ready = 0;
+                for ($index = 0; $index < count($tokens); $index++) {
+                    if (is_file($directory.'/ready-'.$index)) {
+                        $ready++;
+                    }
+                }
+                if ($ready === count($tokens)) {
+                    break;
+                }
+                usleep(10_000);
+            }
+
+            for ($index = 0; $index < count($tokens); $index++) {
+                $this->assertFileExists(
+                    $directory.'/ready-'.$index,
+                    'A sync worker did not reach the concurrency barrier.',
+                );
+            }
+            file_put_contents($barrier, 'go');
+
+            foreach ($processes as $index => $process) {
+                $stdout = stream_get_contents($pipes[$index][0]);
+                $stderr = stream_get_contents($pipes[$index][1]);
+                fclose($pipes[$index][0]);
+                fclose($pipes[$index][1]);
+
+                $exitCode = proc_close($process);
+                $processes[$index] = null;
+                $this->assertSame(0, $exitCode, 'Parallel sync worker failed: '.$stderr);
+                $result = json_decode(trim((string) $stdout), true, 32, JSON_THROW_ON_ERROR);
+                $this->assertSame(200, $result['status']);
+                $this->assertTrue($result['success']);
+            }
+        } finally {
+            foreach ($processes as $index => $process) {
+                if (is_resource($process)) {
+                    proc_terminate($process);
+                    fclose($pipes[$index][0]);
+                    fclose($pipes[$index][1]);
+                    proc_close($process);
+                }
+            }
+            foreach (glob($directory.'/*') ?: [] as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+            @rmdir($directory);
+        }
+
+        $stored = DB::table('user_wellness_sessions')
+            ->where('user_id', $owner['id'])
+            ->where('session_id', $sessionId)
+            ->first();
+        $this->assertNotNull($stored);
+        $this->assertSame(5000, (int) $stored->updated_at_utc);
+        $this->assertNull($stored->deleted_at_utc);
+        $storedPayload = json_decode((string) $stored->payload, true);
+        $this->assertSame('Device C newest update', $storedPayload['title']);
+        $this->assertSame(1, DB::table('user_wellness_sessions')
+            ->where('user_id', $owner['id'])
+            ->count());
+
+        $dailyRow = DB::table('user_wellness_daily')
+            ->where('user_id', $owner['id'])
+            ->where('local_day', '2026-11-23')
+            ->first();
+        $this->assertNotNull($dailyRow);
+        $dailyPayload = json_decode((string) $dailyRow->payload, true);
+        $this->assertSame(60000, (int) $dailyPayload['watched_ms']);
+        $this->assertSame(1, (int) $dailyPayload['session_count']);
     }
 
     protected function tearDown(): void
