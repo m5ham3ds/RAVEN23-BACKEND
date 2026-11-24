@@ -1,0 +1,252 @@
+{
+  "contract_version": 1,
+  "base_path": "/api/v1",
+  "description": "Provider-neutral RAVEN23 Backend API v1 route and authentication boundary. Response field details are covered by ApiV1ContractTest and the companion contract document.",
+  "conventions": {
+    "format": "JSON",
+    "bearer_auth": "Authorization: Bearer <Sanctum token>",
+    "unauthenticated_http_status": 401,
+    "validation_http_status": 422,
+    "validation_error_shape": {
+      "message": "string",
+      "errors": "object<string,array<string>>"
+    },
+    "success_flag": "Boolean success is present on JSON responses where the endpoint returns an application envelope."
+  },
+  "routes": [
+    {
+      "method": "GET",
+      "path": "api/v1/health",
+      "auth": false,
+      "purpose": "API health and schema readiness summary"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/billing/plans",
+      "auth": false,
+      "purpose": "Public catalog; purchases stay disabled until commercial approval"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/media/{owner}/{media}/temporary",
+      "auth": false,
+      "purpose": "Signed short-lived media URL; signed middleware is required"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/register",
+      "auth": false,
+      "purpose": "Create account and initial Sanctum session"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/login",
+      "auth": false,
+      "purpose": "Password login and Sanctum session"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/google",
+      "auth": false,
+      "purpose": "Verified Google login and Sanctum session"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/guest",
+      "auth": false,
+      "purpose": "Create guest account and session"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/forgot-password",
+      "auth": false,
+      "purpose": "Non-enumerating password recovery request"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/reset-password",
+      "auth": false,
+      "purpose": "One-time password reset"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/verify-email",
+      "auth": false,
+      "purpose": "One-time email verification"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/users/check-username",
+      "auth": false,
+      "purpose": "Username availability"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/logout",
+      "auth": true,
+      "purpose": "Revoke the current Sanctum token"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/devices/register",
+      "auth": true,
+      "purpose": "Register authenticated FCM installation"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/push/subscriptions",
+      "auth": true,
+      "purpose": "Register authenticated OneSignal subscription"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/push/subscriptions/{subscriptionId}",
+      "auth": true,
+      "purpose": "Remove an owned OneSignal subscription"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/auth/email/verification-notification",
+      "auth": true,
+      "purpose": "Request verification notification"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/devices",
+      "auth": true,
+      "purpose": "List the authenticated account's device sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/user/devices",
+      "auth": true,
+      "purpose": "Revoke all device sessions for the authenticated account"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/user/devices/{tokenId}",
+      "auth": true,
+      "purpose": "Revoke one owned device session"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/media/{media}",
+      "auth": true,
+      "purpose": "Read owned private media metadata/content"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/user/media",
+      "auth": true,
+      "purpose": "Create private media record"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/user/media/{media}",
+      "auth": true,
+      "purpose": "Delete owned private media record"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/entitlements",
+      "auth": true,
+      "purpose": "Read server-calculated entitlements"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/wallet",
+      "auth": true,
+      "purpose": "Read authenticated account wallet"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/wallet/transactions",
+      "auth": true,
+      "purpose": "Read owner-scoped cursor-paginated wallet ledger"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/profile",
+      "auth": true,
+      "purpose": "Read authenticated account profile"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/user/profile",
+      "auth": true,
+      "purpose": "Update allowed profile fields"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/preferences",
+      "auth": true,
+      "purpose": "Read authenticated account preferences"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/user/preferences",
+      "auth": true,
+      "purpose": "Update authenticated account preferences"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/user/data-export",
+      "auth": true,
+      "purpose": "Export the authenticated account's server-held data"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/user/change-email",
+      "auth": true,
+      "purpose": "Request account email change"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/user/change-password",
+      "auth": true,
+      "purpose": "Change account password"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/user/account",
+      "auth": true,
+      "purpose": "Delete authenticated account with wallet-credit acknowledgement rule"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/sync/bookmarks",
+      "auth": true,
+      "purpose": "Bookmark full/delta synchronization"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/sync/bookmarks/{type}/{id}",
+      "auth": true,
+      "purpose": "Delete one owned bookmark"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/sync/recently-watched",
+      "auth": true,
+      "purpose": "Recently-watched synchronization"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/sync/playlists",
+      "auth": true,
+      "purpose": "Playlist synchronization"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/sync/preferences",
+      "auth": true,
+      "purpose": "Preference revision synchronization"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/sync/wellness",
+      "auth": true,
+      "purpose": "Wellness session and daily-summary synchronization"
+    }
+  ]
+}
