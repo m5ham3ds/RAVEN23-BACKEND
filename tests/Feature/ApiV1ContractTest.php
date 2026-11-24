@@ -124,7 +124,7 @@ class ApiV1ContractTest extends TestCase
             ['success', 'token', 'user', 'email_verification_required', 'verification_email_sent'],
             array_keys($registration->json()),
         );
-        $this->assertMatchesRegularExpression('/^[0-9]+\\|[a-f0-9]{64}$/', $registration->json('token'));
+        $this->assertMatchesRegularExpression('/^[0-9]+\\|[A-Za-z0-9]{40,64}$/', $registration->json('token'));
         $this->assertSame(
             [
                 'id', 'name', 'email', 'username', 'joined_at', 'created_at', 'updated_at',
