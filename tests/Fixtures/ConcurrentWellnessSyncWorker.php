@@ -23,6 +23,17 @@ try {
 
     $app = require $basePath.'/bootstrap/app.php';
     $kernel = $app->make(HttpKernel::class);
+
+    // Laravel registers facades and service-container bindings while the HTTP
+    // kernel bootstraps the application. Prime the independent child process
+    // with the database-free liveness route before opening its PostgreSQL session.
+    $bootstrapRequest = Request::create('/up', 'GET', [], [], [], [
+        'HTTP_ACCEPT' => 'application/json',
+        'REMOTE_ADDR' => '127.0.0.1',
+    ]);
+    $bootstrapResponse = $kernel->handle($bootstrapRequest);
+    $kernel->terminate($bootstrapRequest, $bootstrapResponse);
+
     $app->make('db')->connection('pgsql')->selectOne('select 1');
     file_put_contents($readyFile, 'ready');
 
