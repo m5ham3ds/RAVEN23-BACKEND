@@ -12,6 +12,7 @@ use Tests\TestCase;
 class PostgresPushSubscriptionTest extends TestCase
 {
     private array $createdUsers = [];
+
     private array $createdTokens = [];
 
     protected function setUp(): void
