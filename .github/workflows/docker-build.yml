@@ -526,7 +526,7 @@ jobs:
             }' > "$provenance"
 
           printf '%s  %s\n' "$archive_sha" "$(basename "$archive")" "$sbom_sha" "$(basename "$sbom")" > "$evidence_dir/SHA256SUMS"
-          sha256sum --check "$evidence_dir/SHA256SUMS"
+          (cd "$evidence_dir" && sha256sum --check SHA256SUMS)
           {
             echo "## Tested image release evidence"
             echo
