@@ -50,15 +50,20 @@ rollback_sbom="$evidence/raven23-backend-rollback.cdx.json"
 docker save --output "$rollback_archive" "$rollback_image"
 rollback_archive_sha="$(sha256sum "$rollback_archive" | awk '{print $1}')"
 
-# Scan the exact archive using Syft's documented positional scan-target syntax.
-# Keep CLI diagnostics in the job log and require a complete CycloneDX document.
+# Scan the exact Docker archive using Syft's documented scan subcommand.
+# Mount the archive read-only and stream CycloneDX to the runner. This avoids
+# relying on the Syft container user's write permission on the host evidence dir.
 docker pull anchore/syft:v1.57.1
-docker run --rm \
-  -v "$evidence:/out" \
+if ! docker run --rm \
+  --network none \
+  --volume "$rollback_archive:/input/rollback.tar:ro" \
   --entrypoint /syft \
   anchore/syft:v1.57.1 \
-  "docker-archive:/out/$(basename "$rollback_archive")" \
-  -o "cyclonedx-json=/out/$(basename "$rollback_sbom")"
+  scan "docker-archive:/input/rollback.tar" \
+  -o cyclonedx-json > "$rollback_sbom"; then
+  echo "::error::Syft failed to scan the rollback Docker archive; see the Syft diagnostics above." >&2
+  exit 1
+fi
 
 test -s "$rollback_sbom" || {
   echo "::error::Syft did not create the rollback SBOM file."
