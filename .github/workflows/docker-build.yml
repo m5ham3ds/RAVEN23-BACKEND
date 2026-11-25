@@ -553,7 +553,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: raven23-release-inputs-\${{ github.sha }}
+          name: raven23-release-inputs-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
           retention-days: 1
@@ -566,7 +566,7 @@ jobs:
             echo "## Docker validation trust boundary"
             echo "- Validation job permissions: contents: read only."
             echo "- Pull requests never receive OIDC or artifact-attestation permissions."
-            if [[ "\${GITHUB_REF}" == "refs/heads/main" && ( "\${GITHUB_EVENT_NAME}" == "push" || "\${GITHUB_EVENT_NAME}" == "workflow_dispatch" ) ]]; then
+            if [[ "${GITHUB_REF}" == "refs/heads/main" && ( "${GITHUB_EVENT_NAME}" == "push" || "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ) ]]; then
               echo "- Unsigned release inputs were uploaded for the separate trusted-main attestation job."
             else
               echo "- Release attestation is not eligible for this event/ref."
@@ -588,21 +588,21 @@ jobs:
       - name: Check out the exact source commit
         uses: actions/checkout@v7.0.1
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 1
 
       - name: Download unsigned release inputs from this workflow run
         uses: actions/download-artifact@v7.0.2
         with:
-          name: raven23-release-inputs-\${{ github.sha }}
+          name: raven23-release-inputs-${{ github.sha }}
           path: release-evidence
 
       - name: Verify source, rollback, hashes and rehearsal before signing
         env:
-          EXPECTED_REPOSITORY: \${{ github.repository }}
-          EXPECTED_SHA: \${{ github.sha }}
-          EXPECTED_RUN_ID: \${{ github.run_id }}
-          EXPECTED_RUN_ATTEMPT: \${{ github.run_attempt }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
         shell: bash
         run: |
           set -euo pipefail
@@ -716,22 +716,15 @@ jobs:
         id: image-provenance
         uses: actions/attest@v4
         with:
-          subject-path: release-evidence/raven23-backend-\${{ github.sha }}.docker.tar
+          subject-path: release-evidence/raven23-backend-${{ github.sha }}.docker.tar
           show-summary: true
 
       - name: Generate signed SBOM attestation for the tested image archive
         id: image-sbom-attestation
         uses: actions/attest@v4
         with:
-          subject-path: release-evidence/raven23-backend-\${{ github.sha }}.docker.tar
+          subject-path: release-evidence/raven23-backend-${{ github.sha }}.docker.tar
           sbom-path: release-evidence/raven23-backend.cdx.json
-          show-summary: true
-
-      - name: Generate signed SLSA build provenance attestation for the rollback image archive
-        id: rollback-image-provenance
-        uses: actions/attest@v4
-        with:
-          subject-path: release-evidence/raven23-backend-rollback-\${{ steps.rollback-meta.outputs.sha }}.docker.tar
           show-summary: true
 
       - name: Resolve rollback metadata for signed attestations
@@ -743,20 +736,27 @@ jobs:
           [[ "$rollback_sha" =~ ^[0-9a-f]{40}$ ]]
           echo "sha=$rollback_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Generate signed SLSA build provenance attestation for the rollback image archive
+        id: rollback-image-provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/raven23-backend-rollback-${{ steps.rollback-meta.outputs.sha }}.docker.tar
+          show-summary: true
+
       - name: Generate signed SBOM attestation for the rollback image archive
         id: rollback-image-sbom-attestation
         uses: actions/attest@v4
         with:
-          subject-path: release-evidence/raven23-backend-rollback-\${{ steps.rollback-meta.outputs.sha }}.docker.tar
+          subject-path: release-evidence/raven23-backend-rollback-${{ steps.rollback-meta.outputs.sha }}.docker.tar
           sbom-path: release-evidence/raven23-backend-rollback.cdx.json
           show-summary: true
 
       - name: Collect signed image and rollback attestation bundles
         env:
-          PROVENANCE_BUNDLE: \${{ steps.image-provenance.outputs.bundle-path }}
-          SBOM_BUNDLE: \${{ steps.image-sbom-attestation.outputs.bundle-path }}
-          ROLLBACK_PROVENANCE_BUNDLE: \${{ steps.rollback-image-provenance.outputs.bundle-path }}
-          ROLLBACK_SBOM_BUNDLE: \${{ steps.rollback-image-sbom-attestation.outputs.bundle-path }}
+          PROVENANCE_BUNDLE: ${{ steps.image-provenance.outputs.bundle-path }}
+          SBOM_BUNDLE: ${{ steps.image-sbom-attestation.outputs.bundle-path }}
+          ROLLBACK_PROVENANCE_BUNDLE: ${{ steps.rollback-image-provenance.outputs.bundle-path }}
+          ROLLBACK_SBOM_BUNDLE: ${{ steps.rollback-image-sbom-attestation.outputs.bundle-path }}
         run: |
           set -euo pipefail
           test -s "$PROVENANCE_BUNDLE"
@@ -772,14 +772,14 @@ jobs:
         id: release-manifest
         env:
           ROLLBACK_TARGET_FILE: phases/release/rollback-target.json
-          IMAGE_PROVENANCE_ID: \${{ steps.image-provenance.outputs.attestation-id }}
-          IMAGE_PROVENANCE_URL: \${{ steps.image-provenance.outputs.attestation-url }}
-          IMAGE_SBOM_ID: \${{ steps.image-sbom-attestation.outputs.attestation-id }}
-          IMAGE_SBOM_URL: \${{ steps.image-sbom-attestation.outputs.attestation-url }}
-          ROLLBACK_PROVENANCE_ID: \${{ steps.rollback-image-provenance.outputs.attestation-id }}
-          ROLLBACK_PROVENANCE_URL: \${{ steps.rollback-image-provenance.outputs.attestation-url }}
-          ROLLBACK_SBOM_ID: \${{ steps.rollback-image-sbom-attestation.outputs.attestation-id }}
-          ROLLBACK_SBOM_URL: \${{ steps.rollback-image-sbom-attestation.outputs.attestation-url }}
+          IMAGE_PROVENANCE_ID: ${{ steps.image-provenance.outputs.attestation-id }}
+          IMAGE_PROVENANCE_URL: ${{ steps.image-provenance.outputs.attestation-url }}
+          IMAGE_SBOM_ID: ${{ steps.image-sbom-attestation.outputs.attestation-id }}
+          IMAGE_SBOM_URL: ${{ steps.image-sbom-attestation.outputs.attestation-url }}
+          ROLLBACK_PROVENANCE_ID: ${{ steps.rollback-image-provenance.outputs.attestation-id }}
+          ROLLBACK_PROVENANCE_URL: ${{ steps.rollback-image-provenance.outputs.attestation-url }}
+          ROLLBACK_SBOM_ID: ${{ steps.rollback-image-sbom-attestation.outputs.attestation-id }}
+          ROLLBACK_SBOM_URL: ${{ steps.rollback-image-sbom-attestation.outputs.attestation-url }}
         shell: bash
         run: |
           set -euo pipefail
@@ -846,23 +846,23 @@ jobs:
 
       - name: Finalize and verify immutable release evidence
         env:
-          MANIFEST_BUNDLE: \${{ steps.release-manifest-attestation.outputs.bundle-path }}
+          MANIFEST_BUNDLE: ${{ steps.release-manifest-attestation.outputs.bundle-path }}
         run: |
           set -euo pipefail
           test -s "$MANIFEST_BUNDLE"
           cp "$MANIFEST_BUNDLE" release-evidence/release-manifest.sigstore.json
           (
             cd release-evidence
-            find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
             sha256sum --check SHA256SUMS
           )
-          echo "Release manifest signature: \${{ steps.release-manifest-attestation.outputs.attestation-url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Release manifest signature: ${{ steps.release-manifest-attestation.outputs.attestation-url }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload immutable release and rollback evidence
         id: release-evidence-upload
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: raven23-release-bundle-\${{ github.sha }}
+          name: raven23-release-bundle-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
           retention-days: 30
@@ -872,7 +872,7 @@ jobs:
         run: |
           {
             echo "## Immutable release and rollback bundle"
-            echo "- Artifact ID: \${{ steps.release-evidence-upload.outputs.artifact-id }}"
-            echo "- Artifact URL: \${{ steps.release-evidence-upload.outputs.artifact-url }}"
-            echo "- Artifact digest: \${{ steps.release-evidence-upload.outputs.artifact-digest }}"
+            echo "- Artifact ID: ${{ steps.release-evidence-upload.outputs.artifact-id }}"
+            echo "- Artifact URL: ${{ steps.release-evidence-upload.outputs.artifact-url }}"
+            echo "- Artifact digest: ${{ steps.release-evidence-upload.outputs.artifact-digest }}"
           } >> "$GITHUB_STEP_SUMMARY"
