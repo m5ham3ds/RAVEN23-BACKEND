@@ -35,7 +35,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B ينتظر Admin لتفعيل حماية main وrequired checks) | 01–09 تدريجيًا؛ جاهزية الإصدار لا تلغي اعتمادات staging الخارجية |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A cost scorecard WAITING_INPUT؛ 11B1 trust model DESIGN_IN_PROGRESS (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: 10B Admin + موافقة provider/region/cost، مع 04/08 عند الحاجة |
+| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust model DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: 10B Admin + موافقة provider/region/cost، مع 04/08 عند الحاجة |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
 

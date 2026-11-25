@@ -29,7 +29,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر صلاحية Admin رغم اكتمال 10A و10C–10G. Phase11A أعدت مصفوفة قابلية الخروج وقالب تكلفة ينتظر مدخلات المنطقة والحمل؛ Phase11B1 بدأت كنموذج ثقة تصميمي فقط. لا يوجد مزود مختار أو موارد منشأة، وPhase11B2 تنتظر إغلاق 10B وموافقة الاستضافة.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر صلاحية Admin. Phase11A اكتمل خط أساس قابلية النقل تقنيًا، بينما scorecard التكلفة ينتظر المدخلات؛ Phase11B1 DESIGN_COMPLETE على مستوى التصميم فقط، مع فجوة صلاحيات Docker موثقة قبل enforcement. Phase11B2 و11C–11F تنتظر الاعتماديات والموافقات؛ لا يوجد مزود مختار أو موارد منشأة.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

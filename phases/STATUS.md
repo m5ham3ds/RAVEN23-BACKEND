@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
-| 11 — البنية المحمولة والنشر | 11A COST_SCORECARD_WAITING_INPUT؛ 11B1 DESIGN_IN_PROGRESS فقط؛ 11B2 enforcement وprovisioning WAITING_EXTERNAL | أُعدت مصفوفة الخروج وقالب التكلفة وفصل Sigstore عن cloud OIDC. لم تُعتمد region/workload/budget أو provider. 10B ما زالت OPEN وmain protected=false؛ لا deployment. |
+| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | اكتمل جرد العقود وtrust model/claim matrix وفصل الهويات. توجد فجوة least-privilege في Docker workflow موثقة للإصلاح قبل enforcement. لا provider أو region أو budget معتمد؛ 10B OPEN وmain protected=false؛ لا deployment. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -388,3 +388,23 @@
 - All SHA256SUMS entries passed, including release/rollback archives, SBOMs, provenance bundles, manifest, manifest signature and rehearsal report. No shell command errors.
 - This is disposable CI/loopback evidence, not real S3 provider staging, cloud load-balancer test or production deployment.
 - main remains `protected=false`; Phase10B is still OPEN. Phase11B1 remains design-only; cost scorecard waits for region/workload/retention/budget inputs. No provider, region or paid resources selected or created.
+
+
+## 30. Phase11B1 trust design closeout — 25 November 2026
+
+تم التحقق من main SHA `1b57b1da178dfd993c5f9bc1e2a19136af797f21`؛ بوابات CI الأربع كلها SUCCESS على SHA نفسه:
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45638169465](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45638169465) | SUCCESS |
+| Authentication Regression | [45638169413](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45638169413) | SUCCESS |
+| Security Scans | [45638169229](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45638169229) | SUCCESS |
+| Pint Format | [45638169219](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45638169219) | SUCCESS |
+
+- هذا SHA كان تحديثًا وثائقيًا فوق application/runtime baseline `84b87d9`؛ لم يتغير كود التطبيق في `1b57b1d`.
+- أُغلقت 11B1 على مستوى التصميم فقط: trust flow، claim matrix، فصل CI/attestation/registry/deploy/migration/runtime identities، ومتطلبات digest verification.
+- التدقيق وجد أن `.github/workflows/docker-build.yml` يضع `id-token: write` و`attestations: write` و`artifact-metadata: write` على مستوى workflow يعمل على push وpull_request، وأن خطوات attest غير مقيدة بشرط event/ref صريح. هذه فجوة least-privilege موثقة للإصلاح قبل enforcement.
+- Gitleaks حاجز فشل؛ Trivy filesystem وimage reports غير blocking بسبب `--exit-code 0`، والعتبة blocking منفصلة للـfixable HIGH/CRITICAL image vulnerabilities فقط. لا يعني SUCCESS أن جميع تقارير Trivy فارغة.
+- `main.protected=false`؛ 10B ما زالت OPEN. لم تنشأ Environments أو OIDC cloud roles أو secrets أو registry push أو IaC resources أو نشر.
+- 11A cost scorecard ما زالت WAITING_INPUT. 11B2 enforcement تنتظر إغلاق 10B وموافقة المزود والمنطقة والتكلفة.
+- أي تغييرات وثائقية تضاف بعد هذا baseline يجب أن تجتاز CI على SHA الجديد قبل وصفها بأنها verified.

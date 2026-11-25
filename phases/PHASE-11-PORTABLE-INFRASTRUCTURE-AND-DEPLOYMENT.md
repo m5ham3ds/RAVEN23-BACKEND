@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A DESIGN_IN_PROGRESS (provider-neutral baseline ready؛ pricing scorecard waits for region/workload inputs)؛ 11B1 DESIGN_IN_PROGRESS (trust model design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ 10B required checks شرط قبل نشر production. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -71,7 +71,7 @@
 - تحديد عقود التطبيقات التي يجب أن تظل مستقلة عن provider.
 - إعداد scorecard للتكلفة والاعتمادية والأمن والخروج دون اختيار فائز الآن.
 
-### 11B1 — Secure deployment trust model design (DESIGN_IN_PROGRESS؛ تصميم فقط)
+### 11B1 — Secure deployment trust model design (DESIGN_COMPLETE؛ التصميم فقط، دون enforcement)
 
 - تعريف الفصل بين CI build/test/scan وartifact attestation وOCI registry publication وstaging/production deployment.
 - توثيق الفرق بين Sigstore signing OIDC وcloud workload identity؛ `id-token: write` في Docker workflow يستخدمه `actions/attest@v4` لتوقيع provenance/SBOM ولا يعني وجود cloud deployment role.
@@ -160,7 +160,7 @@
 
 ## 8. المرحلة التالية المسموح بها
 
-استكمال 11A فقط: جرد كل تكامل حالي مع مزود خارجي داخل ملفات التطبيق، وتقييم نقاط التبديل وقيود S3/PostgreSQL/queue/secrets، ثم إعداد scorecard للتكلفة/portability دون اختيار أو إنشاء موارد.
+اكتمل جرد العقود التقنية وportability matrix وتصميم trust boundaries. يبقى تسعير scorecard الخاص بـ11A معلقًا حتى اعتماد مدخلات المنطقة والحمل والبيانات والاحتفاظ وHA/RPO/RTO والميزانية. اكتمل الآن تصميم 11B1 فقط؛ لا يبدأ 11B2 enforcement إلا بعد إغلاق 10B عبر Repository Admin، ولا تبدأ provisioning أو IaC apply أو staging قبل اختيار المزود والمنطقة والتكلفة وموافقة المستخدم. لا يجوز تجاوز هذه الاعتماديات أو اعتبار التصميم تنفيذًا.
 
 ## 9. Phase11A exit scorecard وPhase11B1 trust boundaries
 
@@ -251,3 +251,76 @@ Protected source revision
 - S3Mock used `RAVEN23_OBJECT_STORAGE_*` and the real Laravel filesystem config. It validates API compatibility only, not provider-specific lifecycle/versioning/ACL, pricing, real staging credentials or transfer performance.
 - This run is disposable CI/loopback evidence only; no registry push, cloud load balancer, cloud identity, staging resource or production deployment.
 - 10B remains OPEN because `main.protected=false`; Phase11B2 enforcement remains blocked. 11A cost scorecard remains unpriced until region/workload/retention/HA/budget inputs are supplied.
+
+
+## 11. Phase11B1 — تدقيق حدود الثقة وتصميم النشر الآمن — 25 نوفمبر 2026
+
+### 11.1 نتيجة مراجعة الملفات الفعلية
+
+تمت مراجعة شجرة المستودع وملفات workflows والإعدادات على main SHA `1b57b1da178dfd993c5f9bc1e2a19136af797f21`.
+
+| الملف/المكوّن | الحالة المرصودة | الدلالة الأمنية |
+|---|---|---|
+| `.github/workflows/docker-build.yml` | يعمل على push وpull_request إلى main وworkflow_dispatch؛ جميع مراحل build/test/release evidence/attestations داخل job واحد | لا يوجد فصل صلاحيات بين اختبار PR وإصدار أدلة release |
+| Docker workflow permissions | `contents: read` و`id-token: write` و`attestations: write` و`artifact-metadata: write` على مستوى workflow | صلاحيات OIDC/attestation أوسع من حاجة خطوات الاختبار، وليست مقيدة على مستوى job أو event |
+| خطوات `actions/attest@v4` | توقيع provenance وSBOM وrelease manifest دون شرط event/ref صريح على الخطوات | يجب فصلها في job إصدار موثوق بعد نجاح الاختبارات وعلى source ref موثوق |
+| Auth / Security / Pint workflows | `contents: read` فقط في المستوى الحالي | Auth وSecurity بوابات candidates، وPint report ينتج artifact |
+| Pint | التقرير المستقل يرفع الملفات المنسقة كـartifact ولا يكتبها في main؛ Docker يشغل `pint --test` على PHP المتغير | Docker job هو بوابة Pint الفعلية؛ تقرير Pint ليس required check مستقلًا |
+| Security | Gitleaks يفشل عند العثور على secret؛ تقارير Trivy filesystem وimage تستخدم `--exit-code 0`؛ خطوة منفصلة تفشل على fixable HIGH/CRITICAL image vulnerabilities مع `--ignore-unfixed` | نجاح Security لا يعني خلو كل تقارير Trivy من كل finding |
+| Release evidence | Docker archive مربوط بـsource SHA وimage config digest وbase digest وSHA256 للـarchive/SBOM وprovenance/manifest موقع | هذا دليل archive/local image؛ ليس OCI registry manifest digest |
+| Auth HTTP smoke | workflow_dispatch يدوي، GET-only لـ/up و/ready و/health وتسجيل المسارات | لا credentials أو إنشاء حساب أو migrations |
+| GitHub branch/tree | `main.protected=false`، لا deployment workflow ولا Environment محمية ولا cloud OIDC role أو registry push أو IaC directory | لا توجد حماية merge أو قناة نشر سحابية مهيأة |
+
+### 11.2 مواصفات فصل الصلاحيات قبل enforcement
+
+1. **CI validation:** `contents: read` فقط افتراضيًا؛ لا `id-token: write` ولا `attestations: write` ولا credentials سحابية.
+2. **Release attestation:** job مستقل بعد نجاح Docker/Auth/Security، وعلى push موثوق إلى `refs/heads/main` فقط؛ أقل صلاحيات Sigstore المطلوبة، دون cloud deploy permissions.
+3. **PR isolation:** لا `pull_request_target`، ولا secrets أو deploy identities لشفرة PR؛ لا يصدر PR attestations موثوقة صالحة للنشر.
+4. **Registry publication:** job مستقل ينشر artifact/image المختبر نفسه مرة واحدة إلى OCI registry ويسجل manifest digest؛ لا rebuild أثناء staging أو production.
+5. **Staging/Production:** GitHub Environments منفصلة، approvals/reviewers وbranch restrictions؛ Production approval منفصل ولا يستطيع staging identity تنفيذ production.
+6. **Migration identity:** مهمة واحدة تستخدم `DB_MIGRATION_URL` عند الحاجة؛ لا تمرر هذه الهوية إلى web runtime أو queue workers.
+7. **Runtime identity:** DB application role محدود بـCRUD المطلوب؛ لا create role/database/schema ولا deploy rights ولا قراءة deploy secrets.
+8. **Rollback:** الرجوع إلى digest سبق التحقق من provenance/SBOM/manifest؛ لا يعاد build للنسخة القديمة أثناء rollback.
+
+### 11.3 عقد claims لهوية GitHub OIDC المستقبلية
+
+| Claim / attribute | القيد المطلوب |
+|---|---|
+| issuer (`iss`) | GitHub Actions issuer الرسمي فقط |
+| audience (`aud`) | قيمة مخصصة للمستهلك/المزود؛ لا wildcard ولا audience مشتركة بين staging وproduction |
+| repository identity | `repository` ويفضل `repository_id` الثابت للمستودع المحدد |
+| owner identity | `repository_owner` أو المعرّف الثابت للمالك |
+| workflow identity | مسار workflow محدد و`workflow_ref` مقيد إلى ref معتمد |
+| source ref | `refs/heads/main` المحمي فقط لـrelease/deploy؛ لا PR أو fork refs |
+| event | allowlist صريحة للأحداث المطلوبة؛ نشر البيئة لا يُستمد من حدث PR |
+| environment | `staging` أو `production` المحددة فقط لهوية النشر؛ تطابق Environment protection |
+| source SHA / run | ربط العملية بـ`sha` وrun ID ومحاولة التنفيذ وprovenance |
+| reusable workflow | عند استخدامه، يقيد مساره وهويته وإصداره/commit المثبت بقدر ما يدعمه المزود |
+
+لا تُثبّت صيغة subject أو audience الخاصة بمزود قبل اختياره؛ يجب فحص JWT claims الفعلية ووثائق المزود عند التنفيذ. لا يدخل `actor` أو اسم branch غير محمي وحده كدليل كافٍ.
+
+### 11.4 فصل الهويات
+
+| الهوية | المسموح | الممنوع |
+|---|---|---|
+| CI builder | قراءة المصدر وbuild/test/scan | production secrets أو DB أو deploy API |
+| Attestor | توقيع provenance/SBOM/manifest لأثر محدد | إنشاء موارد أو نشر أو تعديل بيانات |
+| Registry publisher | push image immutable/digest محدد | DB access أو runtime secrets |
+| Staging deployer | نشر digest متحقق إلى staging فقط | production أو DB migration role |
+| Production deployer | نشر digest معتمد بعد approval | تغيير المصدر أو rebuild أو DB admin |
+| Migration runner | migration صريحة بهوية DB مستقلة | serving requests أو queue worker |
+| Runtime application | DB_URL وموارد runtime المحددة | DB_MIGRATION_URL أو cloud admin/deploy |
+
+### 11.5 ضوابط مطابقة الأدلة قبل النشر
+
+- تطابق repository identity وsource SHA وworkflow identity بين commit وprovenance وSBOM وmanifest.
+- التحقق من التوقيع والـsubject digest والسياسة قبل نشر أو تشغيل image.
+- بعد registry push، يسجل OCI manifest digest؛ ولا يستبدل بـGitHub artifact digest أو Docker archive SHA-256 أو image config digest.
+- جميع required checks خضراء على SHA نفسه، مع branch protection مفعّلة قبل release/deploy.
+- لا تعد نتيجة Pint report المستقلة gate طالما Docker strict Pint هو check الفعلي.
+- تقارير Trivy غير الحاجبة تظل evidence advisory؛ أي تغيير لعتبة security gate يحتاج قرارًا معلنًا واختبارات مثبتة.
+- لا توجد في 11B1 صلاحيات أو trust policy فعلية أو provider معتمد.
+
+### 11.6 إغلاق التصميم
+
+**11B1 DESIGN_COMPLETE — design only.** اكتمل توثيق تدفق الثقة وclaim allowlist وفصل الهويات ومتطلبات digest/attestation وفجوة least-privilege. لم يتم تغيير workflow permissions أو تنفيذ trust policy فعلية. تبقى 11B2 WAITING_EXTERNAL بسبب 10B وقرارات المزود/المنطقة/التكلفة. وتبقى 11A cost scorecard WAITING_INPUT.

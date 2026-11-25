@@ -1,6 +1,7 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified main SHA:** 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
+**Latest fully CI-verified application/runtime SHA:** 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
+**Latest fully CI-verified docs-only baseline:** 1b57b1da178dfd993c5f9bc1e2a19136af797f21  
 **تاريخ التحديث:** 25 نوفمبر 2026 — السجل الأقدم تاريخي  
 **الحالة:** جرد Phase10A مصحح؛ خمس workflows CI/manual read-only ولا توجد قناة cloud deploy. آخر CI شامل موثق على 84b87d9 — 25 نوفمبر 2026.
 
@@ -290,3 +291,36 @@ No production database, secrets, deployments, registry publishing or AWS resourc
 - Docker `id-token: write` supports Sigstore attestations through `actions/attest@v4`; no cloud deploy identity, provider role, registry push or deployment workflow is configured.
 - main is still `protected=false`; required-check enforcement awaits Repository Admin and an approved merge-control approach.
 - No provider, region, cost ceiling, GitHub deployment environment, cloud OIDC policy or paid resource has been selected or created.
+
+
+## 15. Phase11B1 trust boundary audit — verified baseline 1b57b1d — 25 November 2026
+
+All four workflows on `1b57b1da178dfd993c5f9bc1e2a19136af797f21` completed SUCCESS: Docker #45638169465, Authentication #45638169413, Security #45638169229, Pint #45638169219. This commit was documentation-only; the latest application/runtime baseline remained `84b87d9`.
+
+### Permission and trigger audit
+
+- Docker Validation is triggered by push and pull_request to main plus workflow_dispatch. Its top-level permissions include `contents: read`, `id-token: write`, `attestations: write`, and `artifact-metadata: write`. Build, tests, rollback rehearsal, evidence packaging and all `actions/attest@v4` steps share one job. Attestation steps have no explicit event/ref condition.
+- This is broader than the trust design requires. Before 11B2, split validation from release attestation: validation jobs remain read-only; an attestation job runs only after required gates and only for a trusted main release event, with minimum Sigstore permissions.
+- Auth, Security and Pint workflows currently request `contents: read` only.
+- Do not confuse `id-token: write` used by Sigstore/Fulcio with cloud workload identity. No cloud role, trust policy, deployment workflow or environment exists.
+
+### Meaning of the current gates
+
+- Gitleaks is a blocking working-tree secret scan.
+- Trivy filesystem and broad image reports use `--exit-code 0`, so those findings are report evidence and do not independently fail the job.
+- A later Trivy step blocks fixable HIGH/CRITICAL vulnerabilities in the production image (`--ignore-unfixed`).
+- Pint's separate workflow produces a formatting artifact; the blocking changed-PHP style check is `pint --test` within Docker Validation.
+- Manual HTTP smoke is GET-only and does not create accounts, send notifications or run migrations.
+
+### Release evidence identity
+
+Current release evidence binds source commit, local image config digest, Docker archive SHA-256, SBOM SHA-256 and signed attestations/manifest. It explicitly records `registryPush:false`; archive digest, GitHub artifact digest, image config digest and future OCI registry manifest digest are different identifiers. Deployment must consume and verify the exact published OCI manifest digest without rebuilding.
+
+### Remaining controls
+
+- Enable main branch protection/required checks via Repository Admin (10B).
+- Move privileged attestation permissions to a narrowly scoped trusted job; never expose deployment credentials to PR code.
+- Create separate staging/production environments and distinct short-lived deploy identities only after provider/region/cost approval.
+- Keep migration, deploy and runtime identities separate; no production cutover before Phase12 approval and verified backup restore.
+
+No workflow was changed in this design-only audit.
