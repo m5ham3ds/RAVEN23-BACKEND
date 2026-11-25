@@ -20,11 +20,11 @@ proxy_pid=""
 cleanup() {
   if [ -n "$proxy_pid" ]; then kill "$proxy_pid" >/dev/null 2>&1 || true; wait "$proxy_pid" >/dev/null 2>&1 || true; fi
   docker rm -f "$current_name" "$rollback_name" >/dev/null 2>&1 || true
-  rm -f "$active_file" "$active_file.next" "$proxy_log"
+  rm -f "$active_file" "$active_file.next"
   rm -rf "$context"
 }
 trap cleanup EXIT
-trap 'status=$?; printf "::error::Rollback rehearsal failed at line %s: %s (exit %s)\\n" "${BASH_LINENO[0]:-?}" "$BASH_COMMAND" "$status" >&2' ERR
+trap 'status=$?; printf "::error::Rollback rehearsal failed at line %s: %s (exit %s)\\n" $LINENO "$BASH_COMMAND" "$status" >&2' ERR
 mkdir -p "$evidence"
 
 docker tag raven23-backend:ci "$current_image"
@@ -147,20 +147,37 @@ probe() {
   headers="$(mktemp)"
   body="$(mktemp)"
   status="$(curl -sS -o "$body" -D "$headers" -w '%{http_code}' --max-time 5 "http://127.0.0.1:$proxy_port/up" || true)"
+  backend_port="$(tr -d '\r' < "$headers" | awk 'tolower($1) == "x-raven23-backend-port:" { value=$2 } END { print value }')"
   ok=false
-  if [ "$status" = "200" ] && grep -Eiq "^X-RAVEN23-Backend-Port:[[:space:]]*$1\r?$" "$headers"; then ok=true; fi
-  if [ "$ok" != "true" ]; then cat "$headers" "$body" "$proxy_log" >&2 || true; fi
+  if [ "$status" = "200" ] && [ "$backend_port" = "$1" ]; then ok=true; fi
+  if [ "$ok" != "true" ]; then
+    echo "::error::Proxy route probe expected HTTP 200 from backend port $1; received HTTP $status and backend header '$backend_port'." >&2
+    cat "$headers" "$body" "$proxy_log" >&2 || true
+  fi
   rm -f "$headers" "$body"
   test "$ok" = "true"
 }
 proxy_ready=false
 for attempt in $(seq 1 30); do
-  if probe "$current_port" >/dev/null 2>&1; then proxy_ready=true; break; fi
+  if python3 -c 'import socket,sys; s=socket.socket(); s.settimeout(1); s.connect(("127.0.0.1", int(sys.argv[1]))); s.close()' "$proxy_port" 2>/dev/null; then
+    proxy_ready=true
+    break
+  fi
+  if ! kill -0 "$proxy_pid" >/dev/null 2>&1; then
+    echo "::error::Loopback proxy process exited before opening its listener." >&2
+    cat "$proxy_log" >&2 || true
+    exit 1
+  fi
   sleep 1
 done
-test "$proxy_ready" = "true"
-echo "::notice::Loopback proxy is routing to the current candidate."
+if [ "$proxy_ready" != "true" ]; then
+  echo "::error::Loopback proxy did not open port $proxy_port within 30 seconds." >&2
+  cat "$proxy_log" >&2 || true
+  exit 1
+fi
+echo "::notice::Loopback proxy listener is accepting TCP connections."
 probe "$current_port"
+echo "::notice::Loopback proxy successfully routed HTTP 200 to the current candidate."
 
 docker stop "$current_name" >/dev/null
 failed_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 "http://127.0.0.1:$proxy_port/up" || true)"
@@ -206,3 +223,4 @@ printf 'current_platform=%s\n' "$current_platform" >> "$GITHUB_OUTPUT"
   echo "- Both containers ran non-root; readiness returned 503 without a database."
   echo "- No production database/secrets, deployment, registry push or AWS resource."
 } >> "$GITHUB_STEP_SUMMARY"
+rm -f "$proxy_log"
