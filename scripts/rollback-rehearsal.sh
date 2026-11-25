@@ -65,7 +65,7 @@ if ! docker run --rm \
   scan "docker-archive:/input/rollback.tar" \
   --parallelism 1 -vv \
   -o cyclonedx-json > "$rollback_sbom" 2> "$rollback_syft_log"; then
-  echo "::error::Syft failed to scan the rollback Docker archive (exit=$?). Diagnostics:" >&2
+  echo "::error::Syft failed to scan the rollback Docker archive. Diagnostics:" >&2
   tail -n 200 "$rollback_syft_log" >&2 || true
   exit 1
 fi
