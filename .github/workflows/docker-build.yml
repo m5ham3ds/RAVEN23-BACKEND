@@ -458,6 +458,12 @@ jobs:
         if: always()
         run: docker rm -f raven23-frankenphp-smoke >/dev/null 2>&1 || true
 
+      - name: Rebuild previous known-good release and rehearse isolated traffic rollback
+        id: rollback-rehearsal
+        env:
+          ROLLBACK_TARGET_FILE: phases/release/rollback-target.json
+        run: bash scripts/rollback-rehearsal.sh
+
       - name: Package the tested image with SHA-bound provenance and SBOM
         id: release-evidence
         env:
@@ -525,8 +531,10 @@ jobs:
               registry: {published: false, note: "No registry manifest digest is claimed; the local image config digest and exact archive SHA-256 identify the tested image artifact."}
             }' > "$provenance"
 
-          printf '%s  %s\n' "$archive_sha" "$(basename "$archive")" "$sbom_sha" "$(basename "$sbom")" > "$evidence_dir/SHA256SUMS"
-          (cd "$evidence_dir" && sha256sum --check SHA256SUMS)
+          printf 'image_config_digest=%s\n' "$image_id" >> "$GITHUB_OUTPUT"
+          printf 'image_platform=%s\n' "$image_platform" >> "$GITHUB_OUTPUT"
+          printf 'archive_sha256=%s\n' "$archive_sha" >> "$GITHUB_OUTPUT"
+          printf 'sbom_sha256=%s\n' "$sbom_sha" >> "$GITHUB_OUTPUT"
           {
             echo "## Tested image release evidence"
             echo
@@ -555,21 +563,134 @@ jobs:
           sbom-path: release-evidence/raven23-backend.cdx.json
           show-summary: true
 
-      - name: Collect signed attestation bundles
+      - name: Generate signed SLSA build provenance attestation for the rollback image archive
+        id: rollback-image-provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/raven23-backend-rollback-${{ steps.rollback-rehearsal.outputs.rollback_sha }}.docker.tar
+          show-summary: true
+
+      - name: Generate signed SBOM attestation for the rollback image archive
+        id: rollback-image-sbom-attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/raven23-backend-rollback-${{ steps.rollback-rehearsal.outputs.rollback_sha }}.docker.tar
+          sbom-path: release-evidence/raven23-backend-rollback.cdx.json
+          show-summary: true
+
+      - name: Collect signed image and rollback attestation bundles
         env:
           PROVENANCE_BUNDLE: ${{ steps.image-provenance.outputs.bundle-path }}
           SBOM_BUNDLE: ${{ steps.image-sbom-attestation.outputs.bundle-path }}
+          ROLLBACK_PROVENANCE_BUNDLE: ${{ steps.rollback-image-provenance.outputs.bundle-path }}
+          ROLLBACK_SBOM_BUNDLE: ${{ steps.rollback-image-sbom-attestation.outputs.bundle-path }}
         run: |
           set -euo pipefail
           test -s "$PROVENANCE_BUNDLE"
           test -s "$SBOM_BUNDLE"
+          test -s "$ROLLBACK_PROVENANCE_BUNDLE"
+          test -s "$ROLLBACK_SBOM_BUNDLE"
           cp "$PROVENANCE_BUNDLE" release-evidence/image-provenance.sigstore.json
           cp "$SBOM_BUNDLE" release-evidence/image-sbom.sigstore.json
+          cp "$ROLLBACK_PROVENANCE_BUNDLE" release-evidence/rollback-image-provenance.sigstore.json
+          cp "$ROLLBACK_SBOM_BUNDLE" release-evidence/rollback-image-sbom.sigstore.json
 
-      - name: Upload immutable image, SBOM and provenance evidence
+      - name: Generate immutable release manifest
+        id: release-manifest
+        env:
+          ROLLBACK_TARGET_FILE: phases/release/rollback-target.json
+          CURRENT_IMAGE_TAG: ${{ steps.rollback-rehearsal.outputs.current_image_tag }}
+          CURRENT_CONFIG_DIGEST: ${{ steps.release-evidence.outputs.image_config_digest }}
+          CURRENT_PLATFORM: ${{ steps.release-evidence.outputs.image_platform }}
+          CURRENT_ARCHIVE_SHA256: ${{ steps.release-evidence.outputs.archive_sha256 }}
+          CURRENT_SBOM_SHA256: ${{ steps.release-evidence.outputs.sbom_sha256 }}
+          ROLLBACK_SHA: ${{ steps.rollback-rehearsal.outputs.rollback_sha }}
+          ROLLBACK_IMAGE_TAG: ${{ steps.rollback-rehearsal.outputs.rollback_image_tag }}
+          ROLLBACK_CONFIG_DIGEST: ${{ steps.rollback-rehearsal.outputs.rollback_config_digest }}
+          ROLLBACK_PLATFORM: ${{ steps.rollback-rehearsal.outputs.rollback_platform }}
+          ROLLBACK_ARCHIVE_FILE: ${{ steps.rollback-rehearsal.outputs.rollback_archive_file }}
+          ROLLBACK_ARCHIVE_SHA256: ${{ steps.rollback-rehearsal.outputs.rollback_archive_sha256 }}
+          ROLLBACK_SBOM_SHA256: ${{ steps.rollback-rehearsal.outputs.rollback_sbom_sha256 }}
+          IMAGE_PROVENANCE_ID: ${{ steps.image-provenance.outputs.attestation-id }}
+          IMAGE_PROVENANCE_URL: ${{ steps.image-provenance.outputs.attestation-url }}
+          IMAGE_SBOM_ID: ${{ steps.image-sbom-attestation.outputs.attestation-id }}
+          IMAGE_SBOM_URL: ${{ steps.image-sbom-attestation.outputs.attestation-url }}
+          ROLLBACK_PROVENANCE_ID: ${{ steps.rollback-image-provenance.outputs.attestation-id }}
+          ROLLBACK_PROVENANCE_URL: ${{ steps.rollback-image-provenance.outputs.attestation-url }}
+          ROLLBACK_SBOM_ID: ${{ steps.rollback-image-sbom-attestation.outputs.attestation-id }}
+          ROLLBACK_SBOM_URL: ${{ steps.rollback-image-sbom-attestation.outputs.attestation-url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rollback_validation="$(jq -c '.rollbackTarget.validation' "$ROLLBACK_TARGET_FILE")"
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" --arg commit "$GITHUB_SHA" \
+            --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg current_image "$CURRENT_IMAGE_TAG" --arg current_digest "$CURRENT_CONFIG_DIGEST" \
+            --arg current_platform "$CURRENT_PLATFORM" --arg current_archive "raven23-backend-$GITHUB_SHA.docker.tar" \
+            --arg current_archive_sha "$CURRENT_ARCHIVE_SHA256" --arg current_sbom "raven23-backend.cdx.json" \
+            --arg current_sbom_sha "$CURRENT_SBOM_SHA256" \
+            --arg old_commit "$ROLLBACK_SHA" --arg old_image "$ROLLBACK_IMAGE_TAG" \
+            --arg old_digest "$ROLLBACK_CONFIG_DIGEST" --arg old_platform "$ROLLBACK_PLATFORM" \
+            --arg old_archive "$ROLLBACK_ARCHIVE_FILE" --arg old_archive_sha "$ROLLBACK_ARCHIVE_SHA256" \
+            --arg old_sbom "raven23-backend-rollback.cdx.json" --arg old_sbom_sha "$ROLLBACK_SBOM_SHA256" \
+            --argjson old_validation "$rollback_validation" \
+            --arg cur_prov_id "$IMAGE_PROVENANCE_ID" --arg cur_prov_url "$IMAGE_PROVENANCE_URL" \
+            --arg cur_sbom_id "$IMAGE_SBOM_ID" --arg cur_sbom_url "$IMAGE_SBOM_URL" \
+            --arg old_prov_id "$ROLLBACK_PROVENANCE_ID" --arg old_prov_url "$ROLLBACK_PROVENANCE_URL" \
+            --arg old_sbom_id "$ROLLBACK_SBOM_ID" --arg old_sbom_url "$ROLLBACK_SBOM_URL" \
+            --slurpfile rehearsal release-evidence/rollback-rehearsal.json \
+            '{
+              schemaVersion:1,kind:"raven23.immutable-release-manifest",
+              source:{repository:$repository,branch:"main",commit:$commit,workflowRunId:$run,workflowRunAttempt:$attempt},
+              release:{image:$current_image,configDigest:$current_digest,platform:$current_platform,dockerArchive:{file:$current_archive,sha256:$current_archive_sha},sbom:{file:$current_sbom,format:"CycloneDX JSON",sha256:$current_sbom_sha}},
+              rollback:{sourceCommit:$old_commit,image:$old_image,configDigest:$old_digest,platform:$old_platform,dockerArchive:{file:$old_archive,sha256:$old_archive_sha},sbom:{file:$old_sbom,format:"CycloneDX JSON",sha256:$old_sbom_sha},priorCiValidation:$old_validation,rehearsal:$rehearsal[0]},
+              attestations:{
+                releaseProvenance:{id:$cur_prov_id,url:$cur_prov_url,bundle:"image-provenance.sigstore.json"},
+                releaseSbom:{id:$cur_sbom_id,url:$cur_sbom_url,bundle:"image-sbom.sigstore.json"},
+                rollbackProvenance:{id:$old_prov_id,url:$old_prov_url,bundle:"rollback-image-provenance.sigstore.json"},
+                rollbackSbom:{id:$old_sbom_id,url:$old_sbom_url,bundle:"rollback-image-sbom.sigstore.json"}
+              },
+              publication:{registryPush:false,productionDeployment:false,productionDatabaseTouched:false}
+            }' > release-evidence/release-manifest.json
+          jq -e '.schemaVersion == 1 and .release.configDigest and .rollback.configDigest and .rollback.rehearsal.result == "passed" and .attestations.releaseProvenance.url and .attestations.releaseSbom.url and .attestations.rollbackProvenance.url and .attestations.rollbackSbom.url' release-evidence/release-manifest.json >/dev/null
+
+      - name: Sign the immutable release manifest
+        id: release-manifest-attestation
+        uses: actions/attest@v4
+        with:
+          subject-path: release-evidence/release-manifest.json
+          show-summary: true
+
+      - name: Finalize and verify immutable release evidence
+        env:
+          MANIFEST_BUNDLE: ${{ steps.release-manifest-attestation.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -s "$MANIFEST_BUNDLE"
+          cp "$MANIFEST_BUNDLE" release-evidence/release-manifest.sigstore.json
+          (
+            cd release-evidence
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+          echo "Release manifest signature: ${{ steps.release-manifest-attestation.outputs.attestation-url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload immutable release and rollback evidence
+        id: release-evidence-upload
         uses: actions/upload-artifact@v7.0.2
         with:
-          name: raven23-tested-image-evidence-${{ github.sha }}
+          name: raven23-release-bundle-${{ github.sha }}
           path: release-evidence/
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0
+
+      - name: Publish release bundle location
+        run: |
+          {
+            echo "## Immutable release and rollback bundle"
+            echo "- Artifact ID: ${{ steps.release-evidence-upload.outputs.artifact-id }}"
+            echo "- Artifact URL: ${{ steps.release-evidence-upload.outputs.artifact-url }}"
+            echo "- Artifact digest: ${{ steps.release-evidence-upload.outputs.artifact-digest }}"
+          } >> "$GITHUB_STEP_SUMMARY"

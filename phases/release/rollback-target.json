@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "rollbackTarget": {
+    "commit": "f912dd2479a5f86471e1e8999b2d36c7611d41cb",
+    "branch": "main",
+    "role": "last-known-good release before Phase10F evidence packaging",
+    "validation": {
+      "docker": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724906",
+      "authentication": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724789",
+      "pint": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724822",
+      "security": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724860"
+    },
+    "notes": [
+      "All four CI gates passed on this exact commit.",
+      "Rebuilt from its committed Git tree in isolated CI.",
+      "No production DB/secrets, deployment, registry push or AWS resource."
+    ]
+  }
+}

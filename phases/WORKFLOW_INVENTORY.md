@@ -244,3 +244,24 @@ No production DB, secrets, deployments, production API writes or AWS resources w
 - 10F acceptance is pending CI: all four gates, evidence artifact upload, checksums and both attestation outputs must complete.
 
 No production database, secrets, deployments, registry publishing or AWS resources were used.
+
+
+## 16. Phase10F closeout / Phase10G rollback workflow — 25 November 2026
+
+### 10F verified SHA \`c01a4bad1e4007dd8c9cb46bb56d5344f188f06c\`
+
+- Docker [45513822710](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45513822710): SUCCESS — SQLite 150/1,704؛ PostgreSQL 31/546 with one optional skip؛ S3Mock 1/8؛ non-root/readiness/least-privilege guards PASS.
+- Authentication [45513822753](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45513822753): SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Pint [45513822755](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45513822755): SUCCESS.
+- Security [45513822742](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45513822742): SUCCESS — Gitleaks/source scans pass; Trivy image summary Clean and fixable HIGH/CRITICAL gate PASS.
+- Docker log shows tested image archive and CycloneDX SBOM generation; checksum verification; signed provenance and SBOM attestations; bundle collection; immutable artifact upload.
+- Attestations: [provenance #71890026](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/71890026), [SBOM #71890037](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/71890037). Artifact [14975768921](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45513822710/artifacts/14975768921), SHA-256 \`f50b53dd43a3c9f261d5da512adf9a005a5e45553870a9447533ecc931b193ed\`.
+- 10F COMPLETE. First attempt failed only due relative checksum path, fixed by running sha256sum inside the evidence directory.
+
+### 10G implementation pending its own CI
+
+- New pinned rollback baseline \`f912dd2479a5f86471e1e8999b2d36c7611d41cb\` references the four previously successful CI runs.
+- Docker workflow rebuilds that exact source tree and starts current/previous images as disposable non-root containers.
+- Loopback-only proxy test expects current route 200, simulated stopped-current route 502, then previous image route 200 after atomic backend switch.
+- Release bundle contains both image archives, two CycloneDX SBOMs, four image provenance/SBOM attestations, signed release manifest, manifest attestation, rehearsal report and verified SHA256SUMS.
+- This is an isolated rehearsal only; no actual deployment, cloud load balancer, production DB or secrets.

@@ -329,8 +329,17 @@
 ## D-041 — Bind the exact tested image to a source SHA and signed build evidence
 
 - **التاريخ:** 25 نوفمبر 2026
-- **الحالة:** 10F IN_PROGRESS؛ ينتظر CI على workflow changes.
+- **الحالة:** 10F COMPLETE على SHA `c01a4bad1e4007dd8c9cb46bb56d5344f188f06c`؛ Docker/Auth/Pint/Security SUCCESS.
 - **القرار:** يظل build workflow لا ينشر image إلى registry. يحفظ الصورة التي اجتازت runtime/functional tests تحت local SHA tag، ويسجل Docker config digest وSHA-256 للـarchive، وينشئ CycloneDX SBOM وprovenance يربط المصدر وملفات البناء وbase-image digest بالمخرجات.
 - **الإثبات:** GitHub Actions signed artifact attestations لصورة archive ولـSBOM؛ يتم حفظ الملفات والbundles كـartifact محدد بالـSHA.
 - **الصلاحيات:** contents:read وid-token:write وattestations:write وartifact-metadata:write فقط؛ لا packages:write ولا registry push.
 - **الحدود:** Docker config digest ليس OCI registry manifest digest. لا يُدّعى وجود registry manifest digest حتى يوجد registry publishing معتمد. Artifact SHA-256 يحدد الحزمة الدقيقة التي اختُبرت.
+
+
+## D-042 — Release manifest and rollback target must be built and rehearsed without production access
+
+- **التاريخ:** 25 نوفمبر 2026
+- **الحالة:** 10G IN_PROGRESS؛ ينتظر CI إثبات rollback rehearsal والـmanifest والتوقيعات.
+- **القرار:** يثبت release manifest كلًا من current tested image والـprevious known-good image بواسطة source SHA وDocker config digest وarchive SHA-256 وCycloneDX SBOM؛ ويربط روابط GitHub CI وartifact attestations. يُعاد بناء rollback target من commit سبق أن اجتاز بوابات CI الأربع، ويُختبر traffic switch محليًا في حاويتين مع loopback-only proxy.
+- **إجراء التجربة:** إيقاف current candidate عمدًا، إثبات أن مسار HTTP يعطي 502 عند تعطل backend النشط، ثم تبديل ملف active-port ذريًا إلى rollback target وإثبات HTTP 200 من الصورة السابقة.
+- **الحدود:** هذه تجربة isolated container/proxy وليست إثباتًا لـcloud load balancer أو deployment rollback؛ لا production DB/secrets/AWS/registry push. لا يُسمح بتوسيعها إلى بيئة حقيقية دون موافقة مستقلة.

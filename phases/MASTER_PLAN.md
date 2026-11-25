@@ -34,7 +34,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
-| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E COMPLETE؛ 10B ينتظر Admin؛ 10F immutable image/SBOM/provenance قيد التنفيذ؛ 10G لاحقًا) | 01–09 تدريجيًا؛ بوابة الإصدار النهائية تنتظر جاهزية النطاقات والاعتمادات الخارجية |
+| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F COMPLETE؛ 10B ينتظر Admin؛ 10G release manifest/rollback قيد التنفيذ) | 01–09 تدريجيًا؛ بوابة الإصدار النهائية تنتظر جاهزية النطاقات والاعتمادات الخارجية |
 | 11 | بنية AWS والنشر عبر GitHub | 02–03 و08 و10 |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |

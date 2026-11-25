@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A COMPLETE؛ 10B IN_PROGRESS لأن حماية main تتطلب صلاحيات Admin؛ 10C COMPLETE على SHA b8c0bb9؛ 10D COMPLETE على SHA 44ed546؛ 10E COMPLETE على SHA f912dd2؛ 10F IN_PROGRESS لربط image artifact بالـSHA وSBOM/provenance.  
+**الحالة:** IN_PROGRESS — 10A/10C/10D/10E/10F COMPLETE؛ 10B ما زالت مفتوحة لاعتماد Admin لحماية main؛ 10G IN_PROGRESS لتجربة rollback وrelease manifest.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -81,7 +81,7 @@
 
 ## 10F — immutable tested-image evidence, SBOM and provenance
 
-**الحالة:** IN_PROGRESS — workflow change committed; pending CI proof that the evidence artifact and signed attestations can be generated from the exact tested image.
+**الحالة:** COMPLETE على SHA `c01a4bad1e4007dd8c9cb46bb56d5344f188f06c` — اجتازت بوابات CI الأربع، ونجح الأرشيف وCycloneDX SBOM وفحص SHA-256 وتوقيعا provenance/SBOM ورفع artifact المرتبط بالـSHA.
 
 - يحافظ Docker validation على الصورة نفسها بعد الاختبارات، ويضيف لها local tag خاصاً بالـSHA: `raven23-backend:sha-<GITHUB_SHA>`.
 - يسجل `docker image inspect .Id` باعتباره Docker image config digest، لا registry manifest digest؛ ويتحقق من تطابق `RAVEN23_SOURCE_COMMIT` داخل الصورة مع SHA الحالي.
@@ -91,14 +91,26 @@
 - لأن المشروع لا ينشر صورة Registry في هذا workflow، لا يتم الادعاء بوجود OCI manifest digest؛ الـconfig digest وarchive SHA-256 يحددان الصورة/الحزمة المحلية بدقة.
 - القبول يتطلب نجاح بوابات CI الأربع، ظهور artifact بكل الملفات المطلوبة، وصحة SHA-256 والتحقق من شهادتي provenance/SBOM.
 
+## 10G — release manifest and isolated rollback rehearsal
+
+**الحالة:** IN_PROGRESS — التنفيذ الأولي على main؛ ينتظر CI إثبات إعادة بناء الإصدار السابق، سلامة تحويل مسار HTTP، وتوقيع manifest النهائي.
+
+- يثبت \`phases/release/rollback-target.json\` آخر إصدار سابق اجتاز بوابات CI الأربع على SHA \`f912dd2479a5f86471e1e8999b2d36c7611d41cb\` وروابط التشغيلات الأربع.
+- يعيد workflow بناء هذا الإصدار من شجرة Git عند SHA نفسه داخل مساحة CI مؤقتة، دون إنشاء فرع أو تعديل شجرة main.
+- يشغّل الصورة الحالية والصورة السابقة في حاويتين منفصلتين non-root؛ readiness المتوقع 503 لعدم وجود قاعدة بيانات، وliveness يجب أن يرجع 200.
+- يستخدم HTTP proxy مربوطًا على loopback فقط ويغيّر backend عبر ملف منفذ يُستبدل ذريًا. يوقف الحاوية الحالية عمدًا، ويتحقق من 502 قبل التحويل، ثم يثبت أن الطلب يعود 200 من حاوية الإصدار السابق.
+- يحفظ أرشيف صورة rollback وCycloneDX SBOM وprovenance وسجل التجربة؛ يوقع أرشيف rollback وشهادة SBOM، إضافة إلى توقيع release manifest الذي يربط الصورتين وSHA-256 وروابط CI/attestations.
+- لا يستخدم PostgreSQL أو secrets الإنتاج، ولا ينشر صورة إلى registry ولا ينفذ deployment. اختبار proxy محلي معزول وليس اختبار load balancer فعلي في بيئة cloud.
+- القبول: نجاح البوابات الأربع، نجاح فحص البصمات، نجاح تحويل المسار 200→502→200 إلى rollback target، ظهور release bundle وattestations الأربعة وmanifest attestation.
+
 ## الشرائح التالية
 
-- 10B: required checks وحماية main وتقييم تداخل workflows.
+- 10B: required checks وحماية main وتقييم تداخل workflows؛ ما زالت تنتظر صلاحيات Admin.
 - 10C COMPLETE: migrations على schema فارغ وsnapshot اصطناعي سابق.
 - 10D COMPLETE: API v1 contract regression verified on SHA 44ed546.
 - 10E COMPLETE: synthetic PostgreSQL load baseline verified on SHA f912dd2.
-- 10F IN_PROGRESS: immutable tested-image artifact with config digest, SHA-256, CycloneDX SBOM and signed provenance/SBOM attestations.
-- 10G: release manifest وتجربة rollback في بيئة معزولة.
+- 10F COMPLETE: immutable tested-image archive, CycloneDX SBOM, signed provenance/SBOM attestations على SHA c01a4bad.
+- 10G IN_PROGRESS: release manifest and isolated rollback rehearsal.
 
 ## الهدف
 منع regressions، والتأكد من أن كل commit يمر بسلسلة اختبارات واضحة وأن كل إصدار يمكن تتبعه والرجوع عنه.
