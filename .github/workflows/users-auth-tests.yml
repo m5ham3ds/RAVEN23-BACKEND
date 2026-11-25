@@ -104,7 +104,6 @@ jobs:
           DB_CONNECTION: pgsql
           DB_SSLMODE: disable
           DB_URL: 'postgresql://raven23_users_app:raven23_users_app@127.0.0.1:5432/raven23_users_test?sslmode=disable'
-          NEON_DB_URL: 'postgresql://raven23_users_app:raven23_users_app@127.0.0.1:5432/raven23_users_test?sslmode=disable'
           CACHE_STORE: array
           SESSION_DRIVER: array
           QUEUE_CONNECTION: sync

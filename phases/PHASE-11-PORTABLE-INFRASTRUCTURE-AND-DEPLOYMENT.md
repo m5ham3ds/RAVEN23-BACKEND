@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** DESIGN_IN_PROGRESS — بدأ 11A لتقييم معماريتي الاستضافة وتثبيت حدود portability. اختيار المزود وprovisioning وstaging/production deployment تبقى WAITING_EXTERNAL.  
+**الحالة:** 11A DESIGN_IN_PROGRESS (provider-neutral baseline ready؛ pricing scorecard waits for region/workload inputs)؛ 11B1 DESIGN_IN_PROGRESS (trust model design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ 10B required checks شرط قبل نشر production. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -71,11 +71,23 @@
 - تحديد عقود التطبيقات التي يجب أن تظل مستقلة عن provider.
 - إعداد scorecard للتكلفة والاعتمادية والأمن والخروج دون اختيار فائز الآن.
 
-### 11B — Secure deployment trust model (لم يبدأ)
-- تثبيت required checks وbranch protection وenvironment approvals قبل نشر production.
-- تحديد OIDC/workload identity والسياسات الأقل صلاحية.
-- فصل build artifact عن registry image وعن staging/production deployment.
-- منع إعادة build للصورة بعد اختبارها؛ نشر digest نفسه.
+### 11B1 — Secure deployment trust model design (DESIGN_IN_PROGRESS؛ تصميم فقط)
+
+- تعريف الفصل بين CI build/test/scan وartifact attestation وOCI registry publication وstaging/production deployment.
+- توثيق الفرق بين Sigstore signing OIDC وcloud workload identity؛ `id-token: write` في Docker workflow يستخدمه `actions/attest@v4` لتوقيع provenance/SBOM ولا يعني وجود cloud deployment role.
+- تحديد claims اللازمة لأي trust policy مستقبلية: repository/owner identity، workflow identity، protected ref، environment، audience، event type وsource SHA.
+- فصل هويات staging deploy وproduction deploy وone-off migration عن runtime application identity.
+- اشتراط أن ينشر deploy الـimage digest الذي اجتاز CI، بعد التحقق من provenance/SBOM/manifest ومصدر workflow والـSHA؛ يمنع rebuild أثناء deploy.
+- تحديد مرشحي required checks دون تغيير إعداد GitHub الحالي: Docker وAuthentication وSecurity؛ Pint report ليس blocking check مستقلاً، وstrict Pint داخل Docker هو gate.
+- منع `pull_request_target` وأي workflow يعرّض deployment credentials لمدخلات غير موثوقة.
+
+### 11B2 — Enforce trust controls and OIDC (WAITING_EXTERNAL)
+
+- تفعيل branch protection/required checks عبر Repository Admin بعد اعتماد سياسة PR/merge متوافقة مع main-only.
+- إنشاء GitHub Environments منفصلة لـstaging وproduction مع approvals المطلوبة.
+- بعد اختيار provider وموافقة المستخدم: trust policy ضيقة مرتبطة بالمستودع والـworkflow والـref والـenvironment والـaudience.
+- صلاحيات نشر قصيرة العمر ومحدودة، مع فصل deploy identity عن runtime DB identity وعن DB_MIGRATION_URL.
+- لا تُنشأ roles أو secrets أو environments أو deployments في المسار 11B1.
 
 ### 11C — Infrastructure as Code design and validation (لم يبدأ)
 - اختيار Terraform أو OpenTofu بعد تقييم توافق المزود وأدواته وتكلفته.
@@ -149,3 +161,75 @@
 ## 8. المرحلة التالية المسموح بها
 
 استكمال 11A فقط: جرد كل تكامل حالي مع مزود خارجي داخل ملفات التطبيق، وتقييم نقاط التبديل وقيود S3/PostgreSQL/queue/secrets، ثم إعداد scorecard للتكلفة/portability دون اختيار أو إنشاء موارد.
+
+## 9. Phase11A exit scorecard وPhase11B1 trust boundaries
+
+### 9.1 Portability / exit matrix
+
+| الطبقة | العقد الحالي | ما أثبته CI | ما يلزم قبل إعلان النقل الكامل |
+|---|---|---|---|
+| Compute | OCI image؛ FrankenPHP/Caddy؛ non-root؛ health/readiness | Docker runtime وHTTP smoke؛ بدء web process لا يتطلب DB | تشغيل نفس image على host مستهدف، ingress/forwarded headers/resource limits/restart/scale |
+| PostgreSQL | PostgreSQL URL أو host variables؛ remote TLS؛ DB_URL للتطبيق وDB_MIGRATION_URL لمهمة migration | PostgreSQL 16 disposable؛ roles منفصلة وmigrations | pg_dump/pg_restore cross-provider، extensions/roles/grants/collation/connections وrestore duration |
+| Private objects | PrivateObjectStorage فوق Laravel FilesystemAdapter؛ S3-compatible disk configurable | S3Mock CRUD/get/list/delete/private visibility | multipart، metadata/content-type، presigned URLs، versioning/lifecycle/retention والـegress |
+| Cache | Laravel Cache؛ database default | configuration/runtime tests | cache غير authoritative يمكن إعادة بنائه؛ Redis يحتاج lock/TTL/eviction/TLS tests |
+| Queue/outbox | Laravel Queue؛ database default | worker safety guards وoutbox tests | drain/replay، retries/visibility، idempotency/dead-letter semantics عند تغيير backend |
+| Email | Laravel Mail؛ log default؛ auth mail disabled | fake/array/log tests | مزود staging حقيقي وSPF/DKIM/DMARC/bounce/suppression/webhooks |
+| Push | PushNotificationTransport؛ disabled default | outbox boundary وkill switch | provider adapter وtoken migration وnative idempotency؛ اعتماد Phase08 |
+| Secrets/identity | runtime environment injection | APP_KEY required؛ لا secrets داخل image | secret manager وrotation/audit/access policy وفصل runtime/migration/deploy identities |
+| Registry/release | GitHub Actions artifact وSigstore attestations | archive/SBOM/provenance/manifest/checksum validation | OCI registry push والتحقق من registry manifest digest قبل deploy |
+| Observability | structured logs إلى stdout/stderr | log redaction/runtime output | collector/metrics/alerts/retention/cost budget وalert delivery test |
+| DNS/TLS | TLS termination خارج الحاوية؛ trusted ingress | TLS guard وproxy trust validation | domain/certificate renewal/trusted proxy CIDRs/DNS TTL/cutover rollback |
+| Backup/DR | لا دليل على backup provider حقيقي | CI migration/rollback ليست backup restore | encrypted DB + object export، retention، off-provider copy، restore verification وRPO/RTO |
+
+### 9.2 Cost / portability scorecard — قالب غير مسعّر
+
+لا توجد region أو traffic أو data volume أو availability target أو budget معتمدة. لذلك تبقى الأسعار والدرجات فارغة ولا نختار فائزاً. تتم المقارنة على workload متطابق وretention وHA متساويين:
+
+| بند التكلفة | منهج الحساب | A — AWS integrated | B — multi-provider | الدليل/تاريخ السعر |
+|---|---|---|---|---|
+| Compute | replicas × hours × CPU/RAM class | TBD | TBD | TBD |
+| Managed PostgreSQL | instance hours + storage + IOPS/throughput + HA/backups | TBD | TBD | TBD |
+| Object storage | GB-month + PUT/COPY/GET/LIST + lifecycle/versioning | TBD | TBD | TBD |
+| Network/egress | internet + inter-region/provider + NAT/LB | TBD | TBD | TBD |
+| Registry | image/SBOM bytes + pulls + retention | TBD | TBD | TBD |
+| Logs/metrics | ingest GB + indexed/retained GB + alerting | TBD | TBD | TBD |
+| Secrets/identity | stored secrets + API calls + audit logs إن كانت مدفوعة | TBD | TBD | TBD |
+| DNS/TLS/edge | zones + queries + public IP/LB + optional WAF | TBD | TBD | TBD |
+| Backup/DR | backup bytes + replication/copy + restore rehearsals | TBD | TBD | TBD |
+| Operations/support | paid support + operator hours على rate متفق عليه | TBD | TBD | TBD |
+| **Monthly recurring** | مجموع العناصر قبل credits وبعدها | **TBD** | **TBD** | نفس الافتراضات |
+| **One-time exit/migration** | export + egress + import + validation + cutover/rollback | **TBD** | **TBD** | رسوم المصدر والوجهة |
+| **12-month total** | 12 × post-credit monthly + one-time migration | **TBD** | **TBD** | بدون احتساب credits كتكلفة دائمة |
+
+### 9.3 Workload inputs required to price the scorecard
+
+- Region and user geography/latency objective.
+- Requests/day، peak requests/sec، concurrent users، عدد web/queue replicas.
+- CPU/RAM لكل web/queue process وتكرار scheduled tasks.
+- PostgreSQL GB الحالية والنمو الشهري وconnections وread/write IOPS أو throughput ومتطلبات HA.
+- Object count/GB الحالية والنمو الشهري ومتوسط/أقصى حجم وعدد GET/PUT/LIST/COPY وdownload egress GB.
+- Backup retention وoff-provider copy وRPO/RTO.
+- Logs/metrics ingest وretention.
+- سقف شهري مقبول واحتياج support/on-call.
+
+لا تملأ قيمة مجهولة بتخمين أو Free Tier؛ تسجل كل price snapshot مع provider/SKU/region/date/currency/credits/egress/backup assumptions.
+
+### 9.4 Deployment trust model — design only
+
+```
+Protected source revision
+ -> CI build + tests + security gates
+ -> signed provenance + SBOM + immutable evidence
+ -> (after approval) OCI registry publication by digest
+ -> verify source/workflow/attestations/policy
+ -> staging environment approval + short-lived identity
+ -> staging acceptance + rollback
+ -> production approval + separate short-lived identity
+ -> deploy the already-verified digest
+```
+
+- Docker workflow الحالي يطلب `id-token: write` لتوقيعات Sigstore عبر `actions/attest@v4`؛ لا توجد AWS/OIDC trust policy أو cloud role.
+- GitHub artifact digest وDocker archive SHA-256 وimage config digest وOCI manifest digest قيم مختلفة؛ التنفيذ الحالي يثبت الثلاثة الأولى بحسب حزمة الإصدار ولا يملك registry manifest digest.
+- required-check candidates: Docker job، Authentication job، Security job. Pint artifact ليس blocking gate مستقلاً، والـHTTP smoke يدوي وGET-only.
+- main ما زالت `protected=false`؛ لذلك CI بعد push لا يحمي من push غير مفحوص. 11B2 enforcement ينتظر 10B.
+- لا deployment workflow أو GitHub Environment محمية أو cloud OIDC role أو registry push في 11B1.

@@ -145,3 +145,41 @@
 - SQS وDynamoDB وSES خيارات AWS مضمّنة في Laravel config، لكنها ليست defaults؛ لا يجوز مساواتها باعتماد التطبيق عليها. بدائل database/Redis/SMTP/Postmark/Resend/Mailgun متاحة حسب الخدمة.
 - لم يُعثر في root inventory على مجلد IaC أو deployment workflow؛ workflows الخمسة الحالية هي CI validation/auth/Pint/security فقط.
 - لا تزال تكلفة التخزين الفعلية وقيود نقل S3 metadata/ACL/lifecycle/versioning/retention تتطلب مقارنة providers قبل إعلان تبديل كامل متكافئ.
+
+## 11. Phase11A — Portability exit matrix and cost scorecard
+
+### Portability matrix
+
+| الطبقة | العقد الحالي | إثبات CI الحالي | ما يلزم لإثبات النقل |
+|---|---|---|---|
+| Compute | OCI/FrankenPHP/Caddy | Docker runtime وhealth/readiness | تشغيل image على host آخر وقياس ingress/restart/scale |
+| PostgreSQL | PostgreSQL URL + TLS + roles | PostgreSQL 16 disposable ومستخدم app/migrator منفصل | pg_dump/pg_restore بين مزودين وفحص extensions/grants/collation/connections |
+| Private objects | PrivateObjectStorage وLaravel Filesystem؛ S3-compatible endpoint | S3Mock CRUD/get/list/delete/private visibility | multipart/metadata/presigned/versioning/lifecycle/retention/large copy/egress |
+| Cache | Laravel Cache؛ database default | config/runtime baseline | cache يعاد بناؤه إذا كان غير authoritative؛ Redis يحتاج locks/TTL/eviction/TLS tests |
+| Queue | Laravel Queue؛ database default | worker guards/outbox tests | drain/replay/idempotency/dead-letter semantics عند نقل backend |
+| Email | Laravel Mail؛ log default | fake/array/log | staging حقيقي وSPF/DKIM/DMARC/bounce/webhooks |
+| Push | interface وdisabled transport | outbox/kill-switch | adapter/device token migration/native idempotency بعد اعتماد Phase08 |
+| Secrets | runtime injection | APP_KEY gate ولا secret داخل image | secret manager/rotation/audit وفصل الهويات |
+| Registry | GitHub artifact + Sigstore | Docker archive/SBOM/attestations | OCI push/manifest digest verification |
+| Observability | stdout/stderr structured logs | log redaction | collector/metrics/alerts/retention |
+| DNS/TLS | edge TLS خارج container | proxy/TLS guards | domain/cert renewal/DNS TTL/cutover |
+| Backup/DR | لا backup provider فعلي مثبت | migration/rollback لا يساوي backup restore | encrypted DB+objects export/retention/off-provider restore/RPO/RTO |
+
+### Cost comparison template (unpriced)
+
+| بند | حساب شهري/لمرة واحدة | AWS integrated | Multi-provider | Evidence/date |
+|---|---|---|---|---|
+| Compute | replicas × hours × CPU/RAM | TBD | TBD | TBD |
+| PostgreSQL | instance + storage + IOPS + HA + backups | TBD | TBD | TBD |
+| Object storage | GB-month + requests + versions/lifecycle | TBD | TBD | TBD |
+| Egress/network | Internet + inter-region/provider + NAT/LB | TBD | TBD | TBD |
+| Registry | image/SBOM storage + pulls + retention | TBD | TBD | TBD |
+| Logs/metrics | ingest + retention + alerts | TBD | TBD | TBD |
+| Secrets/identity | stored secrets/API calls/audit | TBD | TBD | TBD |
+| DNS/TLS/edge | zones/queries/IP/LB/WAF if chosen | TBD | TBD | TBD |
+| Support/operations | support plan + operator hours | TBD | TBD | TBD |
+| **Monthly recurring** | **Sum before and after credits** | **TBD** | **TBD** | Same workload |
+| **One-time exit** | **export + egress + import + validate + cutover/rollback** | **TBD** | **TBD** | Include both provider fees |
+| **12-month total** | **12 × post-credit monthly + one-time exit** | **TBD** | **TBD** | Credits excluded from steady state |
+
+Required inputs remain unspecified: region/user geography, requests/peak/concurrency, replicas and CPU/RAM, PostgreSQL size/growth/IOPS/connections/HA, object count/size/request classes/egress, backup retention/RPO/RTO, logs ingest/retention, support needs and monthly budget. No prices, weights or winner are assigned before these values are approved.

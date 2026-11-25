@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `3659843cb7bfbfebba6497d73be1a0dbf9d55440`
+**Latest fully CI-verified application/runtime SHA:** `634e68b9eddb41b556f1005b37bffe769a9d8b32`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
-| 11 — البنية المحمولة والنشر | 11A DESIGN_IN_PROGRESS؛ provisioning WAITING_EXTERNAL | أضيفت إعدادات S3-compatible محايدة `RAVEN23_OBJECT_STORAGE_*` مع AWS_* fallback، واجتاز S3Mock وCI على `3659843`. يستمر تقييم تكلفة/قيود providers؛ لا اختيار مزود أو provisioning. النشر مشروط بإغلاق 10B وموافقة التكلفة والاعتمادات اللازمة. |
+| 11 — البنية المحمولة والنشر | 11A COST_SCORECARD_WAITING_INPUT؛ 11B1 DESIGN_IN_PROGRESS فقط؛ 11B2 enforcement وprovisioning WAITING_EXTERNAL | أُعدت مصفوفة الخروج وقالب التكلفة وفصل Sigstore عن cloud OIDC. لم تُعتمد region/workload/budget أو provider. 10B ما زالت OPEN وmain protected=false؛ لا deployment. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -358,3 +358,14 @@
 - S3Mock يثبت توافق API في الاختبار فقط؛ لا يثبت تكافؤ كل مزود في ACL/lifecycle/versioning/retention/metadata أو تكلفة النقل.
 - لا يوجد provider أو region مختار، ولا إنشاء bucket أو حساب أو سر أو نشر أو registry push.
 - Phase11A تبقى IN_PROGRESS حتى إكمال portability/cost scorecard، وتحديد متطلبات نقل الملفات والنسخ والـegress، ومراجعة الخيارات المتاحة وقت اتخاذ القرار.
+
+## 28. Phase11A scorecard / Phase11B1 trust design — 25 November 2026
+
+- Last fully verified SHA before this docs/CI-trust design change: `634e68b9eddb41b556f1005b37bffe769a9d8b32`.
+- Docker [45630955379](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45630955379), Authentication [45630955656](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45630955656), Pint [45630955397](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45630955397), Security [45630955411](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45630955411): SUCCESS on the same SHA.
+- Prepared a cost comparison template for AWS integrated and multi-provider architectures. Values and weights remain blank because region, workload, data growth, egress, retention, HA/RPO/RTO and budget are not approved.
+- Added data exit and portability requirements for PostgreSQL, private objects, queues/outbox, cache/session, secrets, DNS/TLS, artifacts/registry and backup/restore.
+- Began 11B1 design-only trust model. Docker workflow `id-token: write` is for Sigstore attestations via `actions/attest@v4`, not cloud deployment identity.
+- Required-check candidates are Docker, Authentication and Security jobs; Pint report is not an independent blocking gate.
+- Removed unused `NEON_DB_URL` environment alias from Authentication CI; application uses the generic `DB_URL` contract.
+- 10B remains OPEN; main remains `protected=false`. No cloud deployment role, registry push, secret, environment, IaC apply or resource was created.
