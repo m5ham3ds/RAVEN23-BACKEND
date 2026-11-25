@@ -30,7 +30,7 @@ return [
     ],
     'google' => [
         // Same public Web OAuth client ID used by the Flutter GoogleSignIn client.
-        // An empty/missing Render value falls back to this matching client ID.
+        // An empty/missing deployment environment value falls back to this matching client ID.
         'client_id' => env('GOOGLE_CLIENT_ID') ?: '1021333219041-pvcdfbbia4qm8auut13usj6sf329ebb3.apps.googleusercontent.com',
     ],
 ];

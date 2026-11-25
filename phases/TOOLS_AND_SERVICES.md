@@ -120,3 +120,28 @@
 - main حاليًا `protected=false`؛ required checks وbranch protection تنتظر صلاحية Repository Admin. لا يبدأ نشر production قبل معالجة ذلك.
 
 هذه تفاصيل التنفيذ المثبتة الآن. لا تعني أن S3 الحقيقي أو mail/Push providers أو registry أو النشر السحابي قد تم تفعيلها.
+
+
+## 10. Phase11A — جرد نقاط اعتماد المزود داخل التنفيذ
+
+| الطبقة | الحد/الإعداد الحالي | الافتراضي المثبت | نقاط المزود الخاصة / ما بقي |
+|---|---|---|---|
+| Compute | OCI image مع FrankenPHP/Caddy | container runtime موحد | لا Render/Neon startup coupling؛ لا workflow نشر سحابي |
+| Database | PostgreSQL عبر `DB_URL` أو `DB_HOST/PORT/...` | PostgreSQL؛ remote production يفرض TLS mode آمن | لا Neon SDK في domain؛ Neon يظهر كمرجع تشغيل انتقالي فقط |
+| Private object storage | `PrivateObjectStorage` interface و`FilesystemPrivateObjectStorage` فوق Laravel `FilesystemAdapter`؛ اختيار disk عبر `RAVEN23_PRIVATE_STORAGE_DISK` | local private disk | قرص S3-compatible يقبل endpoint مخصصاً؛ أضيفت `RAVEN23_OBJECT_STORAGE_*` مع fallback إلى `AWS_*` للتوافق. S3Mock يختبر الأسماء المحايدة |
+| Cache | Laravel Cache | database | Redis وMemcached اختياريان؛ DynamoDB driver إعداد AWS اختياري وليس default |
+| Queue | Laravel Queue | database | Redis وBeanstalkd اختياريان؛ SQS إعداد AWS اختياري وليس default |
+| Email | Laravel Mail transport | `log`؛ auth mail disabled | SMTP وPostmark وResend وMailgun وSES متاحة كخيارات؛ لا مزود إرسال حقيقي مفعل |
+| Push | `PushNotificationTransport` interface | `DisabledPushNotificationTransport` وprovider `none` | لا FCM/OneSignal adapter أو credentials نشطة |
+| Google identity | `GOOGLE_CLIENT_ID` من environment مع fallback public client ID | environment configuration | لا اعتماد على Render بعد تعميم تعليق الإعداد؛ لا علاقة له بمزود compute |
+| Registry/deploy | GitHub Actions release artifact موقّع | لا registry push ولا deployment | لا IaC ولا OIDC deployment role ولا DNS أو secrets نشر في المستودع |
+| Observability | structured logs إلى stderr | framework logging | لا CloudWatch/Datadog/Sentry exporter أو خدمة رصد سحابية مفعلة في هذه المرحلة |
+
+### نتائج التدقيق والقرار
+
+- كود domain لا يستدعي AWS SDK مباشرةً؛ حد التخزين يمر عبر Laravel Filesystem adapter. مكتبة Flysystem S3/AWS SDK هي driver implementation وليست ربطًا مباشرًا بين domain وAWS.
+- مفاتيح `AWS_*` السابقة كانت نقطة coupling في config S3. أصبحت الأسماء المحايدة `RAVEN23_OBJECT_STORAGE_*` ذات أولوية، مع بقاء aliases القديمة fallback حتى لا تكسر أي runtime قائم.
+- اختبار S3Mock في Docker workflow يستخدم الآن المفاتيح المحايدة ويختبر مسار الإعداد الفعلي في `config/filesystems.php`.
+- SQS وDynamoDB وSES خيارات AWS مضمّنة في Laravel config، لكنها ليست defaults؛ لا يجوز مساواتها باعتماد التطبيق عليها. بدائل database/Redis/SMTP/Postmark/Resend/Mailgun متاحة حسب الخدمة.
+- لم يُعثر في root inventory على مجلد IaC أو deployment workflow؛ workflows الخمسة الحالية هي CI validation/auth/Pint/security فقط.
+- لا تزال تكلفة التخزين الفعلية وقيود نقل S3 metadata/ACL/lifecycle/versioning/retention تتطلب مقارنة providers قبل إعلان تبديل كامل متكافئ.

@@ -107,6 +107,20 @@
 - لا يوجد AWS account/resource/OIDC deployment role/DNS change أو production deploy مثبت.
 - main حاليًا protected=false؛ required checks وbranch protection لم يتم فرضها.
 
+### 5.1 جرد حدود التكامل الحالية
+
+| الطبقة | التنفيذ الحالي | قابلية النقل / القيد |
+|---|---|---|
+| Database | PostgreSQL عبر DB_URL أو متغيرات DB_* القياسية، مع TLS للاتصال البعيد | لا Neon SDK في domain؛ لا provider lock على مستوى PDO/PostgreSQL |
+| Private files | PrivateObjectStorage contract فوق Laravel FilesystemAdapter | local default؛ S3-compatible endpoint configurable؛ RAVEN23_OBJECT_STORAGE_* محايدة وAWS_* aliases للتوافق |
+| Cache/Queue | database drivers افتراضيًا | Redis متاح كخيار؛ DynamoDB/SQS إعدادات AWS اختيارية وليست defaults |
+| Email | Laravel Mail؛ default log والإرسال الحقيقي معطّل | SMTP/Postmark/Resend/Mailgun/SES transports؛ لا provider مفعل |
+| Push | PushNotificationTransport مع Disabled transport افتراضيًا | لا adapter أو credentials لـFCM/OneSignal |
+| Compute | OCI image مع FrankenPHP/Caddy | لا startup خاص بـRender/Neon |
+| Delivery | release archive ضمن GitHub Actions | لا registry push أو IaC أو cloud deployment workflow/OIDC role |
+
+أضيفت aliases التخزين المحايدة في إعداد S3 مع إبقاء AWS_* fallback backward-compatible، ونُقل اختبار S3Mock لاستخدام aliases الجديدة. أسماء SQS/DynamoDB/SES تبقى optional AWS adapters ولا تستخدمها defaults. لا يوجد IaC directory أو deployment workflow في root/workflow inventory الحالي. توجد إشارة Render قديمة في تعليق Google client ID فقط، ولا تؤثر في السلوك.
+
 ## 6. الاعتماديات والممنوعات
 
 **المسموح الآن:** تصميم البنية، مقارنة الخيارات، إعداد scorecard، توثيق المتطلبات، واختبارات IaC غير المطبقة على موارد حقيقية بعد اختيار الأدوات.

@@ -17,23 +17,13 @@ class S3PrivateObjectStorageTest extends TestCase
             $this->markTestSkipped('The disposable S3-compatible integration service is not enabled.');
         }
 
-        $bucket = (string) (getenv('AWS_BUCKET') ?: 'raven23-ci');
-        $endpoint = (string) (getenv('AWS_ENDPOINT') ?: 'http://127.0.0.1:9090');
-
+        // Exercise config/filesystems.php with the provider-neutral environment
+        // variables supplied by CI, rather than rebuilding the S3 disk in the test.
         config([
             'filesystems.private_disk' => 's3',
-            'filesystems.disks.s3' => [
-                'driver' => 's3',
-                'key' => (string) (getenv('AWS_ACCESS_KEY_ID') ?: 'foo'),
-                'secret' => (string) (getenv('AWS_SECRET_ACCESS_KEY') ?: 'bar'),
-                'region' => (string) (getenv('AWS_DEFAULT_REGION') ?: 'us-east-1'),
-                'bucket' => $bucket,
-                'endpoint' => $endpoint,
-                'use_path_style_endpoint' => true,
-                'visibility' => 'private',
-                'throw' => true,
-                'report' => true,
-            ],
+            'filesystems.disks.s3.visibility' => 'private',
+            'filesystems.disks.s3.throw' => true,
+            'filesystems.disks.s3.report' => true,
         ]);
 
         Storage::forgetDisk('s3');
