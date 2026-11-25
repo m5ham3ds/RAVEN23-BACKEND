@@ -636,6 +636,8 @@ jobs:
             --arg old_digest "$ROLLBACK_CONFIG_DIGEST" --arg old_platform "$ROLLBACK_PLATFORM" \
             --arg old_archive "$ROLLBACK_ARCHIVE_FILE" --arg old_archive_sha "$ROLLBACK_ARCHIVE_SHA256" \
             --arg old_sbom "raven23-backend-rollback.cdx.json" --arg old_sbom_sha "$ROLLBACK_SBOM_SHA256" \
+            --arg old_sbom_generator "$ROLLBACK_SBOM_GENERATOR" \
+            --arg old_sbom_component_count "$ROLLBACK_SBOM_COMPONENT_COUNT" \
             --argjson old_validation "$rollback_validation" \
             --arg cur_prov_id "$IMAGE_PROVENANCE_ID" --arg cur_prov_url "$IMAGE_PROVENANCE_URL" \
             --arg cur_sbom_id "$IMAGE_SBOM_ID" --arg cur_sbom_url "$IMAGE_SBOM_URL" \
