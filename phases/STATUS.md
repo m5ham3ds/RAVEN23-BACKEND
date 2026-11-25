@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `a86fb3abd747a4110caa42b105dbb290b89f9e23`
+**Latest fully CI-verified application/runtime SHA:** `3659843cb7bfbfebba6497d73be1a0dbf9d55440`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
-| 11 — البنية المحمولة والنشر | 11A DESIGN_IN_PROGRESS؛ provisioning WAITING_EXTERNAL | بدأ تصميم محايد للمزود يقارن AWS المتكامل بالبنية متعددة المزودين؛ لا مزود مختار ولا حساب/موارد/OIDC deployment. النشر مشروط بإغلاق 10B وموافقة التكلفة والاعتمادات اللازمة. |
+| 11 — البنية المحمولة والنشر | 11A DESIGN_IN_PROGRESS؛ provisioning WAITING_EXTERNAL | أضيفت إعدادات S3-compatible محايدة `RAVEN23_OBJECT_STORAGE_*` مع AWS_* fallback، واجتاز S3Mock وCI على `3659843`. يستمر تقييم تكلفة/قيود providers؛ لا اختيار مزود أو provisioning. النشر مشروط بإغلاق 10B وموافقة التكلفة والاعتمادات اللازمة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -332,3 +332,29 @@
 - Phase08 and Phase09 remain IN_PROGRESS for their external staging/product decisions. Phase04 real Google/mail integration remains PARTIAL. These remain relevant gates when their capabilities are used in staging or production.
 - Phase11 provisioning/deployment remains WAITING_EXTERNAL pending provider/region/recurring-cost approval and required branch-protection/deployment controls.
 
+
+
+## 27. Phase11A — portable object-storage configuration verified — 25 November 2026
+
+- Main SHA: `3659843cb7bfbfebba6497d73be1a0dbf9d55440`.
+- أضيفت متغيرات تخزين محايدة `RAVEN23_OBJECT_STORAGE_*` لإعداد S3-compatible disk: access key ID، secret access key، region، bucket، URL، endpoint، وpath-style endpoint.
+- هذه المتغيرات هي الأولوية؛ أسماء `AWS_*` القديمة تبقى fallback للتوافق مع أي runtime قائم. الافتراضي ما زال `private_media` المحلي، ولا يحدث اتصال خارجي تلقائياً.
+- اختبار S3PrivateObjectStorageTest لم يعد يعيد بناء إعداد القرص داخل الاختبار؛ يختبر `config/filesystems.php` الفعلي باستخدام القيم المحايدة التي يمررها CI إلى S3Mock.
+- أزيل تعليق Google client ID الذي كان يذكر Render باعتباره مصدراً خاصاً؛ بقي السلوك كما هو.
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45629239131](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45629239131) | SUCCESS؛ 150 tests / 1,704 assertions، S3Mock، PostgreSQL roles/migrations، runtime وrollback |
+| Authentication Regression | [45629244185](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45629244185) | SUCCESS |
+| Pint Format | [45629238792](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45629238792) | SUCCESS |
+| Security Scans | [45629238837](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45629238837) | SUCCESS |
+
+- أثبت Docker workflow rollback sequence `200 → 502 → 200`؛ rollback SBOM Syft v1.57.1 يحتوي 5,720 مكوناً.
+- توقيعات الأدلة: [current provenance 72188175](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72188175)، [current SBOM 72188186](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72188186)، [rollback provenance 72188201](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72188201)، [rollback SBOM 72188212](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72188212)، [manifest signature 72188225](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72188225).
+- Release artifact [15030387429](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45629239131/artifacts/15030387429): 562,609,588 bytes; digest `sha256:3d05ead631a50234a99b4745695c60eb44eb064ca4de34c937f812c42428a1b2`; expires 2026-12-25.
+
+### حدود ما تم إثباته
+
+- S3Mock يثبت توافق API في الاختبار فقط؛ لا يثبت تكافؤ كل مزود في ACL/lifecycle/versioning/retention/metadata أو تكلفة النقل.
+- لا يوجد provider أو region مختار، ولا إنشاء bucket أو حساب أو سر أو نشر أو registry push.
+- Phase11A تبقى IN_PROGRESS حتى إكمال portability/cost scorecard، وتحديد متطلبات نقل الملفات والنسخ والـegress، ومراجعة الخيارات المتاحة وقت اتخاذ القرار.

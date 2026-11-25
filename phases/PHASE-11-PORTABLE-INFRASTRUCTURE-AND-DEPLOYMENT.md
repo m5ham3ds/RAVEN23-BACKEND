@@ -104,7 +104,7 @@
 - S3 Flysystem adapter موجود واختبار S3Mock يثبت contract test فقط؛ لا يوجد دليل على real object-storage staging.
 - Render وNeon مسجلان كخدمات قائمة/انتقالية، وليس كقرار دائم.
 - Phase10G أثبت Docker archive وSBOM وتواقيع provenance/SBOM وrelease manifest. الحزمة موجودة كـGitHub Actions artifact؛ لم يتم دفعها إلى registry.
-- لا يوجد AWS account/resource/OIDC deployment role/DNS change أو production deploy مثبت.
+- لم يتم ضمن هذا العمل إنشاء موارد AWS أو OIDC deployment role أو تغيير DNS أو إجراء production deploy؛ ولا توجد في المستودع أدلة على تهيئة قناة نشر سحابية.
 - main حاليًا protected=false؛ required checks وbranch protection لم يتم فرضها.
 
 ### 5.1 جرد حدود التكامل الحالية
@@ -119,7 +119,7 @@
 | Compute | OCI image مع FrankenPHP/Caddy | لا startup خاص بـRender/Neon |
 | Delivery | release archive ضمن GitHub Actions | لا registry push أو IaC أو cloud deployment workflow/OIDC role |
 
-أضيفت aliases التخزين المحايدة في إعداد S3 مع إبقاء AWS_* fallback backward-compatible، ونُقل اختبار S3Mock لاستخدام aliases الجديدة. أسماء SQS/DynamoDB/SES تبقى optional AWS adapters ولا تستخدمها defaults. لا يوجد IaC directory أو deployment workflow في root/workflow inventory الحالي. توجد إشارة Render قديمة في تعليق Google client ID فقط، ولا تؤثر في السلوك.
+أضيفت aliases التخزين المحايدة في إعداد S3 مع إبقاء AWS_* fallback backward-compatible، ونُقل اختبار S3Mock لاستخدام aliases الجديدة. أسماء SQS/DynamoDB/SES تبقى optional AWS adapters ولا تستخدمها defaults. لا يوجد IaC directory أو deployment workflow في root/workflow inventory الحالي. أُزيلت إشارة Render القديمة من تعليق Google client ID دون تغيير سلوكه.
 
 ## 6. الاعتماديات والممنوعات
 
