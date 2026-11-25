@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A/10C/10D/10E/10F COMPLETE؛ 10B ما زالت مفتوحة لاعتماد Admin لحماية main؛ 10G IN_PROGRESS لتجربة rollback وrelease manifest.  
+**الحالة:** IN_PROGRESS — 10A/10C/10D/10E/10F/10G COMPLETE؛ 10B ما زالت مفتوحة لاعتماد Admin لحماية main وrequired checks.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -93,7 +93,30 @@
 
 ## 10G — release manifest and isolated rollback rehearsal
 
-**الحالة:** IN_PROGRESS — التنفيذ الأولي على main؛ ينتظر CI إثبات إعادة بناء الإصدار السابق، سلامة تحويل مسار HTTP، وتوقيع manifest النهائي.
+**الحالة:** COMPLETE على SHA `a86fb3abd747a4110caa42b105dbb290b89f9e23` بعد نجاح بوابات CI الأربع وإثبات rollback وتوقيع manifest ورفع حزمة الأدلة.
+
+### إثبات إغلاق 10G — 25 نوفمبر 2026
+
+| البوابة | التشغيل | النتيجة |
+|---|---:|---|
+| Docker Validation | [45625075036](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075036) | SUCCESS — runtime وSQLite وPostgreSQL وS3Mock وrollback وrelease evidence PASS |
+| Authentication Regression | [45625075096](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075096) | SUCCESS |
+| Pint Format | [45625075137](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075137) | SUCCESS |
+| Security Scans | [45625075229](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075229) | SUCCESS — Gitleaks وTrivy وعتبة HIGH/CRITICAL PASS |
+
+- البوابات الأربع جميعها مرتبطة بالـSHA نفسه `a86fb3a`.
+- أثبت proxy loopback التسلسل `HTTP 200 → HTTP 502 → HTTP 200`: النسخة الحالية، إيقافها عمدًا، ثم تحويل المرور إلى rollback target السابق.
+- أُعيد بناء rollback commit `f912dd2479a5f86471e1e8999b2d36c7611d41cb`. Syft v1.57.1 تحقق من CycloneDX SBOM يحتوي 5,720 مكوّناً.
+- current image config digest: `sha256:8b1649e89c3feccb9f01124b2ac83abe0d4796442208df20cee18be5169e9b02`; archive SHA-256: `1f9347f89226634824c23cda2d6064ba15f2f98747b964aa77337efd06a22773`; SBOM SHA-256: `ecd6913ec2b92c166863ec9811aacdc657179397b352e8c9bb7fe26a28fde860`.
+- rollback image config digest: `sha256:a736995b08c01b2feb7eaefeb462c6d12bf528b18cc2cbaecb0f2c3be03180f0`; archive SHA-256: `1647484f8bc7c4376a915aa48951adf2c1cc1f86490a1a2b3c50d65ae2ec92d6`; SBOM SHA-256: `3fab41bb3f765e11b23c8b13037ca50b2212e5cc64281c03b79aed52988d16e3`.
+- Sigstore: [current image provenance](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175380)، [current image SBOM](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175401)، [rollback provenance](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175434)، [rollback SBOM](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175458)، و[release manifest signature](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175490).
+- manifest SHA-256: `bb0d5d99b10f8f661d2b7b602b90dc55d37ba0af056608486a6e09e6bf5f649c`. اجتازت جميع ملفات SHA256SUMS الفحص.
+- حزمة الإصدار [Artifact 15026689226](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075036/artifacts/15026689226)، الحجم 562,608,814 bytes، digest `sha256:8b0a10585fc6f7542660e1cedb8ecb362b4b86f625a09ef7a73aed7213f9162c`، واحتفاظ 30 يوماً.
+- أصلح commit `a86fb3a` إخراج ملخص Bash باستخدام `printf` بدلاً من backtick command substitution؛ لم تظهر رسائل `command not found` بعد الإصلاح.
+
+**حدود الإثبات:** هذه تجربة حاويات وproxy على loopback وليست اختبار cloud load balancer أو production deployment. لم يحدث registry push أو deployment أو وصول إلى قاعدة/أسرار الإنتاج. تبقى 10B مفتوحة لأن branch API يؤكد `protected=false` ولا تتوفر صلاحية Admin.
+
+
 
 - يثبت \`phases/release/rollback-target.json\` آخر إصدار سابق اجتاز بوابات CI الأربع على SHA \`f912dd2479a5f86471e1e8999b2d36c7611d41cb\` وروابط التشغيلات الأربع.
 - يعيد workflow بناء هذا الإصدار من شجرة Git عند SHA نفسه داخل مساحة CI مؤقتة، دون إنشاء فرع أو تعديل شجرة main.
@@ -111,7 +134,7 @@
 - 10D COMPLETE: API v1 contract regression verified on SHA 44ed546.
 - 10E COMPLETE: synthetic PostgreSQL load baseline verified on SHA f912dd2.
 - 10F COMPLETE: immutable tested-image archive, CycloneDX SBOM, signed provenance/SBOM attestations على SHA c01a4bad.
-- 10G IN_PROGRESS: release manifest and isolated rollback rehearsal.
+- 10G COMPLETE على SHA `a86fb3a`: release manifest and isolated rollback rehearsal verified؛ الأدلة أعلاه.
 
 ## الهدف
 منع regressions، والتأكد من أن كل commit يمر بسلسلة اختبارات واضحة وأن كل إصدار يمكن تتبعه والرجوع عنه.

@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified implementation SHA:** `c01a4bad1e4007dd8c9cb46bb56d5344f188f06c`
+**Latest fully CI-verified application/runtime SHA:** `a86fb3abd747a4110caa42b105dbb290b89f9e23`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -19,8 +19,8 @@
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
-| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F COMPLETE؛ 10B و10G مفتوحتان) | 10F أُغلقت على c01a4bad مع image/SBOM/provenance attestations؛ 10G قيد تجربة release manifest وrollback معزول. 10B ما زالت تحتاج صلاحيات Admin. |
-| 11 — AWS والنشر | WAITING_EXTERNAL / DEPENDENCY | لا توجد بنية AWS أو OIDC deployment؛ تعتمد على مراحل سابقة وقرار التكلفة والمنطقة. |
+| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
+| 11 — البنية المحمولة والنشر | 11A DESIGN_IN_PROGRESS؛ provisioning WAITING_EXTERNAL | بدأ تصميم محايد للمزود يقارن AWS المتكامل بالبنية متعددة المزودين؛ لا مزود مختار ولا حساب/موارد/OIDC deployment. النشر مشروط بإغلاق 10B وموافقة التكلفة والاعتمادات اللازمة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -303,3 +303,32 @@
 - التعديل: توليد SBOM rollback بواسطة Anchore Syft v1.57.1 من Docker archive نفسه \`docker-archive:\` لتجنب فشل أداة SBOM السابقة، والتحقق باستخدام jq من \`bomFormat=CycloneDX\` ووجود قائمة components غير فارغة. provenance والـrelease manifest يحفظان اسم المولد وعدد components.
 - فحص Trivy vulnerabilities/misconfig/secret على صورة الإنتاج يظل دون تغيير؛ Security run السابق نجح وملخص Trivy كان Clean.
 - ينتظر SHA التصحيح إعادة Docker/Auth/Pint/Security وإثبات rollback rehearsal وattestations وrelease bundle. 10G لا تزال IN_PROGRESS. لم تمس قاعدة إنتاج أو secrets أو نشر خارجي.
+
+
+## 26. Phase10G closeout / Phase11A provider-neutral design start — 25 November 2026
+
+### Phase10G — COMPLETE on main SHA `a86fb3abd747a4110caa42b105dbb290b89f9e23`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45625075036](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075036) | SUCCESS |
+| Authentication Regression | [45625075096](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075096) | SUCCESS |
+| Pint Format | [45625075137](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075137) | SUCCESS |
+| Security Scans | [45625075229](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075229) | SUCCESS |
+
+- Rollback proof: current route 200; stopped candidate 502; rollback route 200. Previous target: `f912dd2479a5f86471e1e8999b2d36c7611d41cb`.
+- Rollback Syft v1.57.1 CycloneDX SBOM: 5,720 components; SHA-256 `3fab41bb3f765e11b23c8b13037ca50b2212e5cc64281c03b79aed52988d16e3`.
+- Current/rollback image provenance and SBOM attestations plus release-manifest signature: [72175380](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175380), [72175401](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175401), [72175434](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175434), [72175458](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175458), [72175490](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72175490).
+- Release artifact [15026689226](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45625075036/artifacts/15026689226): 562,608,814 bytes, digest `sha256:8b0a10585fc6f7542660e1cedb8ecb362b4b86f625a09ef7a73aed7213f9162c`, retention 30 days.
+- All release evidence checksums passed. No shell command-substitution errors remained after the printf correction.
+- 10B remains OPEN: branch API reports `protected=false`; Repository Admin permission is required.
+
+### Phase11 — design-only start
+
+- 11A is IN_PROGRESS as a provider-neutral architecture and option-comparison track.
+- Candidate A: integrated AWS architecture; candidate B: multi-provider portable architecture. Neither is selected.
+- Render and Neon remain recorded as transitional/current references, not permanent architectural decisions.
+- No cloud account, paid resource, network, database, object bucket, registry push, OIDC deployment role, secret, DNS change or production deployment was created.
+- Phase08 and Phase09 remain IN_PROGRESS for their external staging/product decisions. Phase04 real Google/mail integration remains PARTIAL. These remain relevant gates when their capabilities are used in staging or production.
+- Phase11 provisioning/deployment remains WAITING_EXTERNAL pending provider/region/recurring-cost approval and required branch-protection/deployment controls.
+
