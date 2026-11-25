@@ -1,6 +1,6 @@
 # جرد متغيرات البيئة وأسماء الأسرار
 
-**الحالة:** PARTIAL — جرد من source/config/workflows و.env.example؛ لم تُقرأ قيم أسرار أو GitHub Secret values.
+**الحالة:** PARTIAL — جرد أسماء runtime/config/workflows الملتزمة على main SHA `84b87d9`؛ لم تُقرأ قيم أسرار أو GitHub Secret values.
 
 ## 1. Backend runtime
 
@@ -10,12 +10,12 @@
 | APP_ENV | وضع البيئة | production/testing |
 | APP_DEBUG | عرض أخطاء Laravel | يجب أن يكون false في الإنتاج |
 | APP_URL | عنوان Laravel | إعداد أساسي للتطبيق |
-| LOG_CHANNEL | قناة السجل | Render يستخدم stderr حاليًا |
-| PORT | منفذ HTTP | Render متغير؛ start.sh الافتراضي 10000 |
+| LOG_CHANNEL | قناة السجل | الافتراضي `stderr` في صورة FrankenPHP الحالية؛ لا exporter لمزود رصد مفعّل مثبت |
+| PORT | منفذ HTTP | الافتراضي `10000` في صورة FrankenPHP؛ entrypoint يتحقق من المنفذ ويعمل non-root |
 | DB_CONNECTION | اتصال قاعدة البيانات | يفرض pgsql |
-| DB_URL | URI قاعدة PostgreSQL لترافيك التطبيق | مطلوب حاليًا؛ Neon pooled |
-| DB_MIGRATION_URL | URI مباشر للـmigrations | مطلوب حاليًا؛ Neon direct |
-| DB_SSLMODE | وضع TLS لقاعدة PostgreSQL | default في config هو prefer؛ URLs الحالية تضيف sslmode=require |
+| DB_URL | URI PostgreSQL لدور التطبيق الأقل صلاحية | عقد اتصال عام يقبل PostgreSQL URI قياسياً ولا يثبت مزوداً معيناً |
+| DB_MIGRATION_URL | URI PostgreSQL لدور migration أحادي المهمة | منفصل عن DB_URL؛ لا يمرر إلى web runtime |
+| DB_SSLMODE | وضع TLS لقاعدة PostgreSQL | الاتصالات البعيدة في production تفرض require أو verify-ca أو verify-full |
 | CACHE_STORE | مخزن cache | start.sh يفرض file |
 | GOOGLE_CLIENT_ID | Google OAuth audience | له fallback public client ID في config/services.php؛ لا تضع client secret هنا |
 
@@ -43,17 +43,16 @@
 ## 4. Build/runtime/diagnostic/deployment names
 
 - Dockerfile: RAVEN23_SOURCE_COMMIT (ARG/ENV)، ويستخدم APP_ENV وDB_URL في فحوص build.
-- Health endpoint يقرأ RAVEN23_SOURCE_COMMIT وRENDER_GIT_COMMIT وRENDER_INSTANCE_ID.
-- docker/runtime-db-diagnostics.php: RAVEN_DIAG_MODE وRAVEN_DIAG_INSPECT_USER_IDS وDB_URL وDB_CONNECTION وAPP_ENV.
-- docker/start.sh يقرأ APP_KEY وDB_URL وDB_MIGRATION_URL وPORT ويضبط APP_ENV وAPP_DEBUG وLOG_CHANNEL وDB_CONNECTION وCACHE_STORE.
-- Render workflows تستخدم عنوان خدمة Render ثابتًا في المصدر، لا Secret. GitHub workflow diagnostics تستخدم أسماء secrets الموضحة أدناه.
+- Dockerfile يثبت `RAVEN23_SOURCE_COMMIT` داخل image metadata؛ صورة التشغيل الحالية FrankenPHP/Caddy ولا تستخدم `docker/start.sh`.
+- HealthController ما زال يعرض حقول توافق اختيارية `RENDER_GIT_COMMIT` و`RENDER_INSTANCE_ID` عند وجودها؛ لا تفرض هذه الحقول Render startup أو routing.
+- `docker/entrypoint.sh` يقرأ APP_KEY وPORT وAPP_ENV وAPP_DEBUG وLOG_CHANNEL فقط؛ لا يشغل migrations ولا يفحص DB عند startup.
+- لا توجد workflows نشر إلى Render أو AWS في شجرة workflows الحالية؛ الخمس الحالية CI/manual read-only smoke.
 
-## 5. أسماء GitHub Secrets التي ظهرت في workflows
+## 5. أسماء GitHub Secrets التاريخية
 
-- NEON_DB_URL
-- NEON_DB_MIGRATION_URL
+ظهرت الاسمان `NEON_DB_URL` و`NEON_DB_MIGRATION_URL` في workflows/diagnostics أقدم. لا تستخدمهما workflows الخمسة الحالية كأسرار نشر، ولا يقرأهما `config/database.php`؛ عقد التطبيق الحالي هو `DB_URL` و`DB_MIGRATION_URL` القياسيان.
 
-لم تتم قراءة قيم هذه الأسرار ولا يمكن تأكيد محتواها أو استمرار صلاحيتها. لا تُكتب القيم داخل المستودع أو التقارير.
+لم تتم قراءة قيم هذه الأسرار ولا يمكن تأكيد وجودها أو محتواها أو صلاحيتها. لا تُكتب القيم داخل المستودع أو التقارير، ولا يُنشأ أي secret جديد باسم Neon.
 
 ## 6. Flutter client variables
 
@@ -102,3 +101,11 @@ LARAVEL_API_URL هو account/data API؛ RAVEN23_API_URL هو scraper/source serv
 - `RAVEN23_PUSH_PROVIDER`: الافتراضي `none`؛ الاختيارات المدعومة في عقد المجال `fcm` و`onesignal` فقط بعد اعتماد الاختيار.
 - `NOTIFICATION_OUTBOX_DISPATCH_BATCH` و`NOTIFICATION_OUTBOX_REDISPATCH_AFTER_SECONDS`: حدود أمر relay المجدول.
 - `notifications:outbox-status`: أمر تشخيص aggregate read-only؛ لا يحتاج secret إضافي ولا يخرج PII أو notification payload.
+
+## 9. إعدادات Object Storage المحايدة — Phase11A
+
+- `RAVEN23_PRIVATE_STORAGE_DISK` الافتراضي `private_media` المحلي الخاص؛ لا اتصال سحابي افتراضي.
+- عند اختيار S3-compatible disk بموافقة مستقلة، يكون `RAVEN23_PRIVATE_STORAGE_DISK=s3`.
+- متغيرات الإعداد المحايدة ذات الأولوية: `RAVEN23_OBJECT_STORAGE_ACCESS_KEY_ID`, `RAVEN23_OBJECT_STORAGE_SECRET_ACCESS_KEY`, `RAVEN23_OBJECT_STORAGE_REGION`, `RAVEN23_OBJECT_STORAGE_BUCKET`, `RAVEN23_OBJECT_STORAGE_URL`, `RAVEN23_OBJECT_STORAGE_ENDPOINT`, `RAVEN23_OBJECT_STORAGE_USE_PATH_STYLE_ENDPOINT`.
+- أسماء `AWS_*` المقابلة باقية fallback backward-compatible فقط؛ هذا لا يعني اختيار AWS أو إنشاء bucket.
+- Docker S3Mock يمرر الأسماء المحايدة إلى تكوين Laravel الحقيقي. الاختبار لا يقرأ ولا يحتاج أسراراً خارجية.

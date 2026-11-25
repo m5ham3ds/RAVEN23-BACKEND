@@ -233,3 +233,21 @@ Protected source revision
 - required-check candidates: Docker job، Authentication job، Security job. Pint artifact ليس blocking gate مستقلاً، والـHTTP smoke يدوي وGET-only.
 - main ما زالت `protected=false`؛ لذلك CI بعد push لا يحمي من push غير مفحوص. 11B2 enforcement ينتظر 10B.
 - لا deployment workflow أو GitHub Environment محمية أو cloud OIDC role أو registry push في 11B1.
+
+## 10. CI verification for Phase11A / 11B1 baseline — 25 November 2026
+
+**Verified main SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45636103294](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103294) | SUCCESS — 150 Feature tests / 1,704 assertions; S3Mock 1 / 8; PostgreSQL/runtime/rollback |
+| Authentication Regression | [45636103168](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103168) | SUCCESS |
+| Pint Format | [45636103292](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103292) | SUCCESS |
+| Security Scans | [45636103186](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103186) | SUCCESS |
+
+- Rollback path in isolated loopback test: current candidate HTTP 200; stopped candidate HTTP 502 (expected); successful switch to rollback target. Rollback SBOM Syft v1.57.1: 5,720 components.
+- Release evidence attestations: [current provenance 72207357](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207357), [current SBOM 72207371](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207371), [rollback provenance 72207380](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207380), [rollback SBOM 72207401](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207401), [release manifest signature 72207415](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207415).
+- Artifact [15033437028](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103294/artifacts/15033437028): 562,609,467 bytes; digest `sha256:06a0618604531d035efb6c9a551d9042ab78f163c5fd4d24f615aee2a8ecd9a3`; expires 2026-12-25.
+- S3Mock used `RAVEN23_OBJECT_STORAGE_*` and the real Laravel filesystem config. It validates API compatibility only, not provider-specific lifecycle/versioning/ACL, pricing, real staging credentials or transfer performance.
+- This run is disposable CI/loopback evidence only; no registry push, cloud load balancer, cloud identity, staging resource or production deployment.
+- 10B remains OPEN because `main.protected=false`; Phase11B2 enforcement remains blocked. 11A cost scorecard remains unpriced until region/workload/retention/HA/budget inputs are supplied.

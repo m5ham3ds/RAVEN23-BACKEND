@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified application/runtime SHA: 3659843cb7bfbfebba6497d73be1a0dbf9d55440 — 25 نوفمبر 2026  
+> latest fully CI-verified application/runtime SHA: 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181 — 25 نوفمبر 2026  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -29,7 +29,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر صلاحية Admin رغم اكتمال 10A و10C–10G. Phase11A بدأت كتصميم محايد للمزود يقارن AWS المتكامل بالبنية متعددة المزودين؛ لا يوجد مزود مختار أو موارد منشأة.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر صلاحية Admin رغم اكتمال 10A و10C–10G. Phase11A أعدت مصفوفة قابلية الخروج وقالب تكلفة ينتظر مدخلات المنطقة والحمل؛ Phase11B1 بدأت كنموذج ثقة تصميمي فقط. لا يوجد مزود مختار أو موارد منشأة، وPhase11B2 تنتظر إغلاق 10B وموافقة الاستضافة.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

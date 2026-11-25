@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 25 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `634e68b9eddb41b556f1005b37bffe769a9d8b32`
+**Latest fully CI-verified application/runtime SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -369,3 +369,22 @@
 - Required-check candidates are Docker, Authentication and Security jobs; Pint report is not an independent blocking gate.
 - Removed unused `NEON_DB_URL` environment alias from Authentication CI; application uses the generic `DB_URL` contract.
 - 10B remains OPEN; main remains `protected=false`. No cloud deployment role, registry push, secret, environment, IaC apply or resource was created.
+
+## 29. Phase11A scorecard / 11B1 trust design — CI verified on 84b87d9 — 25 November 2026
+
+| Gate | Run | Conclusion |
+|---|---:|---|
+| Docker Validation | [45636103294](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103294) | SUCCESS |
+| Authentication Regression | [45636103168](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103168) | SUCCESS |
+| Pint Format | [45636103292](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103292) | SUCCESS |
+| Security Scans | [45636103186](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103186) | SUCCESS |
+
+- Docker Feature suite: 150 passed / 1,704 assertions.
+- S3Mock: `S3PrivateObjectStorageTest` passed 1 / 8 assertions using `RAVEN23_OBJECT_STORAGE_*` and the actual Laravel filesystem configuration.
+- PostgreSQL restricted app role/migration role, one-off migration, non-root runtime, liveness/readiness and rollback all passed.
+- Rollback evidence: current route HTTP 200; candidate stop yields expected HTTP 502; route switches successfully to previous image. Syft v1.57.1 rollback SBOM: 5,720 components; SHA-256 `7c6339f66e78625ea61f513926922487cd5562a0fbdd074da78fe986a4a82b8e`.
+- Sigstore attestations: [current provenance 72207357](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207357)، [current SBOM 72207371](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207371)، [rollback provenance 72207380](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207380)، [rollback SBOM 72207401](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207401)، [manifest signature 72207415](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72207415).
+- Release artifact [15033437028](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103294/artifacts/15033437028): 562,609,467 bytes; digest `sha256:06a0618604531d035efb6c9a551d9042ab78f163c5fd4d24f615aee2a8ecd9a3`; expiry 2026-12-25.
+- All SHA256SUMS entries passed, including release/rollback archives, SBOMs, provenance bundles, manifest, manifest signature and rehearsal report. No shell command errors.
+- This is disposable CI/loopback evidence, not real S3 provider staging, cloud load-balancer test or production deployment.
+- main remains `protected=false`; Phase10B is still OPEN. Phase11B1 remains design-only; cost scorecard waits for region/workload/retention/budget inputs. No provider, region or paid resources selected or created.

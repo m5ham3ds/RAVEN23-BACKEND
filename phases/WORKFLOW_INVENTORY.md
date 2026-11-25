@@ -1,8 +1,8 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified main SHA:** f912dd2479a5f86471e1e8999b2d36c7611d41cb  
+**Latest fully CI-verified main SHA:** 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
 **تاريخ التحديث:** 25 نوفمبر 2026 — السجل الأقدم تاريخي  
-**الحالة:** تحديث Phase10A؛ جرد workflows مصحح، وbootstrap ذو صلاحيات كتابة أزيل بعد انتهاء مهمته.
+**الحالة:** جرد Phase10A مصحح؛ خمس workflows CI/manual read-only ولا توجد قناة cloud deploy. آخر CI شامل موثق على 84b87d9 — 25 نوفمبر 2026.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
 
@@ -59,7 +59,7 @@
 3. معظم workflows hardcode عنوان Render وتتحقق من render_git_commit؛ هذا يمنع نقل النشر إلى AWS دون إعادة تصميم آلية health version contract.
 4. auth-smoke.yml يعرّف workflow_dispatch لكن job condition يقصر التنفيذ على event_name push؛ التشغيل اليدوي معلن لكنه لا يمر بشرط job.
 5. trigger الخاص بـ production tests هو تعديل ملف الاختبار نفسه، وليس تغييرات التطبيق ذات العلاقة؛ لذلك لا يضمن regression coverage.
-6. لا يوجد workflow نشر AWS في الملفات التي تم جردها. ولا يظهر OIDC أو id-token: write في workflow الموجود.
+6. لا يوجد workflow نشر سحابي أو AWS deployment role في الملفات الحالية. Docker workflow يملك `id-token: write` مع `attestations: write` و`artifact-metadata: write` لاستخدام `actions/attest@v4` في توقيع Sigstore؛ هذا OIDC خاص بالتوقيعات ولا يمنح صلاحية نشر إلى AWS أو أي مزود.
 7. runtime-db-diagnostics يحتوي IDs ثابتة 165,168 في RAVEN_DIAG_INSPECT_USER_IDS لفحص read-only لسجلات حسابات موجودة. لم نشغّل هذا الفحص ولم نعدّل أي صفوف.
 8. docker-build.yml هو workflow الوحيد الذي يثبت فعليًا PostgreSQL integration داخل بيئة disposable في المصدر الحالي.
 
@@ -274,3 +274,19 @@ No production database, secrets, deployments, registry publishing or AWS resourc
 - Rollback step stopped while running \`trivy image --format cyclonedx\` against the rebuilt previous image; log showed Debian 13.8 and two language package files, then exit 1 without a useful diagnostic. No HTTP rollback test ran.
 - Replaced only rollback SBOM generation with pinned Anchore Syft v1.57.1 scanning the exact Docker archive via \`docker-archive:\`; validate CycloneDX JSON plus a non-empty components array, and record generator/version/component count in build provenance and release manifest.
 - The Trivy Security workflow and its blocking vulnerability gate remain unchanged. New SHA CI is required before 10G can close.
+
+## 14. Current main CI / Phase11B1 trust model baseline — 25 November 2026
+
+**Verified SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Docker Validation | [45636103294](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103294) | SUCCESS — 150 Feature tests / 1,704 assertions; S3Mock 1 / 8; PostgreSQL/runtime/rollback |
+| Authentication Regression | [45636103168](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103168) | SUCCESS |
+| Pint Format | [45636103292](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103292) | SUCCESS |
+| Security Scans | [45636103186](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45636103186) | SUCCESS |
+
+- Required-check candidates are Docker Validation, Authentication Regression, and Security Scans. Pint is currently an artifact-producing changed-file report; strict Pint is blocking inside Docker. Manual HTTP smoke is read-only and not a per-commit gate.
+- Docker `id-token: write` supports Sigstore attestations through `actions/attest@v4`; no cloud deploy identity, provider role, registry push or deployment workflow is configured.
+- main is still `protected=false`; required-check enforcement awaits Repository Admin and an approved merge-control approach.
+- No provider, region, cost ceiling, GitHub deployment environment, cloud OIDC policy or paid resource has been selected or created.
