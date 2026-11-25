@@ -24,6 +24,7 @@ cleanup() {
   rm -rf "$context"
 }
 trap cleanup EXIT
+trap 'status=$?; printf "::error::Rollback rehearsal failed at line %s: %s (exit %s)\\n" "${BASH_LINENO[0]:-?}" "$BASH_COMMAND" "$status" >&2' ERR
 mkdir -p "$evidence"
 
 docker tag raven23-backend:ci "$current_image"
@@ -83,6 +84,7 @@ jq -e '.bomFormat == "CycloneDX" and (.components | type == "array") and (.compo
 }
 rollback_sbom_count="$(jq -er '.components | length' "$rollback_sbom")"
 rollback_sbom_sha="$(sha256sum "$rollback_sbom" | awk '{print $1}')"
+echo "::notice::Rollback SBOM validated: components=$rollback_sbom_count sha256=$rollback_sbom_sha"
 
 base_ref="$(awk '$1 == "FROM" && $0 ~ / AS runtime$/ { print $2; exit }' "$context/Dockerfile")"
 jq -n \
@@ -109,6 +111,7 @@ current_port="$(port)"
 rollback_port="$(port)"
 proxy_port="$(port)"
 while [ "$current_port" = "$rollback_port" ] || [ "$current_port" = "$proxy_port" ] || [ "$rollback_port" = "$proxy_port" ]; do proxy_port="$(port)"; done
+echo "::notice::Rollback rehearsal ports allocated; starting disposable non-root containers."
 
 run_image() {
   docker run -d --name "$1" -p "127.0.0.1:$2:10000" \
@@ -128,9 +131,12 @@ wait_up() {
 run_image "$current_name" "$current_port" "$current_image"
 run_image "$rollback_name" "$rollback_port" "$rollback_image"
 wait_up "$current_name" "$current_port"
+echo "::notice::Current candidate liveness passed."
 wait_up "$rollback_name" "$rollback_port"
+echo "::notice::Rollback target liveness passed."
 for port_value in "$current_port" "$rollback_port"; do
   ready="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 "http://127.0.0.1:$port_value/ready" || true)"
+  echo "::notice::Database-free readiness for port $port_value returned HTTP $ready (expected 503)."
   test "$ready" = "503"
 done
 
@@ -153,14 +159,18 @@ for attempt in $(seq 1 30); do
   sleep 1
 done
 test "$proxy_ready" = "true"
+echo "::notice::Loopback proxy is routing to the current candidate."
 probe "$current_port"
 
 docker stop "$current_name" >/dev/null
 failed_status="$(curl -sS -o /dev/null -w '%{http_code}' --max-time 4 "http://127.0.0.1:$proxy_port/up" || true)"
+echo "::notice::Stopped candidate produced proxy HTTP $failed_status (expected 502)."
 test "$failed_status" = "502"
 printf '%s\n' "$rollback_port" > "$active_file.next"
 mv "$active_file.next" "$active_file"
 probe "$rollback_port"
+echo "::notice::Traffic successfully switched to rollback target."
+
 
 jq -n \
   --arg current "$GITHUB_SHA" --arg current_image "$current_image" --arg current_digest "$current_digest" \
