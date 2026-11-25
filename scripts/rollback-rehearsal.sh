@@ -49,16 +49,25 @@ rollback_archive="$evidence/raven23-backend-rollback-$rollback_sha.docker.tar"
 rollback_sbom="$evidence/raven23-backend-rollback.cdx.json"
 docker save --output "$rollback_archive" "$rollback_image"
 rollback_archive_sha="$(sha256sum "$rollback_archive" | awk '{print $1}')"
-# Generate the rollback SBOM from the exact Docker archive that will be attested.
-# Syft supports docker-archive sources and native CycloneDX JSON output.
+
+# Scan the exact archive using Syft's documented positional scan-target syntax.
+# Keep CLI diagnostics in the job log and require a complete CycloneDX document.
 docker pull anchore/syft:v1.57.1
-docker run --rm -v "$evidence:/out" anchore/syft:v1.57.1 scan \
+docker run --rm \
+  -v "$evidence:/out" \
+  --entrypoint /syft \
+  anchore/syft:v1.57.1 \
   "docker-archive:/out/$(basename "$rollback_archive")" \
-  -o cyclonedx-json=/out/raven23-backend-rollback.cdx.json
-test -s "$rollback_sbom"
+  -o "cyclonedx-json=/out/$(basename "$rollback_sbom")"
+
+test -s "$rollback_sbom" || {
+  echo "::error::Syft did not create the rollback SBOM file."
+  ls -lah "$evidence" || true
+  exit 1
+}
 jq -e '.bomFormat == "CycloneDX" and (.components | type == "array") and (.components | length > 0)' "$rollback_sbom" >/dev/null || {
-  echo "::error::Syft did not produce a non-empty CycloneDX rollback SBOM."
-  ls -lh "$evidence" || true
+  echo "::error::Syft output is not a non-empty CycloneDX SBOM."
+  jq '{bomFormat, specVersion, componentCount:(.components|length?)}' "$rollback_sbom" || true
   exit 1
 }
 rollback_sbom_count="$(jq -er '.components | length' "$rollback_sbom")"
