@@ -47,24 +47,29 @@ test "$(docker image inspect --format '{{.Config.User}}' "$rollback_image")" = "
 
 rollback_archive="$evidence/raven23-backend-rollback-$rollback_sha.docker.tar"
 rollback_sbom="$evidence/raven23-backend-rollback.cdx.json"
+rollback_syft_log="$RUNNER_TEMP/raven23-rollback-syft.log"
 docker save --output "$rollback_archive" "$rollback_image"
 rollback_archive_sha="$(sha256sum "$rollback_archive" | awk '{print $1}')"
 
 # Scan the exact Docker archive using Syft's documented scan subcommand.
-# Mount the archive read-only and stream CycloneDX to the runner. This avoids
-# relying on the Syft container user's write permission on the host evidence dir.
+# Keep the image offline, the archive read-only, and cataloging single-worker
+# so runner CPU count cannot expand Syft's default parallel worker pool.
 docker pull anchore/syft:v1.57.1
 if ! docker run --rm \
   --network none \
   --env SYFT_CHECK_FOR_APP_UPDATE=false \
+  --env SYFT_PARALLELISM=1 \
   --volume "$rollback_archive:/input/rollback.tar:ro" \
   --entrypoint /syft \
   anchore/syft:v1.57.1 \
   scan "docker-archive:/input/rollback.tar" \
-  -o cyclonedx-json > "$rollback_sbom"; then
-  echo "::error::Syft failed to scan the rollback Docker archive; see the Syft diagnostics above." >&2
+  --parallelism 1 -vv \
+  -o cyclonedx-json > "$rollback_sbom" 2> "$rollback_syft_log"; then
+  echo "::error::Syft failed to scan the rollback Docker archive (exit=$?). Diagnostics:" >&2
+  tail -n 200 "$rollback_syft_log" >&2 || true
   exit 1
 fi
+rm -f "$rollback_syft_log"
 
 test -s "$rollback_sbom" || {
   echo "::error::Syft did not create the rollback SBOM file."
