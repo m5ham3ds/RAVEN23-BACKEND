@@ -536,16 +536,15 @@ jobs:
           printf 'archive_sha256=%s\n' "$archive_sha" >> "$GITHUB_OUTPUT"
           printf 'sbom_sha256=%s\n' "$sbom_sha" >> "$GITHUB_OUTPUT"
           {
-            echo "## Tested image release evidence"
-            echo
-            echo "- Source commit: `$GITHUB_SHA`"
-            echo "- Immutable local tag: `$image_tag`"
-            echo "- Docker image config digest: `$image_id`"
-            echo "- Platform: `$image_platform`"
-            echo "- Docker archive SHA-256: `$archive_sha`"
-            echo "- CycloneDX SBOM SHA-256: `$sbom_sha`"
-            echo "- Runtime base: `$BASE_IMAGE@$BASE_DIGEST`"
-            echo "- No image was pushed to a container registry."
+            printf '## Tested image release evidence\n\n'
+            printf -- '- Source commit: `%s`\n' "$GITHUB_SHA"
+            printf -- '- Immutable local tag: `%s`\n' "$image_tag"
+            printf -- '- Docker image config digest: `%s`\n' "$image_id"
+            printf -- '- Platform: `%s`\n' "$image_platform"
+            printf -- '- Docker archive SHA-256: `%s`\n' "$archive_sha"
+            printf -- '- CycloneDX SBOM SHA-256: `%s`\n' "$sbom_sha"
+            printf -- '- Runtime base: `%s@%s`\n' "$BASE_IMAGE" "$BASE_DIGEST"
+            printf -- '- No image was pushed to a container registry.\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate signed SLSA build provenance attestation for the tested image archive
