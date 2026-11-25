@@ -35,3 +35,17 @@ CI additions:
 10G remains IN_PROGRESS until all four CI gates, traffic switch, attestations, checksums and release artifact succeed. This isolated proxy/container test is not proof of production deployment rollback or cloud load balancer behavior.
 
 No production DB, secrets, deployment, registry push or AWS resources were accessed.
+
+
+## First 10G CI attempt — failure diagnosis and targeted repair
+
+Tested commit: \`018edc6b7e5a17d2146982b536743152a6ae440f\`.
+
+- Authentication #45516843920, Pint #45516844066 and Security #45516843974 passed. Trivy's production image scan was Clean.
+- Docker #45516843876 passed the normal application, SQLite, PostgreSQL, S3Mock, runtime and restricted database-role checks. It also rebuilt the pinned old release from commit \`f912dd2479a5f86471e1e8999b2d36c7611d41cb\` and saved its Docker archive.
+- The rollback script then stopped during \`trivy image --format cyclonedx\`. The only output after starting the scan identified Debian 13.8 and two language package files; the process exited 1 without a detailed diagnostic. Container startup and traffic switching had not begun.
+- Targeted change: use Anchore Syft v1.57.1 to create the rollback CycloneDX SBOM from the exact Docker archive with the \`docker-archive:\` source; validate the JSON format and a non-empty components array before recording SHA-256.
+- Rollback provenance and final release manifest now identify the SBOM generator and component count. Trivy's independent security scanning is unchanged and remains blocking.
+- 10G remains IN_PROGRESS until CI validates the Syft output, 200→502→200 loopback routing, four rollback/release attestations, signed manifest, checksums and artifact upload.
+
+No production DB/secrets, deployment, registry push or AWS resources.

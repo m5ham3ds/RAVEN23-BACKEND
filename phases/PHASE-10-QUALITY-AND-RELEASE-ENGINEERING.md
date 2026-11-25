@@ -99,9 +99,10 @@
 - يعيد workflow بناء هذا الإصدار من شجرة Git عند SHA نفسه داخل مساحة CI مؤقتة، دون إنشاء فرع أو تعديل شجرة main.
 - يشغّل الصورة الحالية والصورة السابقة في حاويتين منفصلتين non-root؛ readiness المتوقع 503 لعدم وجود قاعدة بيانات، وliveness يجب أن يرجع 200.
 - يستخدم HTTP proxy مربوطًا على loopback فقط ويغيّر backend عبر ملف منفذ يُستبدل ذريًا. يوقف الحاوية الحالية عمدًا، ويتحقق من 502 قبل التحويل، ثم يثبت أن الطلب يعود 200 من حاوية الإصدار السابق.
-- يحفظ أرشيف صورة rollback وCycloneDX SBOM وprovenance وسجل التجربة؛ يوقع أرشيف rollback وشهادة SBOM، إضافة إلى توقيع release manifest الذي يربط الصورتين وSHA-256 وروابط CI/attestations.
+- يحفظ أرشيف صورة rollback وCycloneDX SBOM المولّد بواسطة Anchore Syft من الأرشيف نفسه، مع provenance وسجل التجربة؛ يوقع أرشيف rollback وشهادة SBOM، إضافة إلى توقيع release manifest الذي يربط الصورتين وSHA-256 وروابط CI/attestations. يظل Trivy مسؤولًا عن فحوص الثغرات المستقلة ولا يتغير نطاقه.
 - لا يستخدم PostgreSQL أو secrets الإنتاج، ولا ينشر صورة إلى registry ولا ينفذ deployment. اختبار proxy محلي معزول وليس اختبار load balancer فعلي في بيئة cloud.
-- القبول: نجاح البوابات الأربع، نجاح فحص البصمات، نجاح تحويل المسار 200→502→200 إلى rollback target، ظهور release bundle وattestations الأربعة وmanifest attestation.
+- القبول: نجاح البوابات الأربع، نجاح فحص البصمات، تحقق CycloneDX من وجود components، نجاح تحويل المسار 200→502→200 إلى rollback target، ظهور release bundle وattestations الأربعة وmanifest attestation.
+- محاولة 10G الأولى على SHA 018edc6 أعادت بناء صورة rollback وصدّرت Docker archive بنجاح، لكن Trivy 0.76.2 خرج برمز 1 أثناء توليد SBOM دون مخرجات خطأ تشخيصية بعد اكتشاف Debian 13.8 وملفي حزم لغوية؛ لم تبدأ حاويات rollback ولا اختبار traffic switch. استبدلنا مولّد SBOM لهذا الأرشيف فقط بـSyft مثبت الإصدار، مع تحقق صريح من CycloneDX وعدد المكونات. فحص Trivy الأمني للصورة في Security workflow بقي كما هو واجتاز.
 
 ## الشرائح التالية
 

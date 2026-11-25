@@ -265,3 +265,12 @@ No production database, secrets, deployments, registry publishing or AWS resourc
 - Loopback-only proxy test expects current route 200, simulated stopped-current route 502, then previous image route 200 after atomic backend switch.
 - Release bundle contains both image archives, two CycloneDX SBOMs, four image provenance/SBOM attestations, signed release manifest, manifest attestation, rehearsal report and verified SHA256SUMS.
 - This is an isolated rehearsal only; no actual deployment, cloud load balancer, production DB or secrets.
+
+
+### 10G first-run failure and SBOM generator remediation — SHA \`018edc6b7e5a17d2146982b536743152a6ae440f\`
+
+- Docker [45516843876](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45516843876): FAILED only in rollback rehearsal. Current image SQLite/PG/S3/runtime stages all completed successfully; prior known-good image rebuild completed and its Docker archive was saved.
+- Authentication [45516843920](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45516843920), Pint [45516844066](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45516844066), Security [45516843974](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45516843974): SUCCESS. Trivy image report Clean.
+- Rollback step stopped while running \`trivy image --format cyclonedx\` against the rebuilt previous image; log showed Debian 13.8 and two language package files, then exit 1 without a useful diagnostic. No HTTP rollback test ran.
+- Replaced only rollback SBOM generation with pinned Anchore Syft v1.57.1 scanning the exact Docker archive via \`docker-archive:\`; validate CycloneDX JSON plus a non-empty components array, and record generator/version/component count in build provenance and release manifest.
+- The Trivy Security workflow and its blocking vulnerability gate remain unchanged. New SHA CI is required before 10G can close.

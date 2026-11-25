@@ -293,3 +293,13 @@
 - Save both release archives, CycloneDX SBOMs, per-image provenance/SBOM attestations, signed release manifest, rehearsal report and SHA256SUMS in a single 30-day CI artifact.
 - 10G remains IN_PROGRESS until all four gates and the full artifact/rollback proof succeed. 10B remains OPEN because branch protection/rulesets require repository Admin write access.
 - No production database, production secrets, registry push, deployment or AWS resources used.
+
+
+## 25. Phase10G — معالجة فشل SBOM في rollback — 25 نوفمبر 2026
+
+- CI على SHA \`018edc6b7e5a17d2146982b536743152a6ae440f\`: Authentication #45516843920 SUCCESS؛ Pint #45516844066 SUCCESS؛ Security #45516843974 SUCCESS مع Trivy production image Clean.
+- Docker #45516843876 FAILED داخل خطوة \`Rebuild previous known-good release and rehearse isolated traffic rollback\`.
+- السجل يثبت نجاح build لصورة \`f912dd2479a5f86471e1e8999b2d36c7611d41cb\` وكتابة Docker archive؛ الفشل وقع عند أمر Trivy 0.76.2 لتوليد rollback CycloneDX SBOM، بعد رسائل تعرف OS Debian 13.8 وملفي حزم لغوية، ثم خرجت الوظيفة 1 دون تشخيص إضافي. لم تبدأ حاويات HTTP أو اختبار 200→502→200.
+- التعديل: توليد SBOM rollback بواسطة Anchore Syft v1.57.1 من Docker archive نفسه \`docker-archive:\` لتجنب فشل أداة SBOM السابقة، والتحقق باستخدام jq من \`bomFormat=CycloneDX\` ووجود قائمة components غير فارغة. provenance والـrelease manifest يحفظان اسم المولد وعدد components.
+- فحص Trivy vulnerabilities/misconfig/secret على صورة الإنتاج يظل دون تغيير؛ Security run السابق نجح وملخص Trivy كان Clean.
+- ينتظر SHA التصحيح إعادة Docker/Auth/Pint/Security وإثبات rollback rehearsal وattestations وrelease bundle. 10G لا تزال IN_PROGRESS. لم تمس قاعدة إنتاج أو secrets أو نشر خارجي.

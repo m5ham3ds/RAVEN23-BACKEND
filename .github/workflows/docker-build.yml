@@ -611,6 +611,8 @@ jobs:
           ROLLBACK_ARCHIVE_FILE: ${{ steps.rollback-rehearsal.outputs.rollback_archive_file }}
           ROLLBACK_ARCHIVE_SHA256: ${{ steps.rollback-rehearsal.outputs.rollback_archive_sha256 }}
           ROLLBACK_SBOM_SHA256: ${{ steps.rollback-rehearsal.outputs.rollback_sbom_sha256 }}
+          ROLLBACK_SBOM_GENERATOR: ${{ steps.rollback-rehearsal.outputs.rollback_sbom_generator }}
+          ROLLBACK_SBOM_COMPONENT_COUNT: ${{ steps.rollback-rehearsal.outputs.rollback_sbom_component_count }}
           IMAGE_PROVENANCE_ID: ${{ steps.image-provenance.outputs.attestation-id }}
           IMAGE_PROVENANCE_URL: ${{ steps.image-provenance.outputs.attestation-url }}
           IMAGE_SBOM_ID: ${{ steps.image-sbom-attestation.outputs.attestation-id }}
@@ -644,7 +646,7 @@ jobs:
               schemaVersion:1,kind:"raven23.immutable-release-manifest",
               source:{repository:$repository,branch:"main",commit:$commit,workflowRunId:$run,workflowRunAttempt:$attempt},
               release:{image:$current_image,configDigest:$current_digest,platform:$current_platform,dockerArchive:{file:$current_archive,sha256:$current_archive_sha},sbom:{file:$current_sbom,format:"CycloneDX JSON",sha256:$current_sbom_sha}},
-              rollback:{sourceCommit:$old_commit,image:$old_image,configDigest:$old_digest,platform:$old_platform,dockerArchive:{file:$old_archive,sha256:$old_archive_sha},sbom:{file:$old_sbom,format:"CycloneDX JSON",sha256:$old_sbom_sha},priorCiValidation:$old_validation,rehearsal:$rehearsal[0]},
+              rollback:{sourceCommit:$old_commit,image:$old_image,configDigest:$old_digest,platform:$old_platform,dockerArchive:{file:$old_archive,sha256:$old_archive_sha},sbom:{file:$old_sbom,format:"CycloneDX JSON",generator:$old_sbom_generator,componentCount:($old_sbom_component_count|tonumber),sha256:$old_sbom_sha},priorCiValidation:$old_validation,rehearsal:$rehearsal[0]},
               attestations:{
                 releaseProvenance:{id:$cur_prov_id,url:$cur_prov_url,bundle:"image-provenance.sigstore.json"},
                 releaseSbom:{id:$cur_sbom_id,url:$cur_sbom_url,bundle:"image-sbom.sigstore.json"},

@@ -49,10 +49,19 @@ rollback_archive="$evidence/raven23-backend-rollback-$rollback_sha.docker.tar"
 rollback_sbom="$evidence/raven23-backend-rollback.cdx.json"
 docker save --output "$rollback_archive" "$rollback_image"
 rollback_archive_sha="$(sha256sum "$rollback_archive" | awk '{print $1}')"
-docker pull aquasec/trivy:0.76.2
-docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$evidence:/out" aquasec/trivy:0.76.2 \
-  image --format cyclonedx --output /out/raven23-backend-rollback.cdx.json "$rollback_image"
+# Generate the rollback SBOM from the exact Docker archive that will be attested.
+# Syft supports docker-archive sources and native CycloneDX JSON output.
+docker pull anchore/syft:v1.57.1
+docker run --rm -v "$evidence:/out" anchore/syft:v1.57.1 scan \
+  "docker-archive:/out/$(basename "$rollback_archive")" \
+  -o cyclonedx-json=/out/raven23-backend-rollback.cdx.json
 test -s "$rollback_sbom"
+jq -e '.bomFormat == "CycloneDX" and (.components | type == "array") and (.components | length > 0)' "$rollback_sbom" >/dev/null || {
+  echo "::error::Syft did not produce a non-empty CycloneDX rollback SBOM."
+  ls -lh "$evidence" || true
+  exit 1
+}
+rollback_sbom_count="$(jq -er '.components | length' "$rollback_sbom")"
 rollback_sbom_sha="$(sha256sum "$rollback_sbom" | awk '{print $1}')"
 
 base_ref="$(awk '$1 == "FROM" && $0 ~ / AS runtime$/ { print $2; exit }' "$context/Dockerfile")"
@@ -65,13 +74,14 @@ jq -n \
   --arg lock "$(sha256sum "$context/composer.lock" | awk '{print $1}')" \
   --arg archive "$(basename "$rollback_archive")" --arg archive_sha "$rollback_archive_sha" \
   --arg sbom "$(basename "$rollback_sbom")" --arg sbom_sha "$rollback_sbom_sha" \
+  --arg sbom_generator "Anchore Syft v1.57.1" --arg sbom_component_count "$rollback_sbom_count" \
   '{
     schemaVersion:1,kind:"raven23.rollback-container-build-provenance",
     source:{repository:$repo,commit:$commit},
     builder:{workflowCommit:$workflow_commit,runId:$run},
     image:{tag:$image,configDigest:$digest,platform:$platform},
     materials:{runtimeBase:$base,dockerfileSha256:$dockerfile,composerJsonSha256:$composer,composerLockSha256:$lock},
-    artifacts:{dockerArchive:{file:$archive,sha256:$archive_sha},sbom:{file:$sbom,format:"CycloneDX JSON",sha256:$sbom_sha}}
+    artifacts:{dockerArchive:{file:$archive,sha256:$archive_sha},sbom:{file:$sbom,format:"CycloneDX JSON",generator:$sbom_generator,componentCount:($sbom_component_count|tonumber),sha256:$sbom_sha}}
   }' > "$evidence/raven23-backend-rollback.provenance.json"
 
 port() { python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()'; }
@@ -153,6 +163,8 @@ printf 'rollback_platform=%s\n' "$rollback_platform" >> "$GITHUB_OUTPUT"
 printf 'rollback_archive_file=%s\n' "$(basename "$rollback_archive")" >> "$GITHUB_OUTPUT"
 printf 'rollback_archive_sha256=%s\n' "$rollback_archive_sha" >> "$GITHUB_OUTPUT"
 printf 'rollback_sbom_sha256=%s\n' "$rollback_sbom_sha" >> "$GITHUB_OUTPUT"
+printf 'rollback_sbom_generator=%s\n' "Anchore Syft v1.57.1" >> "$GITHUB_OUTPUT"
+printf 'rollback_sbom_component_count=%s\n' "$rollback_sbom_count" >> "$GITHUB_OUTPUT"
 printf 'current_image_tag=%s\n' "$current_image" >> "$GITHUB_OUTPUT"
 printf 'current_config_digest=%s\n' "$current_digest" >> "$GITHUB_OUTPUT"
 printf 'current_platform=%s\n' "$current_platform" >> "$GITHUB_OUTPUT"
