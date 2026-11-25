@@ -56,6 +56,7 @@ rollback_archive_sha="$(sha256sum "$rollback_archive" | awk '{print $1}')"
 docker pull anchore/syft:v1.57.1
 if ! docker run --rm \
   --network none \
+  --env SYFT_CHECK_FOR_APP_UPDATE=false \
   --volume "$rollback_archive:/input/rollback.tar:ro" \
   --entrypoint /syft \
   anchore/syft:v1.57.1 \
