@@ -30,7 +30,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر تفعيل حماية main وrequired checks. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11C–11F ما زالت تنتظر اعتمادياتها وموافقاتها؛ لا يوجد مزود مختار أو موارد منشأة.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS؛ 10B مؤجلة يدوياً بطلب المستخدم إلى ما بعد اكتمال خطة تطوير Backend، ولا توقف أعمال التطوير الحالية. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11C–11F ما زالت تنتظر اعتمادياتها وموافقاتها؛ لا يوجد مزود مختار أو موارد منشأة. راجع تقرير `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md` لتنفيذ الحماية بعد انتهاء الخطة وقبل النشر.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 
@@ -47,3 +47,8 @@
 ## سلامة البيانات
 
 هذه الملفات توثيقية فقط. لا يتم الاتصال بقاعدة الإنتاج أو تعديلها خلال Phase 00. لم تتم قراءة أي قيم secrets أو إنشاء أي موارد AWS.
+
+
+## قرار المستخدم — تأجيل حماية main
+
+تُنفذ إعدادات Branch protection وRequired status checks يدوياً بعد اكتمال خطة تطوير Backend بالكامل. هذا التأجيل لا يوقف تطوير الميزات أو الاختبارات، لكنه لا يغلق Phase10B ولا يسمح بتجاوزها قبل Phase11B2 والنشر. التفاصيل في `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.

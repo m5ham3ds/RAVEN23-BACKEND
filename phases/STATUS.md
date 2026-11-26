@@ -1,6 +1,6 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
-**آخر تحديث:** 25 نوفمبر 2026
+**آخر تحديث:** 26 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
 **Latest fully CI-verified application/runtime SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
@@ -19,8 +19,8 @@
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
-| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
-| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE مع معالجة فصل صلاحيات التوقيع منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY | Docker validation بقي contents: read فقط؛ id-token وattestation permissions محصورة في trusted-main signing job بعد نجاح Docker. CI الأربع SUCCESS على c17fc84. ما زالت 10B OPEN وmain.protected=false، ولا توجد مدخلات تكلفة/موافقة provider/region/budget المعتمدة. |
+| 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
+| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE مع معالجة فصل صلاحيات التوقيع منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY | تم تأجيل حماية `main` يدوياً لما بعد اكتمال تطوير Backend (راجع تقرير POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md). لا تبدأ 11B2 أو النشر قبل إغلاق هذا الشرط واعتماد provider/region/cost؛ لا توجد موافقات أو موارد مدفوعة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -429,3 +429,13 @@
 - لا يوجد OCI registry push أو staging/production deployment أو تغيير DB/secrets أو إنشاء موارد سحابية.
 - Pint workflow نجح لكنه تخطى فقط بناء/تنسيق الملفات المتغيرة لعدم وجود ملفات PHP معدلة؛ strict Pint وفحص baseline داخل Docker نجحا.
 - main ما زال protected=false وrulesets فارغة؛ 10B مفتوحة. 11A cost scorecard ما زال WAITING_INPUT لغياب region/workload/data-growth/retention/HA/RPO/RTO/budget المعتمدة. لذلك لا يبدأ 11B2 حتى إغلاق 10B واستيفاء موافقة المزود/المنطقة/التكلفة.
+
+
+## 14. قرار تأجيل إعدادات حماية GitHub — 26 نوفمبر 2026
+
+- بناءً على توجيه المستخدم، يُؤجل إعداد Branch protection وRequired status checks على `main` إلى ما بعد اكتمال خطة تطوير Backend بالكامل.
+- هذا تأجيل إداري مقصود، وليس عيب CI أو فشلاً برمجياً؛ لا يمنع استكمال ميزات Backend والاختبارات وعمليات CI خلال مراحل التطوير.
+- تبقى Phase10B بحالة `DEFERRED_BY_OWNER` ولا تسجل COMPLETE قبل التنفيذ والتحقق اليدوي.
+- تبقى Phase11B2 وعمليات Staging/Production مشروطة بإغلاق Phase10B وباعتماد provider/region/cost وبقية الاعتماديات.
+- تقرير خطوات الإعداد والفحوص المطلوبة: `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
+- الحالة المرصودة عند القرار: `main.protected=false` ولا توجد Rulesets؛ لم يتم تغيير إعدادات GitHub.

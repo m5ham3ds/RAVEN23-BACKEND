@@ -1,7 +1,7 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
-**الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ 10B required checks شرط قبل نشر production. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.  
+**الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
 
@@ -340,3 +340,8 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 - Release bundle artifact [15072603777](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433/artifacts/15072603777), SHA-256 a12ddc732dcd2d2cff30df5ba73b236b32f418c51523b5a7c796778d94acb3ad.
 - This verifies the CI trust boundary only. No OCI registry push, cloud role, GitHub environment, staging/production deployment, provider selection, paid resource, production database or secret was created or touched.
 - Next gate: Phase10B remains OPEN because GitHub reports main.protected=false and there are no rulesets. The GitHub connection exposes reads and code writes but no branch-protection/ruleset write operation. Phase11A cost scorecard also remains WAITING_INPUT until workload, region, growth, retention, HA/RPO/RTO and budget are confirmed. Therefore Phase11B2 remains blocked; do not start 11C–11F.
+
+
+## قرار تأجيل إعداد حماية main — 26 نوفمبر 2026
+
+تأجلت إعدادات Branch protection وRequired status checks في Phase10B بطلب المستخدم إلى ما بعد اكتمال تطوير Backend بالكامل. لا تمنع هذه الخطوة تنفيذ واختبار وظائف Backend الحالية. لكنها تظل شرطاً قبل بدء 11B2 enforcement أو تشغيل مسار Staging/Production. لا يتم تجاوز موافقة provider/region/cost أو اعتماديات Phase04/08 عند استخدام التكاملات الخارجية.

@@ -35,3 +35,12 @@
 - لا يمكن فرض required checks قبل تحديث main مع الاستمرار في direct pushes كمسار العمل الوحيد. يلزم أن يختار مالك المستودع نموذج enforcement متوافقًا مع السياسة: مراجعة/دمج PR مع checks، أو إجراء محمي آخر.
 - checks المرشحة بعد اعتماد نموذج الدمج: Build and test portable Laravel runtime، Email, password, Google verifier and guest authentication، Secret, dependency, filesystem and image scans.
 - Format changed PHP files with Laravel Pint الحالي ينشئ formatted artifact ولا يفرض وحده فشلًا عند اختلاف التنسيق؛ strict Pint داخل Docker هو فحص التنسيق الملزم.
+
+
+## قرار المستخدم بشأن توقيت فرض حماية main — 26 نوفمبر 2026
+
+- إعداد Branch protection وRequired status checks مؤجل عمداً إلى ما بعد اكتمال خطة تطوير Backend بالكامل.
+- خلال مراحل التطوير يستمر العمل على `main` وفق مسار المستودع الحالي، مع تشغيل CI على التغييرات وعدم الادعاء بأن الفرع محمي.
+- هذا استثناء زمني لمرحلة التطوير فقط، وليس إعفاءً من متطلبات الإصدار أو النشر؛ Phase10B يجب أن تُغلق يدوياً قبل Phase11B2 وقبل Staging/Production.
+- عند الإعداد، يجب اعتماد نموذج update/merge محمي لأن direct push لا يجعل required checks فحصاً سابقاً للتحديث.
+- راجع `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md` للقائمة التفصيلية والفحوص ومعيار الإغلاق.

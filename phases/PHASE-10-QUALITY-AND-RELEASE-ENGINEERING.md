@@ -1,6 +1,6 @@
 # المرحلة 10 — الجودة والاختبارات وهندسة الإصدارات
 
-**الحالة:** IN_PROGRESS — 10A/10C/10D/10E/10F/10G COMPLETE؛ 10B ما زالت مفتوحة لاعتماد Admin لحماية main وrequired checks.  
+**الحالة:** IN_PROGRESS — 10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend لتنفيذ إعداد الحماية يدوياً.  
 **الاعتماديات:** 01–09 تدريجيًا على مستوى domain/code/CI؛ بوابة الإصدار النهائية تبقى مشروطة بجاهزية النطاقات المعتمدة، مع إبقاء اعتمادات Phase08/09 الخارجية صريحة.
 
 ## 10A — جرد CI وسلامة workflows
@@ -25,17 +25,17 @@
 
 ## 10B — required checks وحماية main وتقييم التداخل
 
-**الحالة:** IN_PROGRESS — اكتمل تدقيق جهة المستودع والـworkflows؛ تفعيل branch protection/required checks ينتظر صلاحيات Admin.
+**الحالة:** DEFERRED_BY_OWNER — بناءً على توجيه 26 نوفمبر 2026، يؤجل مالك المشروع إعداد branch protection وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend بالكامل.
 
-- GitHub branch listing يعرض main وحده مع protected=false؛ rulesets endpoint يعيد قائمة فارغة.
-- أدوات GitHub المتاحة في جلسة التنفيذ تدعم قراءة الحماية فقط ولا تعرض عملية كتابة لإعدادات repository/branch protection/rulesets؛ لم تتغير إعدادات GitHub ولم يُدّع تفعيلها.
-- لا يُعد تشغيل CI بعد push حماية قبل الدمج؛ سياسة الفرع الواحد والكتابة المباشرة إلى main لا توفر required-check gate قبل تحديث الفرع. يتطلب فرض required checks قبل الدمج اعتماد PR/merge workflow أو آلية تحديث محمية متوافقة مع السياسة.
-- البوابات ذات القيمة الحاجزة: Build and test portable Laravel runtime، Email, password, Google verifier and guest authentication، وSecret, dependency, filesystem and image scans.
-- Pint report check الحالي ينسق نسخة مؤقتة ويرفع artifact ولا يفشل لمجرد وجود تنسيق مخالف؛ لذلك لا يصنف required check مستقلًا. strict pint --test داخل Docker هو بوابة التنسيق الملزمة.
-- Authentication Regression يعيد جزءًا من تغطية Docker، لكنه فحص متخصص أسرع لدورة المصادقة؛ يُحتفظ به حاليًا لتقديم إشارة مستقلة إلى أن تُجمع بيانات وقت التنفيذ/التكلفة ثم يُعاد تقييمه.
-- Docker وSecurity يبنيان صورة الإنتاج كلٌ على حدة؛ هذا تكرار تكلفة/وقت واضح، لكنه لم يُدمج في هذه الخطوة حتى لا نغيّر أسماء checks قبل إعداد required contexts رسميًا.
+- آخر تحقق موثق: `main.protected=false`، ولا توجد Rulesets أو required status checks مفعّلة.
+- هذا التأجيل إداري ومقصود، وليس فشلاً في workflows أو عيباً في كود Backend. لا يمنع تنفيذ الميزات أو migrations أو اختبارات regression أو CI أثناء التطوير.
+- لا يُدعى أن `main` محمي حالياً؛ تشغيل CI بعد push لا يمنع التحديث قبل الاختبار.
+- عند التنفيذ اليدوي، الفحوص الحاجزة المرشحة هي: `Build and test portable Laravel runtime`، و`Email, password, Google verifier and guest authentication`، و`Secret, dependency, filesystem and image scans`.
+- فحص Pint الصارم داخل Docker هو بوابة التنسيق؛ workflow Pint المستقل ينشئ تقرير/Artifact ولا يصنف required check مستقلاً.
+- يجب حسم نموذج تحديث محمي متوافق مع سياسة main-only. Required checks قبل الدمج تتطلب PR/merge flow أو آلية محمية مكافئة؛ direct push وحده لا يحقق pre-merge gate.
+- خطوات الإعداد واختبار enforcement محفوظة في `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
 
-**قرار 10B:** إبقاء الـworkflows الخمسة كما هي في هذه الدفعة، وتوثيق أسماء check runs الفعلية دون حذف أو دمج متسرع. تظل الحماية required-check setup اعتمادًا خارجيًا مفتوحًا.
+**قرار 10B:** الاستمرار في تطوير Backend وتخطي الإعداد اليدوي الآن. تبقى 10B غير مكتملة حتى تنفيذ إعداد GitHub والتحقق منه بعد إكمال الخطة، وتظل شرطاً قبل Phase11B2 وقبل اعتماد مسار النشر إلى Staging/Production.
 
 ## 10C — migration rehearsal
 

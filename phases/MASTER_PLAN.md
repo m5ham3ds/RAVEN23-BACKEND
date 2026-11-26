@@ -34,12 +34,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
-| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B ينتظر Admin لتفعيل حماية main وrequired checks) | 01–09 تدريجيًا؛ جاهزية الإصدار لا تلغي اعتمادات staging الخارجية |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع فصل validation/signing منفذ ومثبت على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: إغلاق 10B عبر Admin + موافقة provider/region/cost، مع 04/08 عند الحاجة |
+| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER: إعداد الحماية يدوياً بعد اكتمال خطة Backend) | 01–09 تدريجيًا؛ تأجيل إعداد الحماية لا يوقف تطوير الميزات، لكنه شرط قبل Phase11B2 والنشر |
+| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع فصل validation/signing منفذ ومثبت على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: إغلاق 10B يدوياً بعد اكتمال تطوير Backend + موافقة provider/region/cost، مع 04/08 عند الحاجة |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
 
-يمكن تطوير بعض نطاقات 06 و08 بالتوازي بعد تثبيت عقود البيانات المشتركة، لكن لا يجوز تجاوز الاعتماديات المسجلة. المرحلة 09 تنتظر قرارات المنتج ومزود الدفع؛ لا نخترع طرق دفع أو أسعارًا أو شروط اشتراك من تلقاء أنفسنا.
+يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
 
 ## 4. خريطة الاعتماديات
 
@@ -246,3 +246,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - تم تقليل صلاحيات Docker validation إلى contents: read، ونقل OIDC/Sigstore permissions إلى وظيفة signing منفصلة مقيدة بـtrusted main push أو workflow_dispatch وبعد نجاح Docker. PR events لا تحصل على هذه الصلاحيات.
 - تم إصلاح action resolution باستخدام actions/download-artifact@v8.0.2. اكتمل التحقق من مدخلات الإصدار والتراجع والـSHA256، وخمس attestations (current/rollback provenance & SBOM + signed release manifest) وحزمة الإصدار immutable.
 - هذا لا يفعّل branch protection ولا cloud deployment identity أو registry push. 10B OPEN؛ 11A cost scorecard WAITING_INPUT؛ 11B2 و11C–11F تظل WAITING_EXTERNAL حتى تتوفر الاعتماديات والموافقات. لا موارد أو نشر.
+
+
+## 11. قرار ترتيب إعداد حماية GitHub — 26 نوفمبر 2026
+
+أُجّل إعداد Branch protection وRequired status checks يدوياً حتى اكتمال خطة تطوير Backend بالكامل بناءً على توجيه المستخدم. لذلك:
+- تستمر مراحل تطوير API/domain/schema/tests وCI المعتادة دون انتظار تفعيل الحماية.
+- Phase10B تبقى `DEFERRED_BY_OWNER` ولا تُعتبر مكتملة.
+- يظل إغلاق 10B شرطاً قبل Phase11B2 enforcement وقبل نشر Staging/Production.
+- تفاصيل الإعداد اليدوي وأسماء required checks واختبار enforcement محفوظة في `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
