@@ -29,8 +29,8 @@ fi
 
 # Flatten shell continuations so a split command cannot bypass this check.
 workflow_commands="$(sed ':a;N;$!ba;s/\\\n[[:space:]]*/ /g' "$workflow")"
-if grep -En '^[[:space:]]*(-[[:space:]]*)?(run:[[:space:]]*)?(tofu|terraform)([[:space:]]|$).*apply([[:space:]]|$)' <<< "$workflow_commands"; then
-  fail "Infrastructure CI must never run tofu/terraform apply."
+if grep -En '(tofu|terraform)[[:space:]]+apply' <<< "$workflow_commands"; then
+  fail "Infrastructure CI must not contain an apply invocation, including shell command substitutions."
 fi
 
 echo "PASS: provider-neutral IaC guardrails (no provider/resources/modules/backend/cloud/state/plan/tfvars/apply)."
