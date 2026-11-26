@@ -28,7 +28,7 @@ assert_pass() {
   local name="$1"
   local fixture="$tmp_root/$name"
   make_fixture "$fixture"
-  if ! bash "$fixture/infra/opentofu/scripts/guardrail-provider-neutral.sh" > "$fixture/output.log" 2>&1; then
+  if ! (cd "$fixture" && bash infra/opentofu/scripts/guardrail-provider-neutral.sh) > "$fixture/output.log" 2>&1; then
     cat "$fixture/output.log"
     echo "FAIL: expected guardrail pass for $name" >&2
     exit 1
@@ -89,7 +89,7 @@ assert_reject() {
       ;;
   esac
 
-  if bash "$fixture/infra/opentofu/scripts/guardrail-provider-neutral.sh" > "$fixture/output.log" 2>&1; then
+  if (cd "$fixture" && bash infra/opentofu/scripts/guardrail-provider-neutral.sh) > "$fixture/output.log" 2>&1; then
     echo "FAIL: guardrail accepted forbidden case $name" >&2
     exit 1
   fi
