@@ -80,6 +80,27 @@ backup retention/RPO/RTO, registry, and any paid or production resource.
 This scaffold does not close Phase11A cost scoring, 11B2 trust enforcement,
 11D staging provisioning, 11E operational acceptance, or 11F production handoff.
 
+## Provider-neutral module and state contracts
+
+The architecture contracts are maintained separately from deployable HCL:
+
+- [Platform module contracts](contracts/PLATFORM-MODULE-CONTRACTS.md) define
+  inputs, outputs, invariants, and acceptance evidence for network, compute,
+  PostgreSQL, private object storage, secrets, monitoring, and registry.
+- [State and recovery design](contracts/STATE-AND-RECOVERY-DESIGN.md) defines
+  environment/stack isolation, backend locking, encryption/key custody,
+  versioned backups, restore verification, and provider-exit rules.
+
+These are design documents only. The provider, region, remote state backend,
+key manager, retention period, and paid resources are not selected. Do not
+create modules that declare provider resources until approval is recorded.
+
+Official OpenTofu references used for the state design:
+- https://opentofu.org/docs/language/state/backends/
+- https://opentofu.org/docs/language/state/locking/
+- https://opentofu.org/docs/language/state/encryption/
+- https://opentofu.org/docs/language/state/sensitive-data/
+
 ## Approval-guard regression tests
 
 Run from the repository root:
