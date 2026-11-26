@@ -1,13 +1,13 @@
 # جرد GitHub Actions وعمليات النشر
 
 **Latest fully CI-verified application/runtime SHA:** 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
-**Latest fully CI-verified docs-only baseline:** 1b57b1da178dfd993c5f9bc1e2a19136af797f21  
-**تاريخ التحديث:** 25 نوفمبر 2026 — السجل الأقدم تاريخي  
-**الحالة:** جرد Phase10A مصحح؛ خمس workflows CI/manual read-only ولا توجد قناة cloud deploy. آخر CI شامل موثق على 84b87d9 — 25 نوفمبر 2026.
+**Latest fully CI-verified docs-only baseline before Phase11C:** 9ad253a4a5ebbae229d44f615bcb6ce5fa901ec2  
+**تاريخ التحديث:** 26 نوفمبر 2026 — السجل الأقدم تاريخي  
+**الحالة:** ست workflows CI/manual read-only؛ أضيف OpenTofu provider-neutral validation في Phase11C ولا توجد قناة cloud deploy أو provider deployment.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
 
-عدد الملفات قبل 10A: **6**؛ وبعد إزالة prepare-s3-composer-lock.yml: **5**.
+عدد ملفات CI/workflow الحالية بعد إضافة IaC validation: **6**.
 
 | الملف | الاسم | Trigger | السلوك |
 |---|---|---|---|
@@ -16,6 +16,7 @@
 | `.github/workflows/pint-format-report.yml` | RAVEN23 Pint Format Report | push/pull_request إلى main وworkflow_dispatch | ينسق PHP files المتغيرة فقط ثم ينشر artifact؛ إذا لا توجد PHP files، يتخطى خطوات التنسيق. |
 | `.github/workflows/security-scans.yml` | RAVEN23 Security Scans | push/pull_request إلى main وworkflow_dispatch | Gitleaks وTrivy filesystem/image وفشل على fixable HIGH/CRITICAL image vulnerabilities. |
 | `.github/workflows/users-auth-tests.yml` | RAVEN23 Authentication Regression Tests | push/pull_request إلى main وworkflow_dispatch | Auth regression على SQLite وPostgreSQL المؤقتة؛ متداخل جزئيًا مع Docker full-suite ويعاد تقييمه في 10B. |
+| `.github/workflows/iac-validation.yml` | RAVEN23 Infrastructure as Code Validation | push/pull_request إلى main مع مسارات IaC وworkflow_dispatch | OpenTofu fmt/init بدون backend/validate/provider-free plan؛ read-only، بلا provider أو credentials أو apply. |
 
 ### Workflows الإنتاج التي أزيلت
 

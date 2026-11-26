@@ -20,3 +20,14 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# OpenTofu / Terraform local metadata, state, plans, and variable values
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+*.tfvars
+*.auto.tfvars
+crash.log
+crash.*.log

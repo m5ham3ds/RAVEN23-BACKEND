@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe — 26 نوفمبر 2026  
+> latest fully CI-verified repository SHA قبل شريحة 11C: 9ad253a4a5ebbae229d44f615bcb6ce5fa901ec2 — 26 نوفمبر 2026  
 > application/runtime baseline (unchanged): 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
 > الفرع التشغيلي الوحيد: main
 
@@ -30,7 +30,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS؛ 10B مؤجلة يدوياً بطلب المستخدم إلى ما بعد اكتمال خطة تطوير Backend، ولا توقف أعمال التطوير الحالية. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11C–11F ما زالت تنتظر اعتمادياتها وموافقاتها؛ لا يوجد مزود مختار أو موارد منشأة. راجع تقرير `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md` لتنفيذ الحماية بعد انتهاء الخطة وقبل النشر.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS؛ 10B مؤجلة يدوياً بطلب المستخدم إلى ما بعد اكتمال خطة تطوير Backend، ولا توقف أعمال التطوير الحالية. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11D–11F تنتظر اعتمادياتها وموافقاتها؛ بدأت 11C بعقد OpenTofu محايد للمزود وفحوص محلية read-only فقط، ولا توجد provider resources أو backend أو موارد سحابية. راجع تقرير `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md` لتنفيذ الحماية بعد انتهاء الخطة وقبل النشر.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 

@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
-| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE مع معالجة فصل صلاحيات التوقيع منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY | تم تأجيل حماية `main` يدوياً لما بعد اكتمال تطوير Backend (راجع تقرير POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md). لا تبدأ 11B2 أو النشر قبل إغلاق هذا الشرط واعتماد provider/region/cost؛ لا توجد موافقات أو موارد مدفوعة. |
+| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral contract + fmt/validate/provider-free plan CI فقط)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ إضافة adapter modules تتطلب اعتماد provider/region/cost. 10B branch protection مؤجلة بطلب المستخدم ولا تمنع هذه الفحوص المحلية، لكنها تظل شرطاً قبل 11B2 والنشر. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -439,3 +439,13 @@
 - تبقى Phase11B2 وعمليات Staging/Production مشروطة بإغلاق Phase10B وباعتماد provider/region/cost وبقية الاعتماديات.
 - تقرير خطوات الإعداد والفحوص المطلوبة: `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
 - الحالة المرصودة عند القرار: `main.protected=false` ولا توجد Rulesets؛ لم يتم تغيير إعدادات GitHub.
+
+
+## 15. Phase11C — provider-neutral IaC baseline بدأ — 26 نوفمبر 2026
+
+- بدأ 11C على `main` بعد تحقق Docker Validation وSecurity Scans وAuthentication Regression وPint Format على commit السابق `9ad253a4a5ebbae229d44f615bcb6ce5fa901ec2`؛ الأربع كانت SUCCESS.
+- ثُبّت OpenTofu CLI في `.opentofu-version`، وأضيف `infra/opentofu/` بعقد منطقي محايد للمزود. لا توجد provider/resource/data/backend blocks.
+- أضيف workflow مستقل لـ`fmt`, `init -backend=false`, `validate`, و`plan` محلي بلا provider أو credentials أو apply، مع guardrail يمنع تجاوز حدود الموافقة.
+- CI الخاص بهذا الالتزام قيد الانتظار عند إنشاء هذا السجل؛ لا تُعلن 11C مكتملة قبل نجاحه.
+- لم يتم اختيار مزود أو region أو budget، ولم يتم إنشاء resources أو state backend أو environment أو secrets أو registry أو deployment.
+- 10B ما زالت `DEFERRED_BY_OWNER` حسب توجيه المستخدم؛ لا يُفعّل branch protection في هذه الشريحة.

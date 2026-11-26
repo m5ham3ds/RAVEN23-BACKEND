@@ -35,7 +35,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER: إعداد الحماية يدوياً بعد اكتمال خطة Backend) | 01–09 تدريجيًا؛ تأجيل إعداد الحماية لا يوقف تطوير الميزات، لكنه شرط قبل Phase11B2 والنشر |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع فصل validation/signing منفذ ومثبت على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: إغلاق 10B يدوياً بعد اكتمال تطوير Backend + موافقة provider/region/cost، مع 04/08 عند الحاجة |
+| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE؛ 11B2 enforcement WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold + read-only validation)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | 11C scaffold/fmt/validate/provider-free plan يمكن تنفيذه دون provider أو backend؛ provider-specific modules و11B2/11D–11F تنتظر إغلاق 10B يدوياً واعتماد provider/region/cost، مع 04/08 عند الحاجة |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
 
@@ -55,8 +55,9 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
                      ├── 08 التخزين والإشعارات والمهام
                      └── 09 الاشتراكات والصلاحيات
 01–09 ──> 10 بوابة الجودة والإصدارات
-02 + 03 + 10G ──> 11A portability baseline + 11B1 trust design (design only)
-10B + موافقة provider/region/cost + اعتماد 04/08 عند الحاجة ──> 11B2 enforcement و11C–11F provisioning/staging/deployment
+02 + 03 + 10G ──> 11A portability baseline + 11B1 trust design
+11A + 11B1 ──> 11C provider-neutral IaC design/validation (لا موارد ولا backend)
+10B + موافقة provider/region/cost + اعتماد 04/08 عند الحاجة ──> 11B2 enforcement و11C provider adapters و11D–11F provisioning/staging/deployment
 04–11 + استعادة نسخة احتياطية ناجحة ──> 12 النقل والتحويل
 12 ──> 13 التشغيل والتعافي المستمر
 ```

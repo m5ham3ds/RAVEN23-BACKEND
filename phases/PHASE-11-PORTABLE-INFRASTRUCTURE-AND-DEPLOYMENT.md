@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.  
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS بعقد OpenTofu محايد للمزود وفحوص CI محلية فقط؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.  
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -90,11 +90,15 @@
 - صلاحيات نشر قصيرة العمر ومحدودة، مع فصل deploy identity عن runtime DB identity وعن DB_MIGRATION_URL.
 - لا تُنشأ roles أو secrets أو environments أو deployments في المسار 11B1.
 
-### 11C — Infrastructure as Code design and validation (لم يبدأ)
-- اختيار Terraform أو OpenTofu بعد تقييم توافق المزود وأدواته وتكلفته.
-- فصل الوحدات: network, compute, database, object-storage, secrets, monitoring, registry.
-- اختبار format/validate/plan/policy دون apply على موارد حقيقية.
-- تصميم state storage/locking/backups وsecrets بأمان.
+### 11C — Infrastructure as Code design and validation (IN_PROGRESS — provider-neutral baseline)
+
+- تم اختيار OpenTofu CLI كأساس مؤقت ومحايد للمزود، مع تثبيت نسخته في `.opentofu-version`. لا يعني ذلك اختيار مزود استضافة أو ضمان توافق كل provider/module؛ تُراجع إصدارات provider الفعلية بعد قرار المزود.
+- أُنشئ `infra/opentofu/` ليحوي platform contract وdeployment descriptor منطقيين فقط: OCI image، PostgreSQL، S3-compatible private storage، Laravel cache/queue abstractions، immutable image digest، وفصل هويات النشر والتشغيل والترحيل.
+- حدود الوحدات المستقبلية موثقة ومنفصلة: network, compute, database, object-storage, secrets, monitoring, registry. لا توجد provider/resource/data/backend blocks بعد.
+- workflow مستقل يختبر `fmt`, `init -backend=false`, `validate`, وprovider-free `plan`; جميع صلاحياته `contents: read` ولا يملك credentials.
+- guardrail يمنع إضافة provider-specific resources أو remote backend أو state/plan/tfvars files أو أمر `apply` قبل موافقة المالك.
+- صُمم state management ليشترط العزل حسب البيئة، locking، نسخًا احتياطية قابلة للاستعادة، تشفير state/plan، ومفاتيح خارج المستودع؛ لا backend أو key manager مختار حتى الآن.
+- المتبقي لإغلاق 11C: اعتماد provider/region/workload/cost ثم إضافة adapter modules واختبارها بـprovider versions مقفلة ومراجعة plan آمن. لا يوجد apply أو provisioning في هذه الشريحة.
 
 ### 11D — Staging provisioning and deployment (WAITING_EXTERNAL)
 يبدأ بعد اختيار المزود والمنطقة والميزانية وموافقة المستخدم الصريحة. ينشئ staging معزولة فقط ولا يستخدم قاعدة إنتاج. لا يفعّل mail/Push/S3 الحقيقي إلا وفق موافقات Phase08 و04 واختبارات التكامل المعتمدة.
@@ -132,11 +136,11 @@
 | Compute | OCI image مع FrankenPHP/Caddy | لا startup خاص بـRender/Neon |
 | Delivery | release archive ضمن GitHub Actions | لا registry push أو IaC أو cloud deployment workflow/OIDC role |
 
-أضيفت aliases التخزين المحايدة في إعداد S3 مع إبقاء AWS_* fallback backward-compatible، ونُقل اختبار S3Mock لاستخدام aliases الجديدة. أسماء SQS/DynamoDB/SES تبقى optional AWS adapters ولا تستخدمها defaults. لا يوجد IaC directory أو deployment workflow في root/workflow inventory الحالي. أُزيلت إشارة Render القديمة من تعليق Google client ID دون تغيير سلوكه.
+أضيفت aliases التخزين المحايدة في إعداد S3 مع إبقاء AWS_* fallback backward-compatible، ونُقل اختبار S3Mock لاستخدام aliases الجديدة. أسماء SQS/DynamoDB/SES تبقى optional AWS adapters ولا تستخدمها defaults. أُنشئ IaC scaffold محايد للمزود في `infra/opentofu/` مع workflow تحقق فقط؛ لا توجد provider resources أو state backend أو deployment workflow. أُزيلت إشارة Render القديمة من تعليق Google client ID دون تغيير سلوكه.
 
 ## 6. الاعتماديات والممنوعات
 
-**المسموح الآن:** تصميم البنية، مقارنة الخيارات، إعداد scorecard، توثيق المتطلبات، واختبارات IaC غير المطبقة على موارد حقيقية بعد اختيار الأدوات.
+**المسموح الآن:** تصميم البنية ومقارنة الخيارات وتحديث scorecard دون اختلاق أسعار؛ scaffold محايد للمزود؛ OpenTofu fmt/validate/provider-free plan؛ وسياسات state/locking/backup/encryption موثقة دون إنشاء backend أو مفاتيح. تبقى provider-specific modules مشروطة باختيار المزود وموافقته.
 
 **يتطلب موافقة منفصلة:** إنشاء حساب/مشروع أو region أو موارد مدفوعة أو قواعد DB أو buckets أو VPC/networking أو registry publication أو DNS/TLS أو OIDC deployment role أو secrets أو أي deployment.
 
@@ -161,7 +165,7 @@
 
 ## 8. المرحلة التالية المسموح بها
 
-اكتمل جرد العقود التقنية وportability matrix وتصميم trust boundaries. كما نُفذت معالجة فصل صلاحيات Docker validation عن وظيفة attestation الموثوقة واجتازت بوابات CI الأربع على c17fc84؛ هذا لا يساوي تفعيل enforcement على الفرع أو إنشاء cloud identity. يبقى تسعير scorecard الخاص بـ11A معلقًا حتى اعتماد مدخلات المنطقة والحمل والبيانات والاحتفاظ وHA/RPO/RTO والميزانية. لا يبدأ 11B2 enforcement إلا بعد إغلاق 10B عبر Repository Admin، ولا تبدأ provisioning أو IaC apply أو staging قبل اختيار المزود والمنطقة والتكلفة وموافقة المستخدم.
+اكتمل جرد العقود التقنية وportability matrix وتصميم trust boundaries. كما نُفذت معالجة فصل صلاحيات Docker validation عن وظيفة attestation الموثوقة واجتازت بوابات CI الأربع على c17fc84؛ هذا لا يساوي تفعيل enforcement على الفرع أو إنشاء cloud identity. بدأ 11C بعقد OpenTofu محايد للمزود وفحوص CI لا تستخدم backend أو provider أو credentials أو apply. يبقى تسعير scorecard الخاص بـ11A معلقًا حتى اعتماد مدخلات المنطقة والحمل والبيانات والاحتفاظ وHA/RPO/RTO والميزانية. لا يبدأ 11B2 enforcement إلا بعد إغلاق 10B عبر Repository Admin، ولا تبدأ 11D provisioning أو IaC apply أو staging قبل اختيار المزود والمنطقة والتكلفة وموافقة المستخدم.
 
 ## 9. Phase11A exit scorecard وPhase11B1 trust boundaries
 

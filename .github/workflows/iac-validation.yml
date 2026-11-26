@@ -1,0 +1,76 @@
+name: RAVEN23 Infrastructure as Code Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "infra/opentofu/**"
+      - ".opentofu-version"
+      - ".github/workflows/iac-validation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/opentofu/**"
+      - ".opentofu-version"
+      - ".github/workflows/iac-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: raven23-iac-validation-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  provider-neutral-iac:
+    name: OpenTofu format, validate and provider-free plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7.0.1
+
+      - name: Set up pinned OpenTofu CLI
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4
+        with:
+          tofu_version_file: .opentofu-version
+          tofu_wrapper: false
+
+      - name: Confirm the reviewed OpenTofu version
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(cat .opentofu-version)"
+          actual="$(tofu version -json | jq -r '.terraform_version')"
+          test "$actual" = "$expected" || {
+            echo "::error::Expected OpenTofu $expected but received $actual."
+            exit 1
+          }
+          echo "OpenTofu $actual" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce the provider-neutral approval boundary
+        run: bash infra/opentofu/scripts/guardrail-provider-neutral.sh
+
+      - name: Check HCL formatting
+        run: tofu -chdir=infra/opentofu fmt -check -recursive
+
+      - name: Initialize without any remote backend
+        run: tofu -chdir=infra/opentofu init -backend=false -input=false
+
+      - name: Validate the provider-neutral configuration
+        run: tofu -chdir=infra/opentofu validate -no-color
+
+      - name: Create a local provider-free plan (no apply)
+        run: tofu -chdir=infra/opentofu plan -refresh=false -input=false -lock=false -no-color
+
+      - name: Record the no-deployment boundary
+        run: |
+          {
+            echo "### Phase11C IaC validation"
+            echo "- OpenTofu configuration format/validation/plan only."
+            echo "- No provider plugin, remote backend, cloud credentials, resource creation, registry push, or deployment."
+            echo "- No `tofu apply` was run."
+          } >> "$GITHUB_STEP_SUMMARY"
