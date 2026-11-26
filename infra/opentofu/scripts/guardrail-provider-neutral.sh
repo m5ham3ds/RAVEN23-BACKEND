@@ -29,7 +29,7 @@ fi
 
 # Flatten shell continuations so a split command cannot bypass this check.
 workflow_commands="$(sed ':a;N;$!ba;s/\\\n[[:space:]]*/ /g' "$workflow")"
-if grep -En '^[[:space:]]*(-[[:space:]]*)?(run:[[:space:]]*)?(tofu|terraform)([[:space:]]|$).*([[:space:]]|^)apply([[:space:]]|$)' <<< "$workflow_commands"; then
+if grep -En '^[[:space:]]*(-[[:space:]]*)?(run:[[:space:]]*)?(tofu|terraform)([[:space:]]|$).*apply([[:space:]]|$)' <<< "$workflow_commands"; then
   fail "Infrastructure CI must never run tofu/terraform apply."
 fi
 
