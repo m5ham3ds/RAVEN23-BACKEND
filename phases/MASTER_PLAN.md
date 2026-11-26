@@ -272,3 +272,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - كشف Composer audit خمسة advisories في Symfony HTTP Kernel/Mailer/Routing والعائلة المرتبطة. تم تحديث الحزم المتأثرة إلى `v8.1.12`؛ ارتفع سبعة lock entries، ثم أصبح Composer audit بلا findings.
 - على SHA `1e79bb3`: Docker 151 SQLite / 1,719 assertions؛ PostgreSQL 31 / 546 مع optional skip واحد؛ S3Mock 1 / 8؛ Auth 20 / 172 وPostgreSQL 4 / 99؛ Pint وSecurity SUCCESS.
 - تشغيل Docker baseline تعمّد skip rollback/signing مؤقتًا بعد تغيير dependency baseline؛ تم الآن إعادة تفعيل جميع بوابات rollback/release وإسناد هدف rollback إلى هذا SHA الذي اجتاز البوابات الأربع. سيُثبت push التالي traffic rehearsal والتوقيعات على المسار الكامل.
+
+
+## 20. Phase12 safe preflight — synthetic PostgreSQL backup/restore
+
+- أضيف مسار تحقق مستقل إلى Docker Validation يستخدم خدمة PostgreSQL 16 المؤقتة في GitHub Actions فقط.
+- التجربة تنشئ بيانات اصطناعية، وتنفذ pg_dump custom-format ثم تشفيرًا مؤقتًا وفك تشفير مع SHA-256، وتستعيدها إلى قاعدة ثانية مستقلة.
+- معيار المطابقة يشمل صفوف الحسابات وmedia progress والأحداث، بصمات البيانات، constraints وindexes؛ يتم حذف قاعدتي الاختبار آليًا، ويحفظ JSON evidence artifact لمدة 30 يومًا.
+- **لا تعني النتيجة (حتى عند نجاح CI) أن Phase12 COMPLETE أو أن Phase11 أغلقت.** تبقى Phase12 WAITING_DEPENDENCY حتى اكتمال المراحل 04–11، واعتماد المصدر والوجهة، backup/restore حقيقيين معزولين، قرار التزامن وcutover والموافقة المحددة.
+- حالة هذا التغيير: ينتظر أول تشغيل CI على commit التنفيذ؛ لا production data/secret/DB أو cloud resources أو cutover.

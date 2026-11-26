@@ -379,3 +379,12 @@
 - **القرار:** لا يُستخدم rollback target قديم يحمل dependency advisories كإصدار تراجع صالح. بعد اجتياز Docker/Auth/Pint/Security على `1e79bb3`، يُعيّن هذا SHA كهدف سابق ويُعاد تفعيل rollback rehearsal وrelease attestations دون خيار skip مؤقت.
 - **الدليل التمهيدي:** Docker/Auth/Pint/Security runs [45850009753](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850009753)، [45850013586](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850013586)، [45850021125](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850021125)، [45850017359](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850017359).
 - **حدود:** Docker run التمهيدي نفسه تخطى rollback/release evidence مؤقتًا؛ إغلاق القرار بالكامل يتطلب نجاح التجربة الجديدة `200 → 502 → 200` والتوقيعات على commit الحالي. لا production deployment أو registry push.
+
+
+## D-047 — Phase12 synthetic PostgreSQL backup/restore rehearsal boundary
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** التنفيذ أضيف على `main` وينتظر أول تحقق CI؛ لا يُسجل PASS قبل artifact واكتمال job.
+- **القرار:** إضافة اختبار backup/restore قابل للتكرار لقاعدة PostgreSQL مؤقتة فقط، مع synthetic rows، custom-format pg_dump، تشفير مؤقت، SHA-256 round-trip، pg_restore لقاعدة منفصلة، ومقارنة data/constraints/indexes.
+- **حاجز الأمان:** السكربت يرفض أي host/database/user/password عدا PostgreSQL CI service المحددة. قاعدتا الاختبار المؤقتتان تُحذفان آليًا عند الخروج، والتقرير لا يحتوي الأسرار أو بيانات أشخاص.
+- **الحدود:** لا يثبت هذا backup إنتاجيًا أو توافق مصدر/وجهة فعلية أو Phase12 completion، ولا يسمح بقراءة DB حقيقية أو cutover. تظل Phase12 WAITING_DEPENDENCY على 04–11 وقرار مصدر/وجهة وrestore معزول وموافقة cutover مباشرة.
