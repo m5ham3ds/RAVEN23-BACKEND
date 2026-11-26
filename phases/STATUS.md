@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 26 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `c709ba7a73aa9ab6d05aa1b6971e44b6912d97dc`
+**Latest fully CI-verified application/runtime SHA:** `1e79bb3591ca721fb824c4b498dbef5990c145aa`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -17,7 +17,7 @@
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J محفوظة؛ 08K (worker retry/dead-letter) اجتازت CI على `1e79bb3`، مع fake transport فقط. لا sender أو credentials أو إرسال Push خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold؛ IaC validation PASS و18/18 guardrail cases؛ آخر تحقق صالح للملفات نفسها run 45754424342 على `f95e361` مع عدم تغير ملفات IaC/workflow حتى `c709ba7`)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ ما يزال إغلاق 11C يتطلب مدخلات provider/region/workload/cost لإضافة adapters؛ 11D تتطلب الموافقة الصريحة وبيئة staging، و10B مؤجلة بطلب المالك قبل 11B2 والنشر. |
@@ -465,3 +465,11 @@
 - **الحكم:** نجاح فحوص الشريحة provider-neutral مثبت، لكن Phase11C لا تُغلق بعد؛ مواصفة المرحلة تشترط اعتماد provider/region/workload/cost قبل إنشاء واختبار adapter modules. Phase11D provisioning لم تبدأ ولا يجوز بدؤها دون موافقة صريحة. 10B ما زالت DEFERRED_BY_OWNER و`main.protected=false`؛ لذلك لا يبدأ 11B2.
 - لم ينفذ OpenTofu apply، ولم يُنشأ remote state أو cloud resource أو account أو secret أو registry publication أو staging/production deployment. لم تُمَس قاعدة الإنتاج أو بيانات المستخدمين.
 - الاستمرار من هذه النقطة: لا تعِد IaC scaffold أو guard tests؛ انتظر مدخلات provider/region/workload/retention/HA/RPO/RTO والميزانية، ثم نفّذ adapter modules مع versions مقفلة وخطة محلية قابلة للمراجعة، مع إبقاء موافقة apply منفصلة.
+
+## تحديث الاستئناف — Phase08K وتصحيح الاعتماديات الأمنية — 26 نوفمبر 2026
+
+- استؤنف العمل من `abe1b8a` دون إعادة المراحل السابقة؛ أضيف اختبار worker فعلي عبر database queue يتحقق من فشل transport المتكرر، retries، وثلاث استثناءات حتى dead-letter.
+- أُصلح PSR-4 escaping في fixture قبل اعتماد الاختبارات، ثم عولجت 5 Composer advisories بترقية Symfony packages المتأثرة إلى `v8.1.12`.
+- `composer audit` نجح بلا advisories؛ focused outbox suite: 16 tests / 119 assertions؛ full Docker SQLite Feature: 151 / 1,719؛ PostgreSQL: 31 / 546 مع optional skip واحد؛ S3Mock: 1 / 8.
+- Docker/Auth/Pint/Security جميعها SUCCESS على `1e79bb3`. كان Docker baseline dispatch يتجاوز rollback والتوقيع مؤقتًا فقط لإعادة تأسيس هدف تراجع غير متأثر بالثغرات؛ هذا التغيير يعيد المسار الكامل ويحدد `1e79bb3` هدفًا سابقًا صالحًا ليُعاد بناؤه واختبار التحويل إليه على commit الحالي.
+- Phase08 تبقى IN_PROGRESS لانتظار S3/mail/Push staging وسياسات retention/cost؛ لم يُفعّل مزود خارجي. Phase10B ما زالت DEFERRED_BY_OWNER كما هي.

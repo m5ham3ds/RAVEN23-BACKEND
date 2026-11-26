@@ -355,3 +355,27 @@
 - **الإثبات:** [IaC run 45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342) على `f95e361`؛ compare إلى رأس main `c709ba7` أثبت أن الفرق اللاحق اقتصر على مواصفة Phase11. البوابات الأربع الحالية ناجحة على SHA `c709ba7`.
 - **الاعتماديات المتبقية:** provider/region/workload/data growth/retention/HA/RPO/RTO/monthly cost envelope. تبقى 11D WAITING_EXTERNAL؛ و11B2 مشروطة بإغلاق 10B يدوياً كما قرر المالك.
 - **حدود البيانات:** لا apply أو cloud resources أو credentials/secrets أو registry push أو production database أو DNS أو deployment.
+
+## D-044 — اختبار queue worker حتى retry exhaustion وdead-letter
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** COMPLETE على SHA `1e79bb3591ca721fb824c4b498dbef5990c145aa`.
+- **القرار:** يجب أن يختبر acceptance الخاص بالـoutbox worker مسار Laravel database queue الفعلي، وليس dispatch fake فقط. يشمل الاختبار transport فاشل، backoff، stable idempotency key، حد الاستثناءات، حالة outbox النهائية وfailed_jobs.
+- **الدليل:** focused suite 16/119؛ full SQLite suite 151/1,719؛ Docker [45850009753](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850009753) SUCCESS.
+- **الحدود:** fake transport فقط؛ لا delivery provider أو claim of provider-native exactly-once.
+
+## D-045 — تحديث Symfony إلى إصدارات خالية من advisories
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** COMPLETE على SHA `1e79bb3591ca721fb824c4b498dbef5990c145aa`.
+- **القرار:** Composer audit يبقى blocking. تُحدّث Symfony packages المتأثرة إلى `v8.1.12` بدل تجاهل advisories أو إضعاف Security gate.
+- **الإثبات:** تحديث سبعة lock entries، خمس حزم Symfony ذات صلة أصبحت `v8.1.12`، و`composer audit` أظهر عدم وجود advisories؛ Security [45850017359](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850017359) وDocker [45850009753](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850009753) SUCCESS.
+- **الحدود:** Trivy output موثق كما هو؛ لا تدعي هذه المعالجة أن كل فئات/شدات التقارير غير الحاجزة فارغة.
+
+## D-046 — إعادة تأسيس rollback على آخر baseline خالٍ من advisories
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** baseline CI COMPLETE؛ rollback traffic rehearsal والتوقيعات ينتظران تشغيل push التالي بعد إعادة التفعيل.
+- **القرار:** لا يُستخدم rollback target قديم يحمل dependency advisories كإصدار تراجع صالح. بعد اجتياز Docker/Auth/Pint/Security على `1e79bb3`، يُعيّن هذا SHA كهدف سابق ويُعاد تفعيل rollback rehearsal وrelease attestations دون خيار skip مؤقت.
+- **الدليل التمهيدي:** Docker/Auth/Pint/Security runs [45850009753](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850009753)، [45850013586](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850013586)، [45850021125](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850021125)، [45850017359](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850017359).
+- **حدود:** Docker run التمهيدي نفسه تخطى rollback/release evidence مؤقتًا؛ إغلاق القرار بالكامل يتطلب نجاح التجربة الجديدة `200 → 502 → 200` والتوقيعات على commit الحالي. لا production deployment أو registry push.

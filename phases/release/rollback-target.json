@@ -1,19 +1,20 @@
 {
   "schemaVersion": 1,
   "rollbackTarget": {
-    "commit": "f912dd2479a5f86471e1e8999b2d36c7611d41cb",
+    "commit": "1e79bb3591ca721fb824c4b498dbef5990c145aa",
     "branch": "main",
-    "role": "last-known-good release before Phase10F evidence packaging",
+    "role": "security-patched baseline verified by Docker, Authentication, Pint and Security before full rollback rehearsal",
     "validation": {
-      "docker": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724906",
-      "authentication": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724789",
-      "pint": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724822",
-      "security": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45504724860"
+      "docker": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850009753",
+      "authentication": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850013586",
+      "pint": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850021125",
+      "security": "https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45850017359"
     },
     "notes": [
-      "All four CI gates passed on this exact commit.",
-      "Rebuilt from its committed Git tree in isolated CI.",
-      "No production DB/secrets, deployment, registry push or AWS resource."
+      "All four CI workflows completed successfully on this exact source SHA.",
+      "Composer audit reported no advisories after the Symfony 8.1.12 security updates.",
+      "The baseline Docker dispatch intentionally skipped rollback rehearsal and release signing; the next full push run re-enables these steps and validates this target.",
+      "No production database/secrets, deployment, registry push, AWS resource or paid cloud resource was used."
     ]
   }
 }

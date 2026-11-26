@@ -1,6 +1,6 @@
 # المرحلة 08 — تخزين الملفات والإشعارات والمهام الخلفية
 
-**الحالة:** IN_PROGRESS — 08A–08I منفذة ومجتازة CI: queue/worker، private media API، quota/orphan cleanup، Flysystem/S3Mock، transactional mail outbox، Push subscription registry، provider-neutral encrypted push outbox، default-off/worker guards، outbox status summary وrelay pause عند تعطيل Push. ما زالت real provider staging/delivery وnative idempotency وسياسات retention/cost مفتوحة.  
+**الحالة:** IN_PROGRESS — 08A–08I منفذة ومجتازة CI، و08K أغلقت اختبار retry/dead-letter: queue/worker، private media API، quota/orphan cleanup، Flysystem/S3Mock، transactional mail outbox، Push subscription registry، provider-neutral encrypted push outbox، default-off/worker guards، outbox status summary وrelay pause عند تعطيل Push. ما زالت real provider staging/delivery وnative idempotency وسياسات retention/cost مفتوحة.  
 **الاعتماديات:** 02 و03 و05 COMPLETE؛ Phase04 PARTIAL في تكامل البريد/Google الخارجي. تسمح الاعتمادية الحالية بتطوير queue abstraction وإبقاء الإرسال معطلاً إلى حين staging/provider approval.
 
 ## الهدف
@@ -260,3 +260,20 @@ Docker strict Pint، queue-worker guards، PostgreSQL least-privilege، separate
 - لم يُعتمد أي مزود، وتبقى `RAVEN23_PUSH_ENABLED=false` والـbinding الافتراضي DisabledPushNotificationTransport.
 - يُسمح باستمرار المراحل الخلفية المستقلة عن اختيار Push؛ لا تُعاد شرائح 08G–08I.
 - Phase08 تبقى IN_PROGRESS لأن اختبار المزود الحقيقي وS3/mail staging وسياسات retention/cost لم تُغلق. يُستأنف قرار Push قبل تنفيذ sender adapter والتفعيل الفعلي.
+
+### 08K — Database queue worker retry and terminal dead-letter proof (26 November 2026)
+
+- أضيف `TransientFailingNotificationOutboxTransportFake` لاختبار فشل نقل متكرر دون FCM أو OneSignal أو SMTP حقيقي.
+- يشغّل الاختبار Laravel database queue worker فعليًا عبر `queue:work --once`، وليس استدعاء الدالة مباشرة فقط.
+- بعد أول وثاني failure يبقى سجل `notification_outbox` pending مع ارتفاع attempts، ويعاد تشغيل العامل بعد تجاوز backoff دون sleep فعلي في CI.
+- بعد ثلاث استثناءات متتالية يصل السجل إلى `status=failed`، ويختفي job من queue وتُسجل terminal failure في `failed_jobs`.
+- يتحقق الاختبار من ثبات HMAC idempotency key بين جميع المحاولات ومن عدم وجود token plaintext في failed job payload.
+- focused suite: 16 tests / 119 assertions. Full Docker SQLite suite على SHA `1e79bb3591ca721fb824c4b498dbef5990c145aa`: 151 passed / 1,719 assertions؛ PostgreSQL 31 passed / 546 assertions مع optional skip واحد؛ S3Mock 1 / 8.
+- اختبارات Auth: SQLite 20 / 172 وPostgreSQL 4 / 99. Pint وSecurity وDocker جميعها SUCCESS على SHA نفسه.
+- لا يثبت الاختبار إرسال provider حقيقي أو exactly-once خارجي؛ إنه يثبت استعادة queue والفشل النهائي محليًا مع stable idempotency key. تظل Phase08 IN_PROGRESS إلى حين قرارات S3/mail/Push والاحتفاظ والتكلفة.
+
+### معالجة advisories أثناء 08K
+
+- كشف `composer audit` خمس advisories ضمن Symfony HTTP Kernel/Mailer/Routing والعائلة المرتبطة.
+- تم تحديث `symfony/http-foundation`, `symfony/http-kernel`, `symfony/mailer`, `symfony/mime`, و`symfony/routing` إلى `v8.1.12` (مع تحديثات lock مرتبطة إضافية).
+- أعاد `composer audit` النتيجة: no security vulnerability advisories found. Trivy production image summary: Clean؛ Gitleaks وSecurity workflow نجحا.
