@@ -281,3 +281,10 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - معيار المطابقة يشمل صفوف الحسابات وmedia progress والأحداث، بصمات البيانات، constraints وindexes؛ يتم حذف قاعدتي الاختبار آليًا، ويحفظ JSON evidence artifact لمدة 30 يومًا.
 - **لا تعني النتيجة (حتى عند نجاح CI) أن Phase12 COMPLETE أو أن Phase11 أغلقت.** تبقى Phase12 WAITING_DEPENDENCY حتى اكتمال المراحل 04–11، واعتماد المصدر والوجهة، backup/restore حقيقيين معزولين، قرار التزامن وcutover والموافقة المحددة.
 - حالة هذا التغيير: ينتظر أول تشغيل CI على commit التنفيذ؛ لا production data/secret/DB أو cloud resources أو cutover.
+
+
+## 21. Phase12 CI preflight — إصلاح اعتماد أداة OpenSSL
+
+- فشل أول تشغيل للخطوة الجديدة على `19bbeea` بسبب عدم وجود executable `openssl` في صورة PostgreSQL Alpine؛ توقف قبل تنفيذ dump أو إنشاء أي restore output.
+- أضيف تثبيت الحزمة داخل الحاوية المؤقتة قبل تشغيل السكربت. لا يتغير مصدر/وجهة PostgreSQL أو قيد localhost أو بيانات الاختبار.
+- إعادة التحقق على commit الإصلاح مطلوبة قبل تسجيل PASS؛ تبقى Phase12 WAITING_DEPENDENCY.

@@ -384,7 +384,8 @@ jobs:
             -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE \
             -e RAVEN23_ALLOW_DISPOSABLE_PG_REHEARSAL -e RAVEN23_REHEARSAL_ID \
             -e REPORT_PATH=/evidence/synthetic-restore-report.json \
-            postgres:16-alpine sh scripts/postgres-backup-restore-rehearsal.sh
+            --entrypoint sh \
+            postgres:16-alpine -c 'apk add --no-cache openssl >/dev/null && exec sh scripts/postgres-backup-restore-rehearsal.sh'
           jq -e '.result == "passed" and .restore.rowsAndSchemaMatchedSource == true and .safety.productionDatabaseUsed == false' \
             "$evidence_dir/synthetic-restore-report.json" >/dev/null
           {

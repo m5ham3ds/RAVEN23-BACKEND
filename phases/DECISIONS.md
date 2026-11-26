@@ -384,7 +384,16 @@
 ## D-047 — Phase12 synthetic PostgreSQL backup/restore rehearsal boundary
 
 - **التاريخ:** 26 نوفمبر 2026
-- **الحالة:** التنفيذ أضيف على `main` وينتظر أول تحقق CI؛ لا يُسجل PASS قبل artifact واكتمال job.
+- **الحالة:** المحاولة الأولى على `19bbeea` فشلت قبل تشغيل التجربة لأن صورة `postgres:16-alpine` لا تتضمن أمر `openssl`. عُزل السبب، وأضيف تثبيت أداة التشفير داخل حاوية CI المؤقتة قبل إعادة تشغيل الاختبار؛ النتيجة النهائية ما زالت تنتظر تشغيل SHA المصحح.
 - **القرار:** إضافة اختبار backup/restore قابل للتكرار لقاعدة PostgreSQL مؤقتة فقط، مع synthetic rows، custom-format pg_dump، تشفير مؤقت، SHA-256 round-trip، pg_restore لقاعدة منفصلة، ومقارنة data/constraints/indexes.
 - **حاجز الأمان:** السكربت يرفض أي host/database/user/password عدا PostgreSQL CI service المحددة. قاعدتا الاختبار المؤقتتان تُحذفان آليًا عند الخروج، والتقرير لا يحتوي الأسرار أو بيانات أشخاص.
 - **الحدود:** لا يثبت هذا backup إنتاجيًا أو توافق مصدر/وجهة فعلية أو Phase12 completion، ولا يسمح بقراءة DB حقيقية أو cutover. تظل Phase12 WAITING_DEPENDENCY على 04–11 وقرار مصدر/وجهة وrestore معزول وموافقة cutover مباشرة.
+
+
+## D-048 — إضافة أداة OpenSSL إلى حاوية PostgreSQL المؤقتة
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** إصلاح CI committed على `main`؛ ينتظر التحقق الثاني.
+- **السبب المثبت:** فشل خطوة Phase12 synthetic restore على SHA `19bbeea63b28a0e541996cda1c5f9d813a9c8934` برسالة `openssl: not found` من صورة `postgres:16-alpine`. لم تبدأ عملية dump/encryption/restore.
+- **الإصلاح:** تثبيت حزمة `openssl` داخل حاوية PostgreSQL المؤقتة باستخدام `apk add --no-cache openssl`، ثم تشغيل السكربت نفسه دون تغيير حدود الاتصال أو البيانات.
+- **الحدود:** لا تغيير على runtime أو migrations أو قاعدة المشروع؛ لا اتصال بقاعدة إنتاج أو أسرار أو بيانات حقيقية.
