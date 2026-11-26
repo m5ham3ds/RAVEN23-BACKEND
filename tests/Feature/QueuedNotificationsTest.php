@@ -552,6 +552,78 @@ class QueuedNotificationsTest extends TestCase
         $this->assertStringNotContainsString('last_error_type', $output);
     }
 
+    public function test_database_worker_retries_transient_outbox_delivery_failures_and_dead_letters_after_three_exceptions(): void
+    {
+        $transport = new TransientFailingNotificationOutboxTransportFake;
+        $this->app->instance(NotificationOutboxTransport::class, $transport);
+
+        $user = $this->createUser();
+        $outboxId = app(NotificationOutboxService::class)->queuePasswordReset(
+            $user,
+            'transient-worker-failure-token',
+        );
+
+        $this->assertDatabaseCount('jobs', 1);
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $outboxId,
+            'status' => 'pending',
+            'attempts' => 0,
+        ]);
+
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                Artisan::call('queue:work', [
+                    'connection' => 'database',
+                    '--once' => true,
+                    '--queue' => 'mail',
+                    '--sleep' => 0,
+                    '--tries' => 5,
+                    '--timeout' => 10,
+                    '--quiet' => true,
+                ]);
+            } catch (\\Throwable) {
+                // Laravel may rethrow the terminal queue exception after recording it.
+            }
+
+            $this->assertCount($attempt, $transport->calls);
+
+            if ($attempt < 3) {
+                $this->assertDatabaseHas('notification_outbox', [
+                    'id' => $outboxId,
+                    'status' => 'pending',
+                    'attempts' => $attempt,
+                ]);
+                $this->assertDatabaseCount('jobs', 1);
+
+                // Advance past the job and outbox backoff without sleeping in CI.
+                $this->travel($attempt === 1 ? 11 : 31)->seconds();
+            }
+        }
+
+        $this->assertDatabaseHas('notification_outbox', [
+            'id' => $outboxId,
+            'status' => 'failed',
+            'attempts' => 3,
+            'last_error_type' => RuntimeException::class,
+            'claimed_at' => null,
+            'sent_at' => null,
+        ]);
+        $this->assertDatabaseCount('jobs', 0);
+        $this->assertDatabaseCount('failed_jobs', 1);
+        $this->assertSame(
+            $transport->calls[0]['idempotency_key'],
+            $transport->calls[1]['idempotency_key'],
+        );
+        $this->assertSame(
+            $transport->calls[1]['idempotency_key'],
+            $transport->calls[2]['idempotency_key'],
+        );
+        $this->assertStringNotContainsString(
+            'transient-worker-failure-token',
+            (string) DB::table('failed_jobs')->value('payload'),
+        );
+    }
+
     public function test_database_worker_records_unrelated_terminal_queue_failures_in_failed_jobs(): void
     {
         Queue::pushOn('mail', new FailingQueueJob);
