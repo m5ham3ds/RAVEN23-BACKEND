@@ -83,6 +83,12 @@ assert_reject() {
     apply-multiline)
       printf '\njobs:\n  unsafe:\n    steps:\n      - name: forbidden\n        run: |\n          tofu \\\n            apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
       ;;
+    apply-backtick)
+      printf '\njobs:\n  unsafe:\n    steps:\n      - run: echo "\x60tofu apply -auto-approve\x60"\n' >> "$fixture/.github/workflows/iac-validation.yml"
+      ;;
+    apply-substitution)
+      printf '\njobs:\n  unsafe:\n    steps:\n      - run: echo "$(tofu apply -auto-approve)"\n' >> "$fixture/.github/workflows/iac-validation.yml"
+      ;;
     *)
       echo "Unknown test case: $name" >&2
       exit 1
@@ -112,7 +118,9 @@ assert_reject "state" "state, backup, plan, or variable-value files"
 assert_reject "backup" "state, backup, plan, or variable-value files"
 assert_reject "plan" "state, backup, plan, or variable-value files"
 assert_reject "tfvars" "state, backup, plan, or variable-value files"
-assert_reject "apply-inline" "must never run tofu/terraform apply"
-assert_reject "apply-multiline" "must never run tofu/terraform apply"
+assert_reject "apply-inline" "must not contain an apply invocation"
+assert_reject "apply-multiline" "must not contain an apply invocation"
+assert_reject "apply-backtick" "must not contain an apply invocation"
+assert_reject "apply-substitution" "must not contain an apply invocation"
 
-echo "PASS: all 13 provider-neutral IaC guardrail regression cases."
+echo "PASS: all 15 provider-neutral IaC guardrail regression cases."
