@@ -345,3 +345,13 @@
 - **أدلة SBOM:** تستخدم صورة الإصدار الحالية Trivy، بينما يولد Anchore Syft v1.57.1 SBOM rollback من Docker archive الممهور ذاته بصيغة CycloneDX JSON، مع فحص وجود قائمة مكونات غير فارغة. يظل فحص ثغرات الصورة باستخدام Trivy منفصلًا وإلزاميًا.
 - **معالجة فشل أول محاولة:** Trivy 0.76.2 خرج برمز 1 عند توليد SBOM لصورة rollback على SHA 018edc6 بعد تعرفه على نظام التشغيل وملفات الحزم؛ لا يوجد في السجل خطأ صريح، ولم تصل الوظيفة إلى traffic rehearsal. استُبدل مسار توليد SBOM للـrollback بـSyft؛ لا يجري تخفيض فحص Security ولا تجاهل نتيجة الفشل.
 - **الحدود:** هذه تجربة isolated container/proxy وليست إثباتًا لـcloud load balancer أو deployment rollback؛ لا production DB/secrets/AWS/registry push. لا يُسمح بتوسيعها إلى بيئة حقيقية دون موافقة مستقلة.
+
+
+## D-043 — قبول دليل التحقق المحلي لـPhase11C دون تفويض provisioning
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** provider-neutral IaC baseline اجتاز CI؛ Phase11C تبقى IN_PROGRESS وليست COMPLETE.
+- **القرار/التفسير:** تُقبل نتائج fmt/init/validate/provider-free plan و18/18 guardrail regression كدليل على سلامة scaffold المحلي وحدود منع التجاوز فقط. لا تُعتبر اختياراً لمزود، ولا موافقة لإنشاء backend أو adapter خاص بمزود، ولا تصريحاً بتشغيل apply أو staging.
+- **الإثبات:** [IaC run 45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342) على `f95e361`؛ compare إلى رأس main `c709ba7` أثبت أن الفرق اللاحق اقتصر على مواصفة Phase11. البوابات الأربع الحالية ناجحة على SHA `c709ba7`.
+- **الاعتماديات المتبقية:** provider/region/workload/data growth/retention/HA/RPO/RTO/monthly cost envelope. تبقى 11D WAITING_EXTERNAL؛ و11B2 مشروطة بإغلاق 10B يدوياً كما قرر المالك.
+- **حدود البيانات:** لا apply أو cloud resources أو credentials/secrets أو registry push أو production database أو DNS أو deployment.

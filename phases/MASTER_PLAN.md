@@ -35,7 +35,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER: إعداد الحماية يدوياً بعد اكتمال خطة Backend) | 01–09 تدريجيًا؛ تأجيل إعداد الحماية لا يوقف تطوير الميزات، لكنه شرط قبل Phase11B2 والنشر |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE؛ 11B2 enforcement WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold + read-only validation)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | 11C scaffold/fmt/validate/provider-free plan يمكن تنفيذه دون provider أو backend؛ provider-specific modules و11B2/11D–11F تنتظر إغلاق 10B يدوياً واعتماد provider/region/cost، مع 04/08 عند الحاجة |
+| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع CI trust-boundary remediation مثبتة؛ 11B2 enforcement WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral OpenTofu scaffold وفحوص fmt/validate/provider-free plan ناجحة، 18/18 guardrail regression؛ run 45754424342 على `f95e361` صالح لأن الملفات الوحيدة بعده وحتى `c709ba7` كانت مواصفة Phase11)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | 11C المحلي لا يحتاج provider أو backend، وقد اجتاز التحقق؛ لا يمكن إغلاقه أو إنشاء adapters قبل اعتماد provider/region/workload/cost. 11B2 و11D–11F تتطلب إغلاق 10B يدوياً وموافقات النشر والاعتماديات 04/08 حسب التكامل. |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
 
@@ -256,3 +256,11 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - Phase10B تبقى `DEFERRED_BY_OWNER` ولا تُعتبر مكتملة.
 - يظل إغلاق 10B شرطاً قبل Phase11B2 enforcement وقبل نشر Staging/Production.
 - تفاصيل الإعداد اليدوي وأسماء required checks واختبار enforcement محفوظة في `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
+
+
+## 15. تحقق Phase11C provider-neutral IaC — 26 نوفمبر 2026
+
+- تم التحقق من رأس main `c709ba7a73aa9ab6d05aa1b6971e44b6912d97dc` ومن تشغيلات Docker/Auth/Security/Pint الأربع الناجحة على SHA نفسه.
+- تشغيل IaC رقم [45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342) نجح على `f95e361`، ومقارنة commit أثبتت أن التغييرات اللاحقة كانت في مواصفة Phase11 فقط دون تغيير ملفات IaC أو workflow. نجحت 18/18 guardrail regression cases مع fmt/init/validate/provider-free plan.
+- لا يعني هذا إغلاق Phase11C: adapter modules تتطلب provider وregion وworkload/cost inputs. تظل 11C IN_PROGRESS و11D–11F WAITING_EXTERNAL/DEPENDENCY.
+- لم يُنفذ apply أو إنشاء state backend أو موارد خارجية. 10B لا تزال مؤجلة بطلب المالك؛ 11B2 لا تبدأ قبل إغلاقها.

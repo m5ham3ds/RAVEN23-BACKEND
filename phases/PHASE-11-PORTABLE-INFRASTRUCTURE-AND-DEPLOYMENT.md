@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS بعقد OpenTofu محايد للمزود وفحوص CI محلية فقط؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.  
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation مثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral scaffold وفحوص CI ناجحة؛ 18/18 guardrail regression، لكن provider adapters لم تبدأ لغياب اعتماد المزود/المنطقة/التكلفة)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -352,3 +352,15 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 ## قرار تأجيل إعداد حماية main — 26 نوفمبر 2026
 
 تأجلت إعدادات Branch protection وRequired status checks في Phase10B بطلب المستخدم إلى ما بعد اكتمال تطوير Backend بالكامل. لا تمنع هذه الخطوة تنفيذ واختبار وظائف Backend الحالية. لكنها تظل شرطاً قبل بدء 11B2 enforcement أو تشغيل مسار Staging/Production. لا يتم تجاوز موافقة provider/region/cost أو اعتماديات Phase04/08 عند استخدام التكاملات الخارجية.
+
+
+## 13. Phase11C — توثيق نتيجة التحقق provider-neutral CI — 26 نوفمبر 2026
+
+- رأس main الحالي عند المراجعة: `c709ba7a73aa9ab6d05aa1b6971e44b6912d97dc`.
+- Docker Validation [45756158476](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158476): SUCCESS — SQLite Feature 150/1,704؛ PostgreSQL Integration 31/546 مع optional skip واحد؛ S3Mock 1/8؛ runtime/readiness/non-root/PostgreSQL roles/migrations وrollback PASS.
+- Authentication [45756158528](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158528): SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Security [45756158468](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158468): SUCCESS — Gitleaks وComposer audit وTrivy؛ production image summary Clean وfixable HIGH/CRITICAL gate PASS.
+- Pint [45756158555](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158555): SUCCESS؛ changed-PHP steps SKIPPED لعدم وجود PHP changes، مع نجاح strict Pint داخل Docker.
+- IaC [45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342): SUCCESS على SHA `f95e361dc8ec2db4d605806ad54659085c38624a`; 18/18 guardrail regression cases، fmt، init بلا backend، validate، وprovider-free plan.
+- Compare من `f95e361` إلى `c709ba7` أكد أن الملف المتغير الوحيد هو مواصفة Phase11؛ لا تغييرات في `infra/opentofu/` أو `.github/workflows/iac-validation.yml`، مما يبقي إثبات IaC صالحاً لملفاتها الحالية.
+- لا يغلق هذا 11C؛ المتبقي adapter modules وprovider versions مقفلة واختبارها بعد اعتماد provider/region/workload/cost. لا apply أو backend أو موارد أو نشر. 11D تبقى WAITING_EXTERNAL، و10B مؤجلة و11B2 متوقفة.

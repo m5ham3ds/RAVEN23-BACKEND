@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 26 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
+**Latest fully CI-verified application/runtime SHA:** `c709ba7a73aa9ab6d05aa1b6971e44b6912d97dc`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
-| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral contract + fmt/validate/provider-free plan CI فقط)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ إضافة adapter modules تتطلب اعتماد provider/region/cost. 10B branch protection مؤجلة بطلب المستخدم ولا تمنع هذه الفحوص المحلية، لكنها تظل شرطاً قبل 11B2 والنشر. |
+| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold؛ IaC validation PASS و18/18 guardrail cases؛ آخر تحقق صالح للملفات نفسها run 45754424342 على `f95e361` مع عدم تغير ملفات IaC/workflow حتى `c709ba7`)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ ما يزال إغلاق 11C يتطلب مدخلات provider/region/workload/cost لإضافة adapters؛ 11D تتطلب الموافقة الصريحة وبيئة staging، و10B مؤجلة بطلب المالك قبل 11B2 والنشر. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -449,3 +449,19 @@
 - CI الخاص بهذا الالتزام قيد الانتظار عند إنشاء هذا السجل؛ لا تُعلن 11C مكتملة قبل نجاحه.
 - لم يتم اختيار مزود أو region أو budget، ولم يتم إنشاء resources أو state backend أو environment أو secrets أو registry أو deployment.
 - 10B ما زالت `DEFERRED_BY_OWNER` حسب توجيه المستخدم؛ لا يُفعّل branch protection في هذه الشريحة.
+
+
+## 16. Phase11C — تحقق CI للـprovider-neutral IaC — 26 نوفمبر 2026
+
+- رأس `main`: `c709ba7a73aa9ab6d05aa1b6971e44b6912d97dc`. الفرع الوحيد المستخدم هو `main`.
+- بوابات Docker [45756158476](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158476)، Security [45756158468](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158468)، Authentication [45756158528](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158528)، وPint [45756158555](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45756158555) جميعها SUCCESS على SHA نفسه.
+- Docker: SQLite Feature 150/1,704 assertions؛ PostgreSQL Integration 31 passed/546 assertions مع optional skip واحد؛ S3Mock contract test 1/8؛ strict Pint، PostgreSQL restricted roles/migrations، non-root HTTP/liveness/readiness، وrollback rehearsal نجحت. وظيفة attest-release المنفصلة نجحت أيضاً.
+- Authentication: SQLite 20/172 assertions وPostgreSQL 4/99 assertions — SUCCESS.
+- Security: Gitleaks وComposer audit وفحص filesystem/image اكتملت؛ ملخص صورة الإنتاج Clean وبوابة fixable HIGH/CRITICAL نجحت. لا يعني ذلك أن تقارير Trivy الاستشارية خارج هذه البوابة غير موجودة أو أن كل أصناف المخاطر عولجت.
+- Pint report: workflow SUCCESS، لكن خطوات Pint المعتمدة على PHP files المتغيرة كانت SKIPPED لعدم تغيير ملفات PHP؛ Docker strict Pint check نجح.
+- IaC [45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342) SUCCESS على `f95e361dc8ec2db4d605806ad54659085c38624a`: OpenTofu 1.13.10، guardrail، 18/18 regression cases، HCL format، init بلا remote backend، validate، وprovider-free plan. لا apply.
+- مقارنة `f95e361...c709ba7` أعادت ahead_by=2، والملف الوحيد المتغير هو مواصفة Phase11 نفسها؛ لذلك لم تتغير ملفات `infra/opentofu/` أو workflow `iac-validation.yml` بعد تشغيل IaC المذكور، وتظل نتيجته صالحة لهذه الملفات على رأس main الحالي.
+- لا يوجد فشل حالي في هذه البوابات يحتاج إصلاحاً. كانت هناك إخفاقات تاريخية في guard regression وتم علاجها؛ الاختبارات الحالية تشمل الحالات التي منعتها، وكل الحالات الـ18 نجحت.
+- **الحكم:** نجاح فحوص الشريحة provider-neutral مثبت، لكن Phase11C لا تُغلق بعد؛ مواصفة المرحلة تشترط اعتماد provider/region/workload/cost قبل إنشاء واختبار adapter modules. Phase11D provisioning لم تبدأ ولا يجوز بدؤها دون موافقة صريحة. 10B ما زالت DEFERRED_BY_OWNER و`main.protected=false`؛ لذلك لا يبدأ 11B2.
+- لم ينفذ OpenTofu apply، ولم يُنشأ remote state أو cloud resource أو account أو secret أو registry publication أو staging/production deployment. لم تُمَس قاعدة الإنتاج أو بيانات المستخدمين.
+- الاستمرار من هذه النقطة: لا تعِد IaC scaffold أو guard tests؛ انتظر مدخلات provider/region/workload/retention/HA/RPO/RTO والميزانية، ثم نفّذ adapter modules مع versions مقفلة وخطة محلية قابلة للمراجعة، مع إبقاء موافقة apply منفصلة.
