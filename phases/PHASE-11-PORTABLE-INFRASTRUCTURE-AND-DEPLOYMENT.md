@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY.  
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ 10B required checks شرط قبل نشر production. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -80,6 +80,7 @@
 - اشتراط أن ينشر deploy الـimage digest الذي اجتاز CI، بعد التحقق من provenance/SBOM/manifest ومصدر workflow والـSHA؛ يمنع rebuild أثناء deploy.
 - تحديد مرشحي required checks دون تغيير إعداد GitHub الحالي: Docker وAuthentication وSecurity؛ Pint report ليس blocking check مستقلاً، وstrict Pint داخل Docker هو gate.
 - منع `pull_request_target` وأي workflow يعرّض deployment credentials لمدخلات غير موثوقة.
+- تم تنفيذ remediation لحدود الثقة في `.github/workflows/docker-build.yml`: Docker validation بصلاحية `contents: read` فقط، ووظيفة `attest-release` مستقلة مشروطة بـ`main` مع `push` أو `workflow_dispatch` وتعتمد على نجاح build. صلاحيات OIDC/Sigstore محصورة في وظيفة التوقيع، ولا تتاح لأحداث pull_request. تحقق ذلك على `c17fc84`؛ التفاصيل والأدلة في تقرير 26 نوفمبر 2026.
 
 ### 11B2 — Enforce trust controls and OIDC (WAITING_EXTERNAL)
 
@@ -160,7 +161,7 @@
 
 ## 8. المرحلة التالية المسموح بها
 
-اكتمل جرد العقود التقنية وportability matrix وتصميم trust boundaries. يبقى تسعير scorecard الخاص بـ11A معلقًا حتى اعتماد مدخلات المنطقة والحمل والبيانات والاحتفاظ وHA/RPO/RTO والميزانية. اكتمل الآن تصميم 11B1 فقط؛ لا يبدأ 11B2 enforcement إلا بعد إغلاق 10B عبر Repository Admin، ولا تبدأ provisioning أو IaC apply أو staging قبل اختيار المزود والمنطقة والتكلفة وموافقة المستخدم. لا يجوز تجاوز هذه الاعتماديات أو اعتبار التصميم تنفيذًا.
+اكتمل جرد العقود التقنية وportability matrix وتصميم trust boundaries. كما نُفذت معالجة فصل صلاحيات Docker validation عن وظيفة attestation الموثوقة واجتازت بوابات CI الأربع على c17fc84؛ هذا لا يساوي تفعيل enforcement على الفرع أو إنشاء cloud identity. يبقى تسعير scorecard الخاص بـ11A معلقًا حتى اعتماد مدخلات المنطقة والحمل والبيانات والاحتفاظ وHA/RPO/RTO والميزانية. لا يبدأ 11B2 enforcement إلا بعد إغلاق 10B عبر Repository Admin، ولا تبدأ provisioning أو IaC apply أو staging قبل اختيار المزود والمنطقة والتكلفة وموافقة المستخدم.
 
 ## 9. Phase11A exit scorecard وPhase11B1 trust boundaries
 
@@ -324,3 +325,18 @@ Protected source revision
 ### 11.6 إغلاق التصميم
 
 **11B1 DESIGN_COMPLETE — design only.** اكتمل توثيق تدفق الثقة وclaim allowlist وفصل الهويات ومتطلبات digest/attestation وفجوة least-privilege. لم يتم تغيير workflow permissions أو تنفيذ trust policy فعلية. تبقى 11B2 WAITING_EXTERNAL بسبب 10B وقرارات المزود/المنطقة/التكلفة. وتبقى 11A cost scorecard WAITING_INPUT.
+
+
+## 12. Phase11B1 trust-boundary remediation — verified 26 November 2026
+
+Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documentation baseline; application/runtime baseline remains 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181).
+
+- Top-level workflow permission is contents: read; the docker-build job keeps contents: read only.
+- attest-release runs only for refs/heads/main on push or workflow_dispatch, and only after docker-build succeeds. Its only elevated permissions are id-token: write, attestations: write, and artifact-metadata: write. Pull-request events do not receive these permissions.
+- actions/download-artifact@v8.0.2 resolves successfully. The signing job verifies the source/run metadata, rollback inputs and hashes, generates current and rollback provenance/SBOM attestations, signs the immutable release manifest, validates SHA256SUMS, and uploads the release bundle.
+- Docker Validation [45723087433](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433) SUCCESS: SQLite 150/1,704; PostgreSQL 31/546 with one optional skipped test; S3Mock 1/8; runtime/rollback rehearsals passed.
+- Authentication [45723087469](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087469), Pint [45723087423](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087423) and Security [45723087484](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087484) all SUCCESS on the same SHA. Pint's changed-file steps were skipped because this commit changed no PHP source; strict Pint checks in Docker passed. Trivy production-image summary was Clean.
+- Attestations: [current provenance](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416097), [current SBOM](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416109), [rollback provenance](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416119), [rollback SBOM](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416136), [manifest signature](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416150).
+- Release bundle artifact [15072603777](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433/artifacts/15072603777), SHA-256 a12ddc732dcd2d2cff30df5ba73b236b32f418c51523b5a7c796778d94acb3ad.
+- This verifies the CI trust boundary only. No OCI registry push, cloud role, GitHub environment, staging/production deployment, provider selection, paid resource, production database or secret was created or touched.
+- Next gate: Phase10B remains OPEN because GitHub reports main.protected=false and there are no rulesets. The GitHub connection exposes reads and code writes but no branch-protection/ruleset write operation. Phase11A cost scorecard also remains WAITING_INPUT until workload, region, growth, retention, HA/RPO/RTO and budget are confirmed. Therefore Phase11B2 remains blocked; do not start 11C–11F.

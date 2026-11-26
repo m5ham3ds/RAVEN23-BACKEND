@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J: 08A–08I مجتازة CI على `1d354f7`؛ اختير تأجيل FCM/OneSignal حتى اكتمال بقية Backend (09–13). لا sender أو credentials أو إرسال خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B OPEN) | 10G أُغلقت على `a86fb3a` مع rollback 200→502→200 وmanifest/attestations وحزمة SHA-256؛ 10B ما زالت تحتاج صلاحية Admin لحماية main. |
-| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | اكتمل جرد العقود وtrust model/claim matrix وفصل الهويات. توجد فجوة least-privilege في Docker workflow موثقة للإصلاح قبل enforcement. لا provider أو region أو budget معتمد؛ 10B OPEN وmain protected=false؛ لا deployment. |
+| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE مع معالجة فصل صلاحيات التوقيع منفذة ومثبتة على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL/DEPENDENCY | Docker validation بقي contents: read فقط؛ id-token وattestation permissions محصورة في trusted-main signing job بعد نجاح Docker. CI الأربع SUCCESS على c17fc84. ما زالت 10B OPEN وmain.protected=false، ولا توجد مدخلات تكلفة/موافقة provider/region/budget المعتمدة. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY | يتطلب backup/restore rehearsal وموافقة cutover مباشرة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
@@ -408,3 +408,24 @@
 - `main.protected=false`؛ 10B ما زالت OPEN. لم تنشأ Environments أو OIDC cloud roles أو secrets أو registry push أو IaC resources أو نشر.
 - 11A cost scorecard ما زالت WAITING_INPUT. 11B2 enforcement تنتظر إغلاق 10B وموافقة المزود والمنطقة والتكلفة.
 - أي تغييرات وثائقية تضاف بعد هذا baseline يجب أن تجتاز CI على SHA الجديد قبل وصفها بأنها verified.
+
+
+## 31. Phase11B1 least-privilege remediation — verified on c17fc84ac0f6acbe4a6d300913871441fb4e7ebe — 26 November 2026
+
+اكتملت معالجة فجوة صلاحيات Docker/attestation التي كشفها تدقيق 11B1. هذا تحديث تنفيذي لحدود الثقة، وليس فتحًا لـ11B2 أو تفويضًا بالنشر.
+
+| Gate | Run | Result |
+|---|---:|---|
+| Docker Validation | [45723087433](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433) | SUCCESS — SQLite Feature 150/1,704 assertions؛ PostgreSQL Integration 31/546 assertions مع optional skip واحد؛ S3Mock 1/8؛ strict Pint/runtime/rollback guards PASS |
+| Authentication Regression | [45723087469](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087469) | SUCCESS |
+| Pint Format Report | [45723087423](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087423) | SUCCESS؛ changed-PHP steps skipped لعدم وجود PHP files متغيرة |
+| Security Scans | [45723087484](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087484) | SUCCESS — Gitleaks وTrivy؛ ملخص صورة الإنتاج Clean، وfixable HIGH/CRITICAL gate PASS |
+
+- Docker validation workflow/job يطلب contents: read فقط. صلاحيات id-token: write وattestations: write وartifact-metadata: write أصبحت داخل attest-release فقط، وشرطها main مع push أو workflow_dispatch، وتعتمد على نجاح docker-build. أحداث pull_request لا تحصل على صلاحيات OIDC/attestation.
+- عُدّل actions/download-artifact إلى الإصدار المنشور v8.0.2. بذلك زال سبب فشل إعداد وظيفة التوقيع في المحاولة السابقة.
+- وظيفة التوقيع تحققت من source/run metadata وrollback وhashes؛ أنشأت تواقيع provenance وSBOM للصورة الحالية وصورة التراجع، ووقّعت release manifest، وفحصت checksums النهائية.
+- Attestation records: [image provenance 72416097](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416097)، [image SBOM 72416109](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416109)، [rollback provenance 72416119](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416119)، [rollback SBOM 72416136](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416136)، [release manifest signature 72416150](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72416150).
+- Immutable release bundle: [artifact 15072603777](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433/artifacts/15072603777)، size 564,117,614 bytes، digest sha256:a12ddc732dcd2d2cff30df5ba73b236b32f418c51523b5a7c796778d94acb3ad. Unsigned inputs artifact: 15073148534، digest sha256:169d89d5d0d4307f9dc61435173454d838316c96cce606590f721f6b8b94696e.
+- لا يوجد OCI registry push أو staging/production deployment أو تغيير DB/secrets أو إنشاء موارد سحابية.
+- Pint workflow نجح لكنه تخطى فقط بناء/تنسيق الملفات المتغيرة لعدم وجود ملفات PHP معدلة؛ strict Pint وفحص baseline داخل Docker نجحا.
+- main ما زال protected=false وrulesets فارغة؛ 10B مفتوحة. 11A cost scorecard ما زال WAITING_INPUT لغياب region/workload/data-growth/retention/HA/RPO/RTO/budget المعتمدة. لذلك لا يبدأ 11B2 حتى إغلاق 10B واستيفاء موافقة المزود/المنطقة/التكلفة.

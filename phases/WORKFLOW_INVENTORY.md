@@ -324,3 +324,15 @@ Current release evidence binds source commit, local image config digest, Docker 
 - Keep migration, deploy and runtime identities separate; no production cutover before Phase12 approval and verified backup restore.
 
 No workflow was changed in this design-only audit.
+
+## 16. Phase11B1 trust-boundary remediation — CI verified 26 November 2026
+
+Historical note: the prior section's permission audit describes the state at commit 1b57b1d; the workflow was subsequently changed and is now verified on c17fc84ac0f6acbe4a6d300913871441fb4e7ebe.
+
+- .github/workflows/docker-build.yml: top-level permissions are now contents: read; the docker-build validation job also has contents: read only.
+- A separate attest-release job depends on docker-build and is gated to main plus push/workflow_dispatch. Only this job receives id-token: write, attestations: write, and artifact-metadata: write.
+- Download action is actions/download-artifact@v8.0.2; upload actions remain actions/upload-artifact@v7.0.2.
+- Workflow runs: Docker [45723087433](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433), Auth [45723087469](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087469), Pint [45723087423](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087423), Security [45723087484](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087484) — all SUCCESS on c17fc84ac0f6acbe4a6d300913871441fb4e7ebe.
+- Docker validation and trusted signing jobs both succeeded. Signing verified inputs, produced five attestation records (current/rollback provenance and SBOM plus signed release manifest), finalized SHA256SUMS, and uploaded release bundle artifact 15072603777.
+- Security's production-image Trivy summary was Clean; Gitleaks and the blocking fixable HIGH/CRITICAL image gate passed.
+- No registry publication, cloud OIDC role, staging/production environment, IaC apply or deployment was configured. Branch protection remains external to these workflow changes and 10B remains OPEN.

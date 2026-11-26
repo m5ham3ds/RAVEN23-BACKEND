@@ -35,7 +35,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08I ناجحة على `1d354f7`، واختيار Push مؤجل صراحةً لما بعد استكمال باقي نطاق Backend 09–13. يظل sender/credential/device delivery معطلاً، مع S3/mail staging وretention/cost كاعتماديات مستقلة. | 02–05 |
 | 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B ينتظر Admin لتفعيل حماية main وrequired checks) | 01–09 تدريجيًا؛ جاهزية الإصدار لا تلغي اعتمادات staging الخارجية |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust model DESIGN_COMPLETE (design only)؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: 10B Admin + موافقة provider/region/cost، مع 04/08 عند الحاجة |
+| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع فصل validation/signing منفذ ومثبت على c17fc84؛ 11B2 enforcement و11C–11F WAITING_EXTERNAL | التصميم: 02–03 و10G؛ enforcement/deployment: إغلاق 10B عبر Admin + موافقة provider/region/cost، مع 04/08 عند الحاجة |
 | 12 | ترحيل البيانات والتحويل الإنتاجي | 04–11 مع نسخة احتياطية مستعادة وموافقة المستخدم |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
 
@@ -237,3 +237,12 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - 10C COMPLETE على SHA b8c0bb91cea76db003501e81ec30dce09e3bf858: Docker 146 SQLite / 1,548 assertions؛ PostgreSQL 31 / 541 مع optional skip؛ S3Mock 1/8؛ Auth SQLite 20/172 وPostgreSQL 4/99؛ Pint وSecurity SUCCESS. اختبار empty schema وlegacy snapshot نجحا.
 - 10D IN_PROGRESS: API v1 contract manifest (39 routes)، وثيقة العقد، وautomated router/auth/response/error contract tests بدأت على main؛ تنتظر CI.
 - 10B تبقى مفتوحة لحماية main وrequired checks لأنها تحتاج صلاحيات GitHub Admin ونموذج enforcement يطابق سياسة single-main branch.
+
+
+## 16. Phase11B1 trust-boundary remediation verified — 26 November 2026
+
+- Verified repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe; application/runtime baseline remains 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181، والتغيير هنا workflow/documentation فقط.
+- Docker Validation [45723087433](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087433) وAuthentication [45723087469](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087469) وPint [45723087423](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087423) وSecurity [45723087484](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45723087484) كلها SUCCESS على SHA نفسه.
+- تم تقليل صلاحيات Docker validation إلى contents: read، ونقل OIDC/Sigstore permissions إلى وظيفة signing منفصلة مقيدة بـtrusted main push أو workflow_dispatch وبعد نجاح Docker. PR events لا تحصل على هذه الصلاحيات.
+- تم إصلاح action resolution باستخدام actions/download-artifact@v8.0.2. اكتمل التحقق من مدخلات الإصدار والتراجع والـSHA256، وخمس attestations (current/rollback provenance & SBOM + signed release manifest) وحزمة الإصدار immutable.
+- هذا لا يفعّل branch protection ولا cloud deployment identity أو registry push. 10B OPEN؛ 11A cost scorecard WAITING_INPUT؛ 11B2 و11C–11F تظل WAITING_EXTERNAL حتى تتوفر الاعتماديات والموافقات. لا موارد أو نشر.

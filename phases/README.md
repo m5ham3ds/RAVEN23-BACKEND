@@ -2,7 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified application/runtime SHA: 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181 — 25 نوفمبر 2026  
+> latest fully CI-verified repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe — 26 نوفمبر 2026  
+> application/runtime baseline (unchanged): 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -29,7 +30,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر صلاحية Admin. Phase11A اكتمل خط أساس قابلية النقل تقنيًا، بينما scorecard التكلفة ينتظر المدخلات؛ Phase11B1 DESIGN_COMPLETE على مستوى التصميم فقط، مع فجوة صلاحيات Docker موثقة قبل enforcement. Phase11B2 و11C–11F تنتظر الاعتماديات والموافقات؛ لا يوجد مزود مختار أو موارد منشأة.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS لأن 10B ما زالت تنتظر تفعيل حماية main وrequired checks. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11C–11F ما زالت تنتظر اعتمادياتها وموافقاتها؛ لا يوجد مزود مختار أو موارد منشأة.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 
