@@ -5,7 +5,7 @@ terraform {
 locals {
   platform_contract = {
     contract_version = 1
-    service           = "raven23-backend"
+    service          = "raven23-backend"
 
     runtime = {
       packaging = "OCI image"
@@ -26,7 +26,7 @@ locals {
     }
 
     delivery = {
-      artifact_policy    = "build once; promote immutable OCI digest"
+      artifact_policy     = "build once; promote immutable OCI digest"
       deployment_identity = "short-lived and separate from runtime identity"
     }
 
