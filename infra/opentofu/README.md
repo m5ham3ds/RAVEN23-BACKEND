@@ -79,3 +79,17 @@ remote-state backend, key-management system, network topology, resource sizes,
 backup retention/RPO/RTO, registry, and any paid or production resource.
 This scaffold does not close Phase11A cost scoring, 11B2 trust enforcement,
 11D staging provisioning, 11E operational acceptance, or 11F production handoff.
+
+## Approval-guard regression tests
+
+Run from the repository root:
+
+```sh
+bash infra/opentofu/tests/test-guardrail-provider-neutral.sh
+```
+
+The fixture-based test suite proves the guard accepts the provider-free baseline
+and rejects provider/resource/data/module declarations, remote backend/cloud
+blocks, tracked state/backups/plans/tfvars, and inline or continued `apply`
+commands. It uses temporary Git repositories and synthetic files only; it does
+not load credentials, contact a provider, or create resources.

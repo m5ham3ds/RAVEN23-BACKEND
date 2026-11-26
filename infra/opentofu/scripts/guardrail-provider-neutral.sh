@@ -10,24 +10,27 @@ fail() {
   exit 1
 }
 
-# Provider-specific declarations and remote backends are forbidden until
-# the owner approves the hosting provider and state architecture.
-if grep -REn --include='*.tf' '^[[:space:]]*(provider|resource|data)[[:space:]]+"' "$iac_root"; then
-  fail "Provider, resource, and data blocks are not allowed in the provider-neutral Phase11C scaffold."
+# Provider-specific declarations and local modules may create real resources.
+# They remain blocked until the owner approves the provider and scope.
+if grep -REn --include='*.tf' '^[[:space:]]*(provider|resource|data|module)[[:space:]]+"' "$iac_root"; then
+  fail "Provider, resource, data, and module blocks are not allowed in the provider-neutral Phase11C scaffold."
 fi
 
-if grep -REn --include='*.tf' '^[[:space:]]*backend[[:space:]]+"' "$iac_root"; then
-  fail "A remote state backend must not be selected before owner approval."
+# Both legacy backend blocks and HCP Terraform/OpenTofu cloud blocks can move
+# state or execution outside the local runner, so both require owner approval.
+if grep -REn --include='*.tf' '^[[:space:]]*(backend[[:space:]]+"[^"]+"|cloud)[[:space:]]*\{' "$iac_root"; then
+  fail "A remote state backend or cloud execution block must not be selected before owner approval."
 fi
 
-# State, plan, and variable files must never be committed.
-if git -C "$repo_root" ls-files | grep -E '(^|/)(terraform\.tfstate|.*\.tfstate(\.backup)?|.*\.tfplan|.*\.plan|.*\.tfvars)$'; then
-  fail "Terraform/OpenTofu state, plan, or variable files must not be committed."
+# State, backup, plan, and variable-value files must never be committed.
+if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\.tfstate.*|.*\.tfplan|.*\.plan|.*\.tfvars|.*\.tfvars\.json)$'; then
+  fail "OpenTofu/Terraform state, backup, plan, or variable-value files must not be committed."
 fi
 
-# CI must remain a read-only validator; reject an accidental apply command.
-if grep -En '(^|[[:space:]])(tofu|terraform)[[:space:]]+apply([[:space:]]|$)' "$workflow"; then
+# Flatten shell continuations so a split command cannot bypass this check.
+workflow_commands="$(sed ':a;N;$!ba;s/\\\n[[:space:]]*/ /g' "$workflow")"
+if grep -En '^[[:space:]]*(-[[:space:]]*)?(run:[[:space:]]*)?(tofu|terraform)([[:space:]]|$).*([[:space:]]|^)apply([[:space:]]|$)' <<< "$workflow_commands"; then
   fail "Infrastructure CI must never run tofu/terraform apply."
 fi
 
-echo "PASS: provider-neutral IaC guardrails (no provider/resources/backend/state/plan/secrets/apply)."
+echo "PASS: provider-neutral IaC guardrails (no provider/resources/modules/backend/cloud/state/plan/tfvars/apply)."

@@ -54,6 +54,9 @@ jobs:
       - name: Enforce the provider-neutral approval boundary
         run: bash infra/opentofu/scripts/guardrail-provider-neutral.sh
 
+      - name: Test provider-neutral approval guardrails
+        run: bash infra/opentofu/tests/test-guardrail-provider-neutral.sh
+
       - name: Check HCL formatting
         run: tofu -chdir=infra/opentofu fmt -check -recursive
 
