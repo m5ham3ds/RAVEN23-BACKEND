@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
 iac_root="$repo_root/infra/opentofu"
-workflow="$repo_root/.github/workflows/iac-validation.yml"
+workflow_dir="$repo_root/.github/workflows"
 
 fail() {
   echo "::error::$1"
@@ -27,10 +27,13 @@ if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\.tfstate.*|.*\.tfplan|.*\.pl
   fail "OpenTofu/Terraform state, backup, plan, or variable-value files must not be committed."
 fi
 
-# Flatten shell continuations so a split command cannot bypass this check.
-workflow_commands="$(sed ':a;N;$!ba;s/\\\n[[:space:]]*/ /g' "$workflow")"
-if grep -En '(tofu|terraform)[[:space:]]+apply' <<< "$workflow_commands"; then
-  fail "Infrastructure CI must not contain an apply invocation, including shell command substitutions."
-fi
+# Inspect every GitHub Actions workflow, not only this validator. Flatten
+# shell continuations and permit common CLI flags such as -chdir before apply.
+while IFS= read -r -d '' workflow_file; do
+  workflow_commands="$(sed ':a;N;$!ba;s/\\\n[[:space:]]*/ /g' "$workflow_file")"
+  if grep -En '(tofu|terraform)([[:space:]]+[^[:space:]]+)*[[:space:]]+apply([[:space:]]|$)' <<< "$workflow_commands"; then
+    fail "GitHub Actions workflows must not contain an apply invocation: $workflow_file"
+  fi
+done < <(find "$workflow_dir" -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 | sort -z)
 
 echo "PASS: provider-neutral IaC guardrails (no provider/resources/modules/backend/cloud/state/plan/tfvars/apply)."
