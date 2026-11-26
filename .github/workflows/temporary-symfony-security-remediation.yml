@@ -1,0 +1,84 @@
+name: Temporary Symfony security lock remediation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/temporary-symfony-security-remediation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: raven23-temporary-symfony-security-remediation
+  cancel-in-progress: false
+
+jobs:
+  update-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: curl, dom, fileinfo, mbstring, pdo_pgsql, pdo_sqlite, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Update only the affected Symfony dependency family
+        env:
+          COMPOSER_MAX_PARALLEL_HTTP: "4"
+        run: |
+          set -euo pipefail
+          touch .env
+          composer update symfony/http-foundation symfony/http-kernel symfony/mailer symfony/mime symfony/routing --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          composer validate --strict
+          composer audit --no-interaction
+          php -r '
+          $lock = json_decode(file_get_contents("composer.lock"), true, 512, JSON_THROW_ON_ERROR);
+          $names = ["symfony/http-foundation", "symfony/http-kernel", "symfony/mailer", "symfony/mime", "symfony/routing"];
+          foreach ($names as $name) {
+              $package = null;
+              foreach (array_merge($lock["packages"] ?? [], $lock["packages-dev"] ?? []) as $candidate) {
+                  if (($candidate["name"] ?? null) === $name) { $package = $candidate; break; }
+              }
+              if ($package === null || version_compare(ltrim($package["version"], "v"), "8.1.12", "<")) {
+                  fwrite(STDERR, "Unpatched Symfony package remains: ".$name.PHP_EOL);
+                  exit(1);
+              }
+              printf("%s %s\\n", $name, $package["version"]);
+          }'
+          APP_ENV=testing APP_KEY='base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=' DB_CONNECTION=sqlite DB_DATABASE=:memory: DB_URL= CACHE_STORE=array SESSION_DRIVER=array QUEUE_CONNECTION=database MAIL_MAILER=array php artisan test tests/Feature/QueuedNotificationsTest.php --display-warnings
+          vendor/bin/pint --test tests/Feature/QueuedNotificationsTest.php tests/Fixtures/TransientFailingNotificationOutboxTransportFake.php
+
+      - name: Commit patched lock and remove this temporary workflow
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/temporary-symfony-security-remediation.yml
+          git add composer.lock
+          git commit -m "fix(deps): update Symfony security releases"
+          git push origin HEAD:main
+          printf 'Patched lock commit: %s\\n' "$(git rev-parse HEAD)"
+
+      - name: Dispatch core CI on patched main without the vulnerable rollback target
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run docker-build.yml --repo m5ham3ds/RAVEN23-BACKEND --ref main -f skip_rollback_rehearsal=true
+          gh workflow run users-auth-tests.yml --repo m5ham3ds/RAVEN23-BACKEND --ref main
+          gh workflow run security-scans.yml --repo m5ham3ds/RAVEN23-BACKEND --ref main
+          gh workflow run pint-format-report.yml --repo m5ham3ds/RAVEN23-BACKEND --ref main
+          echo "Dispatched Docker (no release bundle/signing), Authentication, Security and Pint on patched main."

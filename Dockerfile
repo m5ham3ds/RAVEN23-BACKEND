@@ -42,7 +42,7 @@ RUN set -eu; \
       tests/TestCase.php tests/Feature/AuthLifecycleTest.php tests/Feature/UserDataFoundationTest.php \
       tests/Feature/UserDataFoundationMigrationTest.php \
       tests/Feature/LaravelFoundationTest.php tests/Feature/RuntimeHealthTest.php \
-      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Fixtures/IdempotentNotificationOutboxTransportFake.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
+      tests/Feature/SecurityResponseTest.php tests/Feature/QueuedNotificationsTest.php tests/Fixtures/IdempotentNotificationOutboxTransportFake.php tests/Fixtures/TransientFailingNotificationOutboxTransportFake.php tests/Feature/PrivateObjectStorageTest.php tests/Feature/UserMediaTest.php \
       tests/Integration/PostgresAuthLifecycleTest.php tests/Integration/PostgresNotificationOutboxTest.php tests/Integration/PostgresUserMediaTest.php \
       tests/Integration/S3PrivateObjectStorageTest.php tests/Fixtures/ConcurrentWellnessSyncWorker.php docker/Caddyfile docker/entrypoint.sh \
       docker/queue-worker.sh docker/php-production.ini; do \

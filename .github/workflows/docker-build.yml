@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      skip_rollback_rehearsal:
+        description: "Temporary security-baseline re-anchor only; skips rollback packaging and all release attestations."
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -459,14 +465,14 @@ jobs:
         run: docker rm -f raven23-frankenphp-smoke >/dev/null 2>&1 || true
 
       - name: Rebuild previous known-good release and rehearse isolated traffic rollback
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && inputs.skip_rollback_rehearsal != true
         id: rollback-rehearsal
         env:
           ROLLBACK_TARGET_FILE: phases/release/rollback-target.json
         run: bash scripts/rollback-rehearsal.sh
 
       - name: Package the tested image with SHA-bound provenance and SBOM
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && inputs.skip_rollback_rehearsal != true
         id: release-evidence
         env:
           BASE_IMAGE: ${{ steps.frankenphp-base.outputs.image }}
@@ -550,7 +556,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload unsigned release inputs for the trusted attestation job
-        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && inputs.skip_rollback_rehearsal != true
         uses: actions/upload-artifact@v7.0.2
         with:
           name: raven23-release-inputs-${{ github.sha }}
@@ -561,13 +567,17 @@ jobs:
 
       - name: Summarize validation and release-evidence boundary
         if: always()
+        env:
+          SKIP_ROLLBACK_REHEARSAL: ${{ inputs.skip_rollback_rehearsal }}
         run: |
           {
             echo "## Docker validation trust boundary"
             echo "- Validation job permissions: contents: read only."
             echo "- Pull requests never receive OIDC or artifact-attestation permissions."
-            if [[ "${GITHUB_REF}" == "refs/heads/main" && ( "${GITHUB_EVENT_NAME}" == "push" || "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ) ]]; then
+            if [[ "${GITHUB_REF}" == "refs/heads/main" && ( "${GITHUB_EVENT_NAME}" == "push" || "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ) && "${SKIP_ROLLBACK_REHEARSAL:-false}" != "true" ]]; then
               echo "- Unsigned release inputs were uploaded for the separate trusted-main attestation job."
+            elif [[ "${SKIP_ROLLBACK_REHEARSAL:-false}" == "true" ]]; then
+              echo "- Rollback-baseline re-anchor mode: image/tests only; no release bundle or attestations were produced."
             else
               echo "- Release attestation is not eligible for this event/ref."
             fi
@@ -575,7 +585,7 @@ jobs:
 
   attest-release:
     name: Sign trusted main release evidence
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && inputs.skip_rollback_rehearsal != true
     needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
