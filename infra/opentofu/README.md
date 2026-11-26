@@ -90,6 +90,6 @@ bash infra/opentofu/tests/test-guardrail-provider-neutral.sh
 
 The fixture-based test suite proves the guard accepts the provider-free baseline
 and rejects provider/resource/data/module declarations, remote backend/cloud
-blocks, tracked state/backups/plans/tfvars, and inline or continued `apply`
-commands. It uses temporary Git repositories and synthetic files only; it does
+blocks, tracked state/backups/plans/tfvars, and inline, continued, backtick, or
+`$()` apply invocations. It uses temporary Git repositories and synthetic files only; it does
 not load credentials, contact a provider, or create resources.
