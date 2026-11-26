@@ -96,7 +96,7 @@
 - أُنشئ `infra/opentofu/` ليحوي platform contract وdeployment descriptor منطقيين فقط: OCI image، PostgreSQL، S3-compatible private storage، Laravel cache/queue abstractions، immutable image digest، وفصل هويات النشر والتشغيل والترحيل.
 - حدود الوحدات المستقبلية موثقة ومنفصلة: network, compute, database, object-storage, secrets, monitoring, registry. لا توجد provider/resource/data/backend blocks بعد.
 - workflow مستقل يختبر `fmt`, `init -backend=false`, `validate`, وprovider-free `plan`; جميع صلاحياته `contents: read` ولا يملك credentials.
-- guardrail يمنع إضافة provider-specific resources/modules أو remote backend/cloud block أو state/backup/plan/tfvars files أو أمر `apply` قبل موافقة المالك؛ أضيفت 15 حالة regression تعتمد fixtures مؤقتة وتختبر المنع والقبول، بما فيها أوامر apply في backticks و$() حتى لا تتحول رسائل echo إلى تنفيذ shell غير مقصود.
+- guardrail يمنع إضافة provider-specific resources/modules أو remote backend/cloud block أو state/backup/plan/tfvars files أو أمر `apply` قبل موافقة المالك؛ يفحص جميع ملفات GitHub Actions بصيغتي yml/yaml، وأضيفت 18 حالة regression تعتمد fixtures مؤقتة وتغطي CLI flags وTerraform وworkflow منفصلاً وbackticks و$().
 - صُمم state management ليشترط العزل حسب البيئة، locking، نسخًا احتياطية قابلة للاستعادة، تشفير state/plan، ومفاتيح خارج المستودع؛ لا backend أو key manager مختار حتى الآن.
 - المتبقي لإغلاق 11C: اعتماد provider/region/workload/cost ثم إضافة adapter modules واختبارها بـprovider versions مقفلة ومراجعة plan آمن. لا يوجد apply أو provisioning في هذه الشريحة. ما زالت هذه الشريحة provider-neutral؛ اجتياز regression guard لا يمنح إذن provisioning.
 
