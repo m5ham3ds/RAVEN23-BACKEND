@@ -288,3 +288,10 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - فشل أول تشغيل للخطوة الجديدة على `19bbeea` بسبب عدم وجود executable `openssl` في صورة PostgreSQL Alpine؛ توقف قبل تنفيذ dump أو إنشاء أي restore output.
 - أضيف تثبيت الحزمة داخل الحاوية المؤقتة قبل تشغيل السكربت. لا يتغير مصدر/وجهة PostgreSQL أو قيد localhost أو بيانات الاختبار.
 - إعادة التحقق على commit الإصلاح مطلوبة قبل تسجيل PASS؛ تبقى Phase12 WAITING_DEPENDENCY.
+
+
+## 22. Phase12 synthetic restore diagnostics
+
+- المحاولة الأولى وجدت أن PostgreSQL Alpine لا تتضمن OpenSSL؛ أضيف تثبيت الأداة في حاوية CI المؤقتة.
+- المحاولة الثانية أنشأت البيانات الاصطناعية ثم انتهت برمز 1 دون رسالة تميّز خطوة dump/encryption/restore/compare؛ أضيفت الآن diagnostics وassertions صريحة.
+- لا يسجل هذا المسار PASS قبل تشغيل Docker جديد على SHA التشخيصي ورفع دليل JSON.

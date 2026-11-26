@@ -112,29 +112,71 @@ SQL
 backup_file="$workdir/raven23-synthetic.dump"
 encrypted_file="$workdir/raven23-synthetic.dump.enc"
 restored_file="$workdir/raven23-synthetic-restored.dump"
+echo "::notice::Synthetic PostgreSQL source dataset created."
 pg_dump --no-owner --no-privileges --format=custom --file="$backup_file" \
-  --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$source_db"
-
-source_backup_sha="$(sha256sum "$backup_file" | awk '{print $1}')"
-openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256 \
-  -pass env:RAVEN23_REHEARSAL_PASSPHRASE -in "$backup_file" -out "$encrypted_file"
-encrypted_backup_sha="$(sha256sum "$encrypted_file" | awk '{print $1}')"
-test -s "$encrypted_file"
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 \
-  -pass env:RAVEN23_REHEARSAL_PASSPHRASE -in "$encrypted_file" -out "$restored_file"
-restored_backup_sha="$(sha256sum "$restored_file" | awk '{print $1}')"
-[ "$source_backup_sha" = "$restored_backup_sha" ] || {
-  echo "Encrypted backup round-trip checksum mismatch." >&2
+  --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$source_db" || {
+  echo "::error::pg_dump failed while creating the synthetic custom-format archive."
   exit 1
 }
-pg_restore --list "$restored_file" > "$workdir/restore-list.txt"
-test -s "$workdir/restore-list.txt"
+test -s "$backup_file" || {
+  echo "::error::pg_dump returned without creating a non-empty archive."
+  exit 1
+}
+echo "::notice::Synthetic PostgreSQL custom-format archive created."
+source_backup_sha="$(sha256sum "$backup_file" | awk '{print $1}')"
+openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256 \
+  -pass env:RAVEN23_REHEARSAL_PASSPHRASE -in "$backup_file" -out "$encrypted_file" || {
+  echo "::error::OpenSSL failed to encrypt the synthetic PostgreSQL archive."
+  exit 1
+}
+test -s "$encrypted_file" || {
+  echo "::error::OpenSSL did not create a non-empty encrypted archive."
+  exit 1
+}
+encrypted_backup_sha="$(sha256sum "$encrypted_file" | awk '{print $1}')"
+echo "::notice::Synthetic PostgreSQL archive encrypted."
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256 \
+  -pass env:RAVEN23_REHEARSAL_PASSPHRASE -in "$encrypted_file" -out "$restored_file" || {
+  echo "::error::OpenSSL failed to decrypt the synthetic PostgreSQL archive."
+  exit 1
+}
+restored_backup_sha="$(sha256sum "$restored_file" | awk '{print $1}')"
+[ "$source_backup_sha" = "$restored_backup_sha" ] || {
+  echo "::error::Encrypted backup round-trip checksum mismatch: source=$source_backup_sha restored=$restored_backup_sha" >&2
+  exit 1
+}
+echo "::notice::Encrypted backup round-trip checksum matched."
+pg_restore --list "$restored_file" > "$workdir/restore-list.txt" || {
+  echo "::error::pg_restore could not read the encrypted/decrypted custom archive."
+  exit 1
+}
+test -s "$workdir/restore-list.txt" || {
+  echo "::error::pg_restore archive listing is empty."
+  exit 1
+}
 pg_restore --exit-on-error --no-owner --no-privileges \
-  --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$target_db" "$restored_file"
+  --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$target_db" "$restored_file" || {
+  echo "::error::pg_restore failed while restoring the synthetic archive into its separate target database."
+  exit 1
+}
+echo "::notice::Synthetic backup restored into its separate target database."
 
 scalar() {
-  psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
-    --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$1" --command="$2" | tr -d '\r'
+  result="$(psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
+    --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$1" --command="$2")" || {
+    echo "::error::PostgreSQL verification query failed for database $1." >&2
+    return 1
+  }
+  printf '%s' "$result" | tr -d '\r'
+}
+assert_same() {
+  name="$1"
+  expected="$2"
+  actual="$3"
+  if [ "$expected" != "$actual" ]; then
+    echo "::error::$name mismatch: source=$expected target=$actual" >&2
+    return 1
+  fi
 }
 accounts_fingerprint() {
   scalar "$1" "SELECT md5(COALESCE(string_agg(concat_ws('|', id::text, source_key, email, credential_digest, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')), '|' ORDER BY id), '')) FROM migration_synthetic_accounts"
@@ -158,9 +200,13 @@ source_media="$(scalar "$source_db" 'SELECT count(*) FROM migration_synthetic_me
 target_media="$(scalar "$target_db" 'SELECT count(*) FROM migration_synthetic_media')"
 source_events="$(scalar "$source_db" 'SELECT count(*) FROM migration_synthetic_events')"
 target_events="$(scalar "$target_db" 'SELECT count(*) FROM migration_synthetic_events')"
-[ "$source_accounts" = "3" ] && [ "$source_accounts" = "$target_accounts" ]
-[ "$source_media" = "4" ] && [ "$source_media" = "$target_media" ]
-[ "$source_events" = "2" ] && [ "$source_events" = "$target_events" ]
+assert_same "Synthetic accounts row count" "3" "$source_accounts"
+assert_same "Restored accounts row count" "$source_accounts" "$target_accounts"
+assert_same "Synthetic media row count" "4" "$source_media"
+assert_same "Restored media row count" "$source_media" "$target_media"
+assert_same "Synthetic event row count" "2" "$source_events"
+assert_same "Restored event row count" "$source_events" "$target_events"
+echo "::notice::Synthetic account, media and event row counts matched."
 
 source_accounts_hash="$(accounts_fingerprint "$source_db")"
 target_accounts_hash="$(accounts_fingerprint "$target_db")"
@@ -173,11 +219,12 @@ target_schema_hash="$(schema_fingerprint "$target_db")"
 source_index_hash="$(index_fingerprint "$source_db")"
 target_index_hash="$(index_fingerprint "$target_db")"
 
-[ "$source_accounts_hash" = "$target_accounts_hash" ]
-[ "$source_media_hash" = "$target_media_hash" ]
-[ "$source_events_hash" = "$target_events_hash" ]
-[ "$source_schema_hash" = "$target_schema_hash" ]
-[ "$source_index_hash" = "$target_index_hash" ]
+assert_same "Accounts content fingerprint" "$source_accounts_hash" "$target_accounts_hash"
+assert_same "Media content fingerprint" "$source_media_hash" "$target_media_hash"
+assert_same "Events content fingerprint" "$source_events_hash" "$target_events_hash"
+assert_same "Database constraints fingerprint" "$source_schema_hash" "$target_schema_hash"
+assert_same "Database indexes fingerprint" "$source_index_hash" "$target_index_hash"
+echo "::notice::Synthetic row content, constraints and indexes matched after restore."
 
 mkdir -p "$(dirname "$REPORT_PATH")"
 cat > "$REPORT_PATH" <<EOF

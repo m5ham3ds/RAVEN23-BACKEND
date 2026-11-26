@@ -397,3 +397,12 @@
 - **السبب المثبت:** فشل خطوة Phase12 synthetic restore على SHA `19bbeea63b28a0e541996cda1c5f9d813a9c8934` برسالة `openssl: not found` من صورة `postgres:16-alpine`. لم تبدأ عملية dump/encryption/restore.
 - **الإصلاح:** تثبيت حزمة `openssl` داخل حاوية PostgreSQL المؤقتة باستخدام `apk add --no-cache openssl`، ثم تشغيل السكربت نفسه دون تغيير حدود الاتصال أو البيانات.
 - **الحدود:** لا تغيير على runtime أو migrations أو قاعدة المشروع؛ لا اتصال بقاعدة إنتاج أو أسرار أو بيانات حقيقية.
+
+
+## D-049 — جعل فشل Phase12 synthetic restore قابلاً للتشخيص
+
+- **التاريخ:** 26 نوفمبر 2026
+- **الحالة:** diagnostics patch committed؛ ينتظر التشغيل التالي.
+- **السبب:** المحاولة الثانية على `19a3a81` أنشأت الجداول وأدخلت الصفوف الاصطناعية ثم خرجت برمز 1 دون رسالة محددة؛ لم يكن ممكنًا معرفة إن كان الإخفاق في dump أو encryption أو restore أو fingerprint guard.
+- **الإصلاح:** إضافة milestones واضحة وعبارات خطأ لكل command، وفحوص archive/checksum/row count/fingerprint مع إظهار اسم وقيم المقارنة فقط (بيانات اصطناعية/sha256)، وتعديل دالة الاستعلام حتى لا تبتلع pipeline حالة فشل psql.
+- **الحدود:** لا تغيير runtime أو schema الإنتاجي؛ قاعدة CI المؤقتة وحدها.
