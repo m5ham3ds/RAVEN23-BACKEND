@@ -75,5 +75,5 @@ jobs:
             echo "### Phase11C IaC validation"
             echo "- OpenTofu configuration format/validation/plan only."
             echo "- No provider plugin, remote backend, cloud credentials, resource creation, registry push, or deployment."
-            echo "- No `tofu apply` was run."
+            echo "- No infrastructure apply command was run."
           } >> "$GITHUB_STEP_SUMMARY"
