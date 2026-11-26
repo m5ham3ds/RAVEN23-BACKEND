@@ -1,9 +1,9 @@
 <?php
 
-namespace Tests\\Fixtures;
+namespace Tests\Fixtures;
 
-use App\\Contracts\\Notifications\\NotificationOutboxTransport;
-use App\\Models\\User;
+use App\Contracts\Notifications\NotificationOutboxTransport;
+use App\Models\User;
 use RuntimeException;
 
 class TransientFailingNotificationOutboxTransportFake implements NotificationOutboxTransport

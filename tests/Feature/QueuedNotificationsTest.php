@@ -19,6 +19,7 @@ use RuntimeException;
 use Tests\Fixtures\FailingQueueJob;
 use Tests\Fixtures\IdempotentNotificationOutboxTransportFake;
 use Tests\Fixtures\PushNotificationTransportFake;
+use Tests\Fixtures\TransientFailingNotificationOutboxTransportFake;
 use Tests\TestCase;
 
 class QueuedNotificationsTest extends TestCase
@@ -581,7 +582,7 @@ class QueuedNotificationsTest extends TestCase
                     '--timeout' => 10,
                     '--quiet' => true,
                 ]);
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 // Laravel may rethrow the terminal queue exception after recording it.
             }
 
