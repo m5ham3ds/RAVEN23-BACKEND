@@ -98,6 +98,39 @@ assert_reject() {
     apply-other-workflow)
       printf 'name: Unapproved deploy\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' > "$fixture/.github/workflows/unapproved-deploy.yml"
       ;;
+    provider-tofu)
+      printf '\\nprovider "aws" {}\\n' > "$fixture/infra/opentofu/provider.tofu"
+      ;;
+    resource-tofu)
+      printf '\\nresource "aws_s3_bucket" "example" {}\\n' > "$fixture/infra/opentofu/storage.tofu"
+      ;;
+    backend-tofu)
+      printf '\\nterraform { backend "s3" {} }\\n' > "$fixture/infra/opentofu/backend.tofu"
+      ;;
+    required-providers-tofu)
+      printf '\\nterraform { required_providers { aws = { source = "hashicorp/aws" } } }\\n' > "$fixture/infra/opentofu/providers.tofu"
+      ;;
+    provider-json)
+      printf '{"provider":{"aws":{"region":"us-east-1"}}}\\n' > "$fixture/infra/opentofu/providers.tf.json"
+      ;;
+    resource-json)
+      printf '{"resource":{"aws_s3_bucket":{"example":{"bucket":"example"}}}}\\n' > "$fixture/infra/opentofu/storage.tf.json"
+      ;;
+    data-json)
+      printf '{"data":{"aws_caller_identity":{"current":{}}}}\\n' > "$fixture/infra/opentofu/data.tofu.json"
+      ;;
+    module-json)
+      printf '{"module":{"network":{"source":"./modules/network"}}}\\n' > "$fixture/infra/opentofu/module.tofu.json"
+      ;;
+    backend-json)
+      printf '{"terraform":{"backend":{"s3":{}}}}\\n' > "$fixture/infra/opentofu/backend.tf.json"
+      ;;
+    cloud-json)
+      printf '{"terraform":{"cloud":{"organization":"example"}}}\\n' > "$fixture/infra/opentofu/cloud.tofu.json"
+      ;;
+    required-providers-json)
+      printf '{"terraform":{"required_providers":{"aws":{"source":"hashicorp/aws"}}}}\\n' > "$fixture/infra/opentofu/required-providers.tofu.json"
+      ;;
     *)
       echo "Unknown test case: $name" >&2
       exit 1
@@ -127,6 +160,17 @@ assert_reject "state" "state, backup, plan, or variable-value files"
 assert_reject "backup" "state, backup, plan, or variable-value files"
 assert_reject "plan" "state, backup, plan, or variable-value files"
 assert_reject "tfvars" "state, backup, plan, or variable-value files"
+assert_reject "provider-tofu" "Provider, resource, data, and module blocks"
+assert_reject "resource-tofu" "Provider, resource, data, and module blocks"
+assert_reject "backend-tofu" "provider requirement, remote state backend, or cloud execution block"
+assert_reject "required-providers-tofu" "provider requirement, remote state backend, or cloud execution block"
+assert_reject "provider-json" "provider-neutral JSON configuration"
+assert_reject "resource-json" "provider-neutral JSON configuration"
+assert_reject "data-json" "provider-neutral JSON configuration"
+assert_reject "module-json" "provider-neutral JSON configuration"
+assert_reject "backend-json" "provider-neutral JSON configuration"
+assert_reject "cloud-json" "provider-neutral JSON configuration"
+assert_reject "required-providers-json" "provider-neutral JSON configuration"
 assert_reject "apply-inline" "must not contain an apply invocation"
 assert_reject "apply-multiline" "must not contain an apply invocation"
 assert_reject "apply-backtick" "must not contain an apply invocation"
@@ -135,4 +179,4 @@ assert_reject "apply-chdir" "must not contain an apply invocation"
 assert_reject "apply-terraform" "must not contain an apply invocation"
 assert_reject "apply-other-workflow" "must not contain an apply invocation"
 
-echo "PASS: all 18 provider-neutral IaC guardrail regression cases."
+echo "PASS: all 29 provider-neutral IaC guardrail regression cases."
