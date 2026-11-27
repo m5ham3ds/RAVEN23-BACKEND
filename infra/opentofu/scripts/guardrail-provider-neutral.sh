@@ -20,7 +20,7 @@ while IFS= read -r -d '' config_file; do
         fail "Provider, resource, data, and module blocks are not allowed in the provider-neutral Phase11C scaffold: $config_file"
       fi
 
-      if grep -En '^[[:space:]]*(backend[[:space:]]+"[^"]+"|cloud)[[:space:]]*\\{|^[[:space:]]*required_providers[[:space:]]*\\{' "$config_file"; then
+      if grep -En '^[[:space:]]*(backend[[:space:]]+"[^"]+"|cloud)[[:space:]]*\{|^[[:space:]]*required_providers[[:space:]]*\{' "$config_file"; then
         fail "A provider requirement, remote state backend, or cloud execution block must not be selected before owner approval: $config_file"
       fi
       ;;
@@ -52,11 +52,11 @@ PY
       fi
       ;;
   esac
-done < <(find "$iac_root" -type f \\( -name '*.tf' -o -name '*.tofu' -o -name '*.tf.json' -o -name '*.tofu.json' \\) -print0 | sort -z)
+done < <(find "$iac_root" -type f \( -name '*.tf' -o -name '*.tofu' -o -name '*.tf.json' -o -name '*.tofu.json' \) -print0 | sort -z)
 
 # State, backup, plan, and variable-value files must never be committed.
-if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\\.tfstate.*|.*\\.tfplan|.*\\.plan|.*\\.tfvars|.*\\.tfvars\\.json)$'; then
+if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\.tfstate.*|.*\.tfplan|.*\.plan|.*\.tfvars|.*\.tfvars\.json)$'; then
   fail "OpenTofu/Terraform state, backup, plan, or variable-value files must not be committed."
-}
+fi
 
 echo "PASS: provider-neutral IaC guardrails (no provider/resources/modules/backend/cloud/state/plan/tfvars/apply)."
