@@ -63,3 +63,5 @@
 ## Phase11 — آخر تحقق شامل على main
 
 رأس main 74f57a01c1475c66a32337dc6be549b187a23344 اجتاز بوابات Docker/Auth/Security/IaC/Pint الخمس؛ guardrails المحايدة للمزود 30/30. راجع تقرير reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md. لا يغلق ذلك Phase11 الكلية: تبقى 11B2 و11C provider adapters و11D–11F مؤجلة حسب D-050/D-051، وPhase11 تظل IN_PROGRESS.
+
+20. infra/opentofu/contracts/POST-PLAN-11B2-11F-EXECUTION-PLAYBOOK.md — تسلسل التنفيذ ومعايير قبول 11B2–11F بعد نقطة قرار D-051.

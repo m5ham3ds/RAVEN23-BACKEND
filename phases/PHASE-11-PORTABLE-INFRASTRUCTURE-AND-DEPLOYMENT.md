@@ -406,3 +406,5 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 - مقارنة 617ce7e...74f57a0 أعادت 80 commits ahead وbehind_by=0؛ لا توجد ملفات app/ أو routes/ أو database/ أو tests/ أو config/ في قائمة التغييرات. هذه الشريحة لا تغير منطق Laravel أو API أو migrations.
 - **الحكم:** الشريحة المحايدة للمزود من 11C اجتازت CI، لكن Phase11 الكلية تظل IN_PROGRESS. 11A cost scorecard تنتظر مدخلات القرار المؤجل؛ 11B2 تنتظر 10B وموافقة الهوية؛ 11C adapter modules تحتاج قرار provider؛ 11D تحتاج حساب/منطقة/ميزانية؛ 11E تحتاج staging حقيقية؛ 11F تحتاج 11D/11E وPhase12/13 وموافقة إنتاج.
 - بموجب D-050/D-051 لا يُطلب أو يُختار مزود أو منطقة أو تكلفة عند نهاية Phase11؛ جميع الاختيارات تؤجل إلى بعد اكتمال خطة Backend بالكامل. لا resources/backend/credentials/registry push/apply/deploy/DNS/production DB. التقرير المستقل: phases/reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md.
+
+- وثيقة التنفيذ المتصل بعد إعادة فتح D-051: `infra/opentofu/contracts/POST-PLAN-11B2-11F-EXECUTION-PLAYBOOK.md`؛ تجمع متطلبات 11B2 و11C و11D و11E و11F دون اختيار مزود مسبقًا.
