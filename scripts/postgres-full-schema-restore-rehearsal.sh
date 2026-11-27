@@ -195,7 +195,7 @@ SQL
 
 sequence_state_manifest() {
   database="$1"
-  queries_file="$workdir/$(basename "$2").queries"
+  queries_file="$workdir/${database}.sequence-queries.sql"
 
   psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
     --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$database" \
