@@ -106,3 +106,13 @@
 - الاختبارات العامة واختبارات المصادقة وFeature وIntegration تعيش داخل `tests/` على `main` بجانب التطبيق الذي تحميه.
 - فروع TEST وUSERS القديمة متقاعدة؛ لا تدفع إليها commits جديدة. لا تسجل حذف refs حتى يتم التحقق الفعلي من قائمة GitHub branches.
 - لا تنشئ phase/feature/test branch. عند تعطل CI سجّل SHA/run/job/log evidence، وأصلح على `main`.
+
+## 11. تنفيذ Backend أثناء تأجيل مزودي الخدمات — 27 نوفمبر 2026
+
+- تعامل مع D-050 في `DECISIONS.md` كقرار مالك نافذ؛ لا تطلب provider/region/cost details أثناء نطاق التطوير المحايد.
+- اعمل على `main` فقط. لا تنشئ feature/phase/test branch ولا PR branch.
+- أكمل كل ما لا يحتاج مزودًا: domain/API/schema/migrations, contracts, feature behavior, security hardening, PostgreSQL tests, mock/fake adapters, provider-neutral IaC design/guardrails, release evidence وsynthetic backup/restore.
+- عند وجود اعتماد خارجي، سجله `DEFERRED_BY_OWNER` أو `WAITING_EXTERNAL` مع وصف العمل المحايد الذي يمكن إكماله؛ لا تجعل ذلك يوقف تنفيذ مهام مستقلة.
+- لا تضف provider-specific SDK/adapter/credentials/resources ولا تنفذ `tofu apply` أو registry push أو DNS/deploy أو production data access حتى إعادة فتح القرار والموافقة المحددة.
+- لا تعتبر fake, mock, S3Mock, local container rollback أو CI-only database rehearsal تكاملًا حقيقيًا؛ احتفظ بمعايير القبول النهائية لكل phase.
+- بعد اكتمال Backend المستقل عن المزود، نفذ مرحلة قرار مجمعة لاختيار الخدمات بناءً على مقارنة موثقة؛ موافقة الاختيار منفصلة عن إذن الإنشاء أو النشر أو cutover.
