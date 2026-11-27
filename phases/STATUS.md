@@ -494,7 +494,7 @@
 - Authentication Regression [45936514610](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514610): SUCCESS؛ SQLite 20/172 وPostgreSQL 4/99.
 - Security [45936514543](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514543): SUCCESS؛ Gitleaks/Composer/Trivy والبوابة القابلة للإصلاح HIGH/CRITICAL اجتازت.
 - Pint [45936514597](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514597): SUCCESS؛ خطوات changed-PHP format skipped لعدم وجود ملفات PHP متغيرة؛ strict Pint ضمن Docker نجح.
-- شجرة Git الحالية: 252 ملفًا و55 مجلدًا؛ `phases/` تضم 78 ملفًا (77 Markdown) بما فيها 44 تقريرًا؛ 23 migration؛ 42 ملف PHP للاختبارات؛ 6 workflows؛ branch listing يثبت `main` وحده.
+- لقطة شجرة Git بعد إضافة تقرير المزامنة: 253 ملفًا و55 مجلدًا؛ `phases/` تضم 79 ملفًا (78 Markdown) بما فيها 45 تقريرًا؛ 23 migration؛ 42 ملف PHP للاختبارات؛ 6 workflows؛ branch listing يثبت `main` وحده.
 - قرار المالك الجديد: تأجيل جميع اختيارات مزودي الخدمات والمنصات والمناطق والتكاليف إلى ما بعد اكتمال أعمال تطوير Backend التي لا تحتاج مزودًا. يشمل الاستضافة وقاعدة البيانات والتخزين والبريد وPush والدفع وregistry/secrets/identity/monitoring/DNS.
 - تستمر الآن جميع أعمال code/API/schema/contracts/tests/CI والـprovider-neutral foundations والـsynthetic tests. لا provider SDK أو credentials أو موارد مدفوعة أو apply أو deployment قبل إعادة فتح القرار والموافقة المحددة.
 - حالات المراحل لم تتغير إلى COMPLETE بسبب التأجيل: 04 PARTIAL؛ 08/09 IN_PROGRESS؛ 10B DEFERRED_BY_OWNER؛ 11C IN_PROGRESS على مستوى scaffold المحايد؛ 12 و13 WAITING_DEPENDENCY. راجع `MASTER_PLAN.md` و`DECISIONS.md` والقرار D-050.
