@@ -420,12 +420,12 @@ jobs:
             -e REPORT_PATH=/evidence/full-schema-restore-report.json \
             --entrypoint sh \
             postgres:16-alpine -c 'apk add --no-cache openssl >/dev/null && exec sh scripts/postgres-full-schema-restore-rehearsal.sh'
-          jq -e '.result == "passed" and .restore.tableInventoriesMatched == true and .restore.perTableRowCountsAndContentFingerprintsMatched == true and .safety.productionDatabaseUsed == false and .safety.rowValuesIncludedInArtifact == false' \
+          jq -e '.result == "passed" and .restore.tableInventoriesMatched == true and .restore.perTableRowCountsAndContentFingerprintsMatched == true and .restore.sequenceCurrentValuesAndIsCalledMatched == true and .safety.productionDatabaseUsed == false and .safety.rowValuesIncludedInArtifact == false' \
             "$evidence_dir/full-schema-restore-report.json" >/dev/null
           {
             echo "## Phase12 full PostgreSQL schema/data rehearsal"
             echo "- Backed up and restored the disposable CI database after the full Laravel migration set was applied."
-            echo "- Compared public table inventory, columns, constraints, indexes, sequence definitions, triggers, views, row counts and per-table content fingerprints."
+            echo "- Compared public table inventory, columns, constraints, indexes, sequence definitions and last_value/is_called state, triggers, views, row counts and per-table content fingerprints."
             echo "- Evidence includes aggregate counts and hashes only; no row values, production credentials, production database or cutover."
           } >> "$GITHUB_STEP_SUMMARY"
 

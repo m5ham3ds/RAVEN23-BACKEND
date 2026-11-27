@@ -193,6 +193,26 @@ ORDER BY 1;
 SQL
 }
 
+sequence_state_manifest() {
+  database="$1"
+  queries_file="$workdir/$(basename "$2").queries"
+
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
+    --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$database" \
+    --command="SELECT format('SELECT %L || ''|'' || last_value::text || ''|'' || is_called::text FROM %I.%I;', schemaname || '.' || sequencename, schemaname, sequencename) FROM pg_sequences WHERE schemaname = 'public' ORDER BY schemaname, sequencename" \
+    > "$queries_file" || {
+      echo "::error::Unable to enumerate PostgreSQL sequence state in $database." >&2
+      return 1
+    }
+
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align --quiet \
+    --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$database" \
+    --file="$queries_file" || {
+      echo "::error::Unable to read last_value/is_called for PostgreSQL sequences in $database." >&2
+      return 1
+    }
+}
+
 table_names() {
   scalar "$1" "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
 }
@@ -233,6 +253,19 @@ if ! cmp -s "$workdir/source-schema.jsonl" "$workdir/target-schema.jsonl"; then
   exit 1
 fi
 
+sequence_state_manifest "$source_db" > "$workdir/source-sequence-state.txt"
+sequence_state_manifest "$target_db" > "$workdir/target-sequence-state.txt"
+if ! cmp -s "$workdir/source-sequence-state.txt" "$workdir/target-sequence-state.txt"; then
+  echo "::error::Full-schema restore changed one or more sequence last_value/is_called states."
+  diff -u "$workdir/source-sequence-state.txt" "$workdir/target-sequence-state.txt" || true
+  exit 1
+fi
+sequence_count="$(wc -l < "$workdir/source-sequence-state.txt" | tr -d ' ')"
+[ "$sequence_count" -gt 0 ] || {
+  echo "::error::No public PostgreSQL sequences were verified; refusing a false-positive sequence-state check." >&2
+  exit 1
+}
+
 table_names "$source_db" > "$workdir/source-tables.txt"
 table_names "$target_db" > "$workdir/target-tables.txt"
 if ! cmp -s "$workdir/source-tables.txt" "$workdir/target-tables.txt"; then
@@ -257,6 +290,7 @@ restored_migrations="$(scalar "$target_db" "SELECT count(*) FROM public.migratio
 table_count="$(wc -l < "$workdir/source-tables.txt" | tr -d ' ')"
 schema_sha="$(sha256sum "$workdir/source-schema.jsonl" | awk '{print $1}')"
 data_manifest_sha="$(sha256sum "$workdir/source-table-data.txt" | awk '{print $1}')"
+sequence_state_sha="$(sha256sum "$workdir/source-sequence-state.txt" | awk '{print $1}')"
 
 # Remove disposable databases before emitting the evidence artifact.
 psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" \
@@ -267,7 +301,7 @@ psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --p
 mkdir -p "$(dirname "$REPORT_PATH")"
 cat > "$REPORT_PATH" <<EOF
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "kind": "raven23.phase12.full-schema-postgresql-backup-restore",
   "result": "passed",
   "rehearsalId": "$RAVEN23_REHEARSAL_ID",
@@ -292,6 +326,9 @@ cat > "$REPORT_PATH" <<EOF
     "publicTables": $table_count,
     "schemaManifestSha256": "$schema_sha",
     "tableDataManifestSha256": "$data_manifest_sha",
+    "sequenceStateManifestSha256": "$sequence_state_sha",
+    "sequencesVerified": $sequence_count,
+    "sequenceCurrentValuesAndIsCalledMatched": true,
     "tableInventoriesMatched": true,
     "columnsConstraintsIndexesSequencesTriggersViewsMatched": true,
     "perTableRowCountsAndContentFingerprintsMatched": true
@@ -310,4 +347,4 @@ EOF
 
 test -s "$REPORT_PATH"
 chmod 0644 "$REPORT_PATH"
-echo "PASS: full disposable PostgreSQL schema/data backup restored; migration ledger, table inventory, schema definitions, row counts and per-table fingerprints matched."
+echo "PASS: full disposable PostgreSQL schema/data backup restored; migration ledger, table inventory, schema definitions, sequence state, row counts and per-table fingerprints matched."
