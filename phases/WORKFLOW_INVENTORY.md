@@ -1,8 +1,8 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified application/runtime SHA:** 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
-**Latest fully CI-verified docs-only baseline before Phase11C:** 9ad253a4a5ebbae229d44f615bcb6ce5fa901ec2  
-**تاريخ التحديث:** 26 نوفمبر 2026 — السجل الأقدم تاريخي  
+**Latest fully CI-verified backend SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`  
+**Latest application/runtime commit beneath this docs-only snapshot:** `27cfcc9e577cca33c28e9845096a0c5564b02045`  
+**تاريخ المزامنة:** 27 نوفمبر 2026 — السجلات السابقة أدلة تاريخية مرتبطة بعملياتها  
 **الحالة:** ست workflows CI/manual read-only؛ أضيف OpenTofu provider-neutral validation في Phase11C ولا توجد قناة cloud deploy أو provider deployment.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
@@ -337,3 +337,20 @@ Historical note: the prior section's permission audit describes the state at com
 - Docker validation and trusted signing jobs both succeeded. Signing verified inputs, produced five attestation records (current/rollback provenance and SBOM plus signed release manifest), finalized SHA256SUMS, and uploaded release bundle artifact 15072603777.
 - Security's production-image Trivy summary was Clean; Gitleaks and the blocking fixable HIGH/CRITICAL image gate passed.
 - No registry publication, cloud OIDC role, staging/production environment, IaC apply or deployment was configured. Branch protection remains external to these workflow changes and 10B remains OPEN.
+
+## 17. مزامنة التشغيلات الحالية على main — 27 نوفمبر 2026
+
+**Verified SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`
+
+| Gate | Run | النتيجة |
+|---|---:|---|
+| Docker Validation | [45936514582](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514582) | SUCCESS — build/test 30/30؛ trusted-main signing 17/17 |
+| Authentication Regression | [45936514610](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514610) | SUCCESS — SQLite 20/172؛ PostgreSQL 4/99 |
+| Security Scans | [45936514543](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514543) | SUCCESS — Gitleaks/Composer/Trivy والبوابة القابلة للإصلاح HIGH/CRITICAL |
+| Pint Format Report | [45936514597](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514597) | SUCCESS — خطوات changed-PHP skipped لعدم وجود PHP changes؛ strict Pint داخل Docker نجح |
+
+- Docker suite: SQLite Feature 151/1,719؛ PostgreSQL Integration 31/546 مع optional skip واحد؛ S3Mock 1/8؛ runtime/least-privilege/migration/rollback وsynthetic backup/restore evidence PASS.
+- Docker validation job 30/30 steps؛ trusted main evidence signing 17/17 steps، مع current/rollback provenance/SBOM وsigned release manifest.
+- هذه النتائج تخص SHA `617ce7e` قبل مزامنة الوثائق الشاملة الحالية؛ التغييرات التي تلي هذا السجل وثائق فقط ولا تغير workflows/app code. يجب رصد تشغيلات الوثائق الجديدة على SHA النهائي قبل اعتبارها CI-verified.
+- لا يوجد registry push أو provider deployment/OIDC role أو staging/production workflow. IaC validation فقط local provider-neutral fmt/init/validate/plan بلا backend أو credentials أو apply.
+- المستخدم أجل جميع اختيارات provider/region/cost إلى ما بعد أعمال Backend المستقلة عن المزود؛ راجع D-050. لا يُنشأ أي cloud service أو secret أو account الآن.
