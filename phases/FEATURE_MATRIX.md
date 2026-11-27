@@ -126,3 +126,7 @@ Bookmarks وRecently watched وPlaylist sync أصبحت لها migrations/contro
 - IaC: OpenTofu 1.13.10 provider-neutral scaffold فقط؛ لا providers/resources/modules/backend/cloud/apply أو deployment identity.
 - Current CI evidence on `617ce7e`: Docker SQLite 151/1,719؛ PostgreSQL 31/546 مع optional skip واحد؛ S3Mock 1/8؛ Auth SQLite 20/172 وPostgreSQL 4/99؛ Docker/Auth/Pint/Security SUCCESS. Pint changed-PHP steps skipped لعدم وجود PHP changes بينما strict Pint داخل Docker PASS.
 - Provider selection deferral D-050: لا اختيار مزود/منطقة/خطة/تكلفة الآن. تُستكمل الأعمال المحايدة ثم تُراجع جميع الاختيارات معًا؛ لا يحوّل ذلك أي integration غير مجرب إلى COMPLETE.
+
+## D-051 — توقيت إعادة فتح القرار بعد نهاية الخطة كاملة
+
+لا يُطلب اختيار أي مزود أو منطقة أو خطة أو تكلفة عند إنهاء مرحلة منفردة. جميع اختيارات المزودين تُؤجل إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل. حتى ذلك الوقت يستمر العمل المحايد الذي لا يحتاج مزودًا، وتبقى معايير القبول التي تستلزم مزودًا حقيقيًا مؤجلة ولا تُسجل COMPLETE. راجع phases/DECISIONS.md (D-050 وD-051).
