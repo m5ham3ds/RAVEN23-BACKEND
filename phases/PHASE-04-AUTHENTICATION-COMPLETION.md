@@ -1,9 +1,9 @@
 # Phase 04 — Authentication, account lifecycle and devices
 
-**Status:** CI gates passed; phase implementation verified in isolated CI. PR remains open/draft pending repository workflow and review.
+**Current status:** PARTIAL — backend implementation and CI regression are present; real Android Google OAuth and actual mail-provider delivery are not verified. Historical PR/branch details below describe the original Nov 22 phase review only; current work is on `main` and global provider selections are deferred by D-050.
 **Verified head:** `459fee8019228828013600fd7a6b13a4a3aa4f4f`
 **Verified:** 22 November 2026
-**Parent:** Phase 03 branch `feature/phase-03-security-observability` at `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`
+**Historical parent:** Phase 03 baseline `6b14d55fb87bdd6948b0f896db9a4c99c43f7748` (historical branch-chain record; not an active branch)
 
 ## Scope delivered
 
