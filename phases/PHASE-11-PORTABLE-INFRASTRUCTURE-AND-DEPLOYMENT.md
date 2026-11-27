@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard مؤجل بقرار D-050/D-051 حتى مراجعة المزودين بعد اكتمال خطة Backend؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 DEFERRED_BY_OWNER/WAITING_EXTERNAL بسبب 10B واختيار المزود؛ 11C provider-neutral scaffold والتحقق مكتملان لهذه الشريحة على 74f57a0 مع 30/30 guardrails، لكن 11C الكلية تبقى IN_PROGRESS حتى اعتماد adapter modules وإصداراتها بعد قرار المزود؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً بقرار المالك.
+**الحالة:** PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي وفق D-050/D-051. 11A portability baseline مكتمل تقنيًا؛ cost scorecard مؤجل؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 مؤجل بسبب 10B اليدوي واختيار المزود؛ 11C provider-neutral scaffold/guardrails (30/30) مثبتة، لكن adapters وإكمال 11C مؤجلان؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. لا تُعتبر Phase11 كاملة.
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -408,3 +408,14 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 - بموجب D-050/D-051 لا يُطلب أو يُختار مزود أو منطقة أو تكلفة عند نهاية Phase11؛ جميع الاختيارات تؤجل إلى بعد اكتمال خطة Backend بالكامل. لا resources/backend/credentials/registry push/apply/deploy/DNS/production DB. التقرير المستقل: phases/reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md.
 
 - وثيقة التنفيذ المتصل بعد إعادة فتح D-051: `infra/opentofu/contracts/POST-PLAN-11B2-11F-EXECUTION-PLAYBOOK.md`؛ تجمع متطلبات 11B2 و11C و11D و11E و11F دون اختيار مزود مسبقًا.
+
+
+## 11. انتقال المرحلة إلى التأجيل — 28 نوفمبر 2026
+
+بناءً على توجيه المالك، لا نستمر في 11B2 أو adapters الخاصة بمزود أو إعداد environments/identity أو provisioning/staging/deployment الآن. تُجمع هذه الاختيارات مع خدمات Phase04 و08 و09 و12 و13 في مراجعة واحدة بعد اكتمال تطوير Backend المستقل عن المزود (D-050/D-051).
+
+ما تم التحقق منه: على dbd281c545f5a2da5a6816afccebd4d929a02b70 اجتازت بوابات Docker/Auth/Security/IaC/Pint الخمس. guardrails المحايدة للمزود 30/30. آخر branch listing أعاد main فقط.
+
+ما بقي: مرحلة 11 ليست COMPLETE. يظل 11C الكلي بانتظار adapter modules بعد القرار الموحد؛ 11B2 و11D–11F تتطلب 10B والموافقات والخدمات الحقيقية. العمل لا يمنع بدء Phase12A المحايدة ولا يعيد فتح أي اختيار مزود.
+
+لا registry push أو cloud resources أو secrets/OIDC role أو apply/deploy أو DNS أو production DB access في هذا الانتقال.

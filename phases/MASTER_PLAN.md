@@ -35,8 +35,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 08 | التخزين والإشعارات والمهام — IN_PROGRESS (الأساس المحايد للمزود و08A–08K منفذ ومختبر؛ S3/mail/Push الحقيقي وسياسات retention/cost مؤجلة إلى ما بعد تطوير Backend) | 02–05؛ موافقات المزود والتكلفة والتسليم الحقيقي لاحقًا؛ تظل Push معطلة افتراضيًا |
 | 09 | الاشتراكات والصلاحيات — IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI؛ اعتماد الخطط والأسعار والشروط ومزود الدفع مؤجل إلى ما بعد تطوير Backend) | 03–05؛ لا مشتريات أو أسعار أو PaymentProvider قبل قرار المالك في مرحلة الاختيارات النهائية |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
-| 11 | البنية التحتية المحمولة والنشر — 11A portability baseline و11B1 trust design مكتملان؛ 11C provider-neutral scaffold/guardrails اجتازت 30/30 على 74f57a0 مع كل بوابات CI الأربع وPint SUCCESS؛ 11C الكلية تبقى IN_PROGRESS حتى adapter modules وإصداراتها بعد قرار provider/cost؛ 11B2 و11D–11F تنتظر 10B والموافقات الخارجية (D-051) | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy الآن؛ 10B اليدوية تظل شرطًا قبل 11B2؛ staging بعد قرار المالك الصريح |
-| 12 | ترحيل البيانات والتحويل الإنتاجي — WAITING_DEPENDENCY (synthetic PostgreSQL encrypted backup/restore preflight PASS على `27cfcc9`; التنفيذ الحقيقي مؤجل) | بعد اكتمال التطوير المستقل عن المزود: اعتماد المصدر/الوجهة، backup/restore حقيقي معزول، خطة الكتابات، وموافقة cutover المحددة |
+| 11 | البنية التحتية المحمولة والنشر — PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي (D-050/D-051). 11A و11B1 مكتملان تقنيًا؛ 11C provider-neutral guardrails اجتازت 30/30 وCI السابق ناجح؛ 11C adapters و11B2 و11D–11F مؤجلة حتى قرار الخدمات بعد اكتمال خطة Backend وشرط 10B اليدوي. | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy. لا يُعلن اكتمال Phase11 ككل؛ يُستأنف مسارها الخارجي بعد مراجعة الخدمات الموحدة وموافقات منفصلة. |
+| 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). synthetic PostgreSQL encrypted backup/restore سبق نجاحه؛ أضيف اختبار full-schema backup/restore على PostgreSQL CI المعزول وينتظر CI على 46dd00b. | لا يزال اختيار المصدر/الوجهة والنسخ الحقيقي والاستعادة المعزولة وwrite-delta plan وcutover الفعلي مؤجلًا إلى ما بعد D-051 وموافقات صريحة؛ لا اتصال بالإنتاج. |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — WAITING_DEPENDENCY؛ أعمال التخطيط المحايد ممكنة، أما إعداد الخدمات والتنبيهات والنسخ الفعلية فمؤجل لما بعد قرار المزود والنشر | Phase12 ثم اختيار المزود/المنطقة واعتماد الميزانية وRPO/RTO قبل التشغيل الفعلي |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
@@ -73,8 +73,9 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 02 + 03 + 10G ──> 11A portability baseline + 11B1 trust design
 11A + 11B1 ──> 11C provider-neutral IaC design/validation (لا موارد ولا backend)
 اكتمال أعمال Backend المستقلة عن المزود ──> قرار موحد بمزودي الخدمات/المنطقة/التكلفة وموافقات منفصلة ──> 11B2 و11C provider adapters و11D–11F provisioning/staging/deployment
-04–11 + استعادة نسخة احتياطية ناجحة ──> 12 النقل والتحويل
-12 ──> 13 التشغيل والتعافي المستمر
+Phase12A محايدة للمزود (inventory + CI restore rehearsal) يمكن تنفيذها بالتوازي مع استكمال Backend
+انتهاء جميع أعمال Backend المستقلة ──> قرار مزود موحد + موافقة مصدر/وجهة ──> 11B2/11D–11F وPhase12B real backup/restore
+Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتعافي المستمر
 ```
 
 ## 5. بوابة جاهزية المرحلة
@@ -310,3 +311,13 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 - المحاولة الأولى وجدت أن PostgreSQL Alpine لا تتضمن OpenSSL؛ أضيف تثبيت الأداة في حاوية CI المؤقتة.
 - المحاولة الثانية أنشأت البيانات الاصطناعية ثم انتهت برمز 1 دون رسالة تميّز خطوة dump/encryption/restore/compare؛ أضيفت الآن diagnostics وassertions صريحة.
 - لا يسجل هذا المسار PASS قبل تشغيل Docker جديد على SHA التشخيصي ورفع دليل JSON.
+
+
+## 12. انتقال Phase11 إلى التأجيل وفتح Phase12A — 28 نوفمبر 2026
+
+- Phase11 متوقفة عند أول حد يتطلب اختيار مزود أو منصة أو تكلفة أو حساب خارجي؛ هذه ليست موافقة على إكمال 11B2 أو provisioning. يظل 11A و11B1 مكتملين تقنيًا، و11C guardrails المحايدة مثبتة، بينما تبقى adapters وstaging وdeployment مؤجلة بقرار D-050/D-051.
+- تم فتح Phase12A فقط: استمرار جرد البيانات والمخطط والاختبارات الاصطناعية المحايدة، مع توسيع CI ليحاول backup/restore مشفرًا لنسخة كاملة من قاعدة PostgreSQL المؤقتة بعد تطبيق migrations.
+- اختبار full-schema الجديد يقارن migration ledger وعدد ملفات migrations، والجداول العامة، والأعمدة والقيود والفهارس وتعريفات sequences وtriggers وviews، ثم عدد الصفوف وبصمة محتوى كل جدول. لا يرفع قيم الصفوف إلى Artifact؛ يرفع أعدادًا وبصمات فقط.
+- الالتزام 46dd00b أضاف السكربت والـworkflow بعد مراجعة مسار اتصال CREATE/DROP ومتغير rehearsal. النتيجة ما تزال بانتظار CI؛ لا تسجل PASS قبل انتهاء Docker gate بنجاح.
+- لا اتصال بقاعدة Neon/Render أو Firebase، ولا قراءة secrets، ولا backup/restore لبيانات مستخدمين، ولا اختيار target DB أو cutover أو تغيير DNS.
+- تظل Phase12 الكلية IN_PROGRESS فقط لأعمال 12A المحايدة؛ 12B real-source/target migration و12C cutover/hypercare تنتظر قرار الخدمات والموافقات المحددة.

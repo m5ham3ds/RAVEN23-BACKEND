@@ -1,6 +1,6 @@
 # المرحلة 12 — ترحيل البيانات والتحويل الإنتاجي والرجوع الآمن
 
-**الحالة:** WAITING_DEPENDENCY — لا تبدأ قبل جاهزية المنظومة وموافقة مباشرة  
+**الحالة:** IN_PROGRESS — نطاق 12A المحايد للمزود (inventory وCI synthetic/full-schema backup-restore rehearsals). 12B real source/target migration و12C cutover/hypercare تبقى WAITING_EXTERNAL/OWNER_APPROVAL؛ لا إنتاج ولا موافقة cutover.  
 **الاعتماديات:** المراحل 04–11 + backup/restore rehearsal + قرار المستخدم
 
 ## الهدف
@@ -81,3 +81,25 @@
 ## D-051 — توقيت إعادة فتح القرار بعد نهاية الخطة كاملة
 
 لا يُطلب اختيار أي مزود أو منطقة أو خطة أو تكلفة عند إنهاء هذه المرحلة منفردة. جميع اختيارات المزودين تُؤجل إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل. حتى ذلك الوقت يستمر العمل المحايد الذي لا يحتاج مزودًا، وتبقى معايير القبول التي تستلزم مزودًا حقيقيًا أو staging/device delivery مؤجلة ولا تُسجل COMPLETE. راجع phases/DECISIONS.md (D-050 وD-051).
+
+
+## 2.3 — full-schema PostgreSQL backup/restore rehearsal — 28 نوفمبر 2026
+
+التنفيذ: أضيف scripts/postgres-full-schema-restore-rehearsal.sh مع خطوة إلى .github/workflows/docker-build.yml. تستهدف الخطوة قاعدة raven23_test المؤقتة فقط بعد تنفيذ migrations واختبارات PostgreSQL، وتثبت من عدد ملفات migrations مقابل سجل Laravel قبل بدء الاستنساخ.
+
+تسلسل الاختبار:
+1. رفض التنفيذ ما لم تكن قيم PG host/port/user/password/database وقفل CI disposable مطابقة للقيم الثابتة داخل السكربت.
+2. إنشاء clone مصدر من قاعدة CI المكتملة وtarget منفصل فارغ، مع تنفيذ CREATE/DROP عبر قاعدة الإدارة postgres وليس عبر اتصال بقاعدة القالب.
+3. إنشاء custom-format pg_dump ثم تشفيره AES-256-CBC مع PBKDF2-HMAC-SHA256 (200,000 iteration)، فك التشفير والتحقق من SHA-256، ثم pg_restore إلى target مستقل.
+4. مقارنة migration ledger، جرد public tables، تعريفات الأعمدة والقيود والفهارس والـsequences والـtriggers والـviews، ثم row counts وبصمة SHA-256 لمحتوى كل جدول.
+5. نشر JSON aggregate-only يحتوي counts/hashes لا قيم rows؛ تنظيف قواعد المصدر والهدف والملفات المؤقتة.
+
+حدود الإثبات: هذا rehearsal يثبت قابلية dump/restore للمخطط والصفوف الموجودة في PostgreSQL CI disposable فقط. لا يثبت حالة قاعدة إنتاج أو عدد مستخدميها، ولا يثبت تكاملًا مع مزود backup خارجي، ولا يختبر CDC/delta أو الكتابات الحية أو cutover. الاختبار أُضيف في commit 46dd00bf9378436465bfec76fed4aaa1d8819ece؛ يظل PENDING CI حتى يكتمل Docker gate على هذا الرأس.
+
+## 3 — مسار Phase12A / Phase12B / Phase12C
+
+- 12A — Provider-neutral preparation (IN_PROGRESS): source inventory، migration ledger/schema inventory، mapping design، synthetic data fixtures، encrypted CI backup/restore، schema/data fingerprinting، rollback and consistency plan design دون حسابات أو أسرار خارجية.
+- 12B — Real source/target migration rehearsal (WAITING_EXTERNAL): لا يبدأ إلا بعد انتهاء كل أعمال Backend المستقلة عن المزود، ومراجعة قرار الخدمات الموحد، واعتماد المالك لمصدر ووجهة محددين، ثم أخذ backup مشفر حقيقي واستعادته إلى بيئة معزولة بموافقة واضحة. يلزم إثبات delta/write-freeze semantics ومقارنة IDs والعلاقات والقيود.
+- 12C — Production cutover and hypercare (WAITING_OWNER_APPROVAL): نافذة صريحة، موافقة مالك منفصلة، final backup/delta، validation/smoke tests، routing/cutover، rollback drill وفترة مراقبة متفق عليها. لا تنفذ الآن.
+
+لا تعني حالة IN_PROGRESS في 12A أن بيانات Neon/Render أو Firebase أصبحت متاحة أو أن قرار مزود قاعدة البيانات قد فُتح.

@@ -1,8 +1,8 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
-**آخر تحديث:** 27 نوفمبر 2026
+**آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified backend SHA:** `74f57a01c1475c66a32337dc6be549b187a23344`
+**Latest fully CI-verified baseline SHA:** `dbd281c545f5a2da5a6816afccebd4d929a02b70` (all five gates SUCCESS; Phase12 harness commits await their own CI verification)
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -20,8 +20,8 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | الأساس المحايد للمزود و08A–08K منفذ ومختبر؛ real S3/mail/Push وretention/cost مؤجلة إلى ما بعد التطوير؛ الإرسال معطل افتراضيًا. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | قرارات الخطط/الأسعار/الشروط ومزود الدفع مؤجلة إلى ما بعد تطوير Backend؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
-| 11 — البنية المحمولة والنشر | 11A COMPLETE تقنيًا؛ 11B1 DESIGN_COMPLETE/معالجة الثقة مثبتة؛ 11C provider-neutral slice PASS على 74f57a0 (30/30 guardrails + fmt/init/validate/provider-free plan + كل CI gates SUCCESS)؛ 11C الكلية IN_PROGRESS حتى adapter modules بعد D-051؛ 11B2/11D–11F WAITING_EXTERNAL/DEPENDENCY. | لا اختيار provider/region/cost أو resources/backend/registry push/apply/deploy؛ 10B اليدوية وقرار المزود يظلان شرطين قبل trust enforcement/staging. |
-| 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (synthetic preflight PASS) | نجح synthetic encrypted PostgreSQL backup/restore؛ تبقى بيانات المصدر/الوجهة والاستعادة الحقيقية وخطة الكتابات وموافقة cutover، وجميعها مؤجلة لما بعد التطوير وقرار المزود. |
+| 11 — البنية التحتية المحمولة والنشر | PAUSED / DEFERRED_BY_OWNER عند الحد الخارجي وفق D-050/D-051؛ 11A و11B1 مكتملان تقنيًا، 11C neutral guardrails 30/30 مثبتة، أما 11C adapters و11B2 و11D–11F فتنتظر ما بعد خطة Backend وقرار الخدمات و10B اليدوي. | لا provider/region/cost/resources/backend/registry push/apply/deploy. لا تُعلن Phase11 COMPLETE؛ تستأنف الأعمال الخارجية بعد المراجعة الموحدة والموافقات. |
+| 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. synthetic preflight السابق PASS؛ full-schema PostgreSQL backup/restore rehearsal أضيف على 46dd00b وينتظر CI. | 12B real source/target backup/restore و12C cutover/hypercare تبقى WAITING_EXTERNAL/OWNER_APPROVAL؛ لا production DB أو secrets أو target selection. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | تخطيط runbooks/معايير التشغيل المحايدة ممكن؛ provisioning والنسخ والتنبيهات والقياس الفعلي بعد قرار المزود وPhase12. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
@@ -512,3 +512,13 @@
 - مقارنة 617ce7e...74f57a0: 80 commits ahead، لا تغييرات على app/routes/database/tests/config؛ التغييرات محصورة في inventories/docs/IaC guardrails/workflow path filters/.gitignore.
 - تحديث الحالة: Phase11 لا تزال IN_PROGRESS؛ 11C provider-neutral slice PASS، لكن adapter modules و11B2 و11D–11F لا تغلق قبل قرارات D-050/D-051 و10B وموافقات staging/production. لا يتم اعتبار mock أو loopback rehearsal أو synthetic restore تكاملاً سحابياً حقيقياً.
 - تقرير التفصيل: phases/reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md.
+
+## 27. Phase11 deferral and Phase12A entry — 28 November 2026
+
+- استقر main على commit 46dd00bf9378436465bfec76fed4aaa1d8819ece، والفرع الوحيد في GitHub هو main.
+- آخر baseline مكتمل التحقق قبل تغيير Phase12 هو dbd281c545f5a2da5a6816afccebd4d929a02b70، واجتازت عليه بوابات Docker/Auth/Security/IaC/Pint الخمس. لا تخلط هذه النتيجة مع commits Phase12 الأحدث التي تنتظر CI الخاص بها.
+- Phase11 PAUSED/DEFERRED_BY_OWNER عند بوابات الاختيار الخارجي؛ لا تُحذف أعمالها، ولا تُحوّل إلى COMPLETE. كل خيارات hosting/database/storage/mail/Push/payment/registry/secrets/identity/monitoring/DNS/region/cost تظل مجمعة إلى نهاية خطة Backend.
+- Phase12A بدأت بأعمال inventory والـsynthetic CI. أضيف scripts/postgres-full-schema-restore-rehearsal.sh وخطوة Docker workflow لإنشاء clone من قاعدة PostgreSQL المؤقتة بعد migrations، وأخذ custom-format encrypted dump ثم restore منفصل والتحقق من schema/data manifests.
+- الاختبار الجديد على 46dd00b ينتظر نتائج CI؛ لا يُعد نجاحًا بمجرد إضافته. تقرير المرحلة يسجل نتيجة التشغيل بعد اكتمال البوابات.
+- لا إنتاج: لا اتصال أو قراءة أو تعديل Neon/Render، لا production credentials، لا بيانات مستخدمين حقيقية، لا migration أو cutover أو routing/DNS change.
+- Phase12B/12C تظل مؤجلة حتى إنهاء تطوير Backend المحايد، واعتماد الخدمات ومصدر/وجهة محددين، وbackup/restore حقيقي معزول وموافقة cutover مستقلة.
