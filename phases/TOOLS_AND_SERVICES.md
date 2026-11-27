@@ -7,18 +7,18 @@
 | الأداة/التقنية | الدليل الحالي | التوجيه |
 |---|---|---|
 | GitHub private repository | `m5ham3ds/RAVEN23-BACKEND` | المصدر الرئيسي للكود |
-| GitHub Actions | Docker validation وauth smoke وDB diagnostics | توحيد CI/CD لاحقًا |
-| Laravel 13 | Dockerfile ينشئ Laravel 13 | الاحتفاظ به وتثبيت الاعتماديات |
+| GitHub Actions | 6 workflows: Docker, Auth regression, Security, Pint report, GET-only HTTP smoke, IaC validation | بوابات CI الحالية والتحقق المحايد؛ لا cloud deployment workflow |
+| Laravel 13 | مصدر Laravel ملتزم في Git مع composer.json/lock وartisan وbootstrap/app/routes | أساس Backend الحالي؛ لا scaffold خارجي غير محفوظ |
 | PHP 8.4 | Docker build يستخدم PHP 8.4 | توحيد النسخة المدعومة |
-| Composer 2 | يستخدم أثناء build | إضافة composer.json وcomposer.lock إلى الجذر |
+| Composer 2 | composer.json وcomposer.lock ملتزمان في الجذر؛ CI validate/install/audit | تثبيت الاعتماديات من lock؛ لا composer update أثناء release |
 | Sanctum | bearer tokens موجودة | الحفاظ عليه وتقويته |
 | google/apiclient | يثبت أثناء build | الحفاظ على التحقق من Google |
-| PostgreSQL | قاعدة بيانات التطبيق المحددة | عقد قاعدة البيانات |
-| Neon | المزود المهيأ حاليًا | خدمة انتقالية لا يجب ربط منطق التطبيق بها |
+| PostgreSQL | عقد قاعدة البيانات واختبارات PostgreSQL 16 المؤقتة | لا مزود مستضاف محدد الآن؛ provider selection مؤجل وفق D-050 |
+| Neon | مرجع تاريخي/انتقالي في سجلات المشروع | لا يُعد اختيارًا أو وجهة تشغيل معتمدة لهذه الخطة؛ source/destination DB decision مؤجل |
 | Docker/Buildx | Dockerfile وبناء CI | صورة تشغيل موحدة |
 | SQLite | اختبارات Feature | اختبارات سريعة فقط |
 | PostgreSQL 16 CI service | اختبارات تكامل | استمرار اختبارات DB الحقيقية |
-| Render | الخدمة الحية التي تشير لها workflows | مزود حالي مؤقت |
+| Render | مرجع تاريخي في workflows/config القديمة؛ أزيلت lifecycle workflows التي كانت تستهدف production | لا توجد حاليًا قناة deployment تثبت نشرًا إلى Render؛ لا يُعد قرار استضافة مستقبلي |
 
 ## 2. أدوات التطوير والاختبار المطلوبة
 
@@ -183,3 +183,17 @@
 | **12-month total** | **12 × post-credit monthly + one-time exit** | **TBD** | **TBD** | Credits excluded from steady state |
 
 Required inputs remain unspecified: region/user geography, requests/peak/concurrency, replicas and CPU/RAM, PostgreSQL size/growth/IOPS/connections/HA, object count/size/request classes/egress, backup retention/RPO/RTO, logs ingest/retention, support needs and monthly budget. No prices, weights or winner are assigned before these values are approved.
+
+## 11. تحديث الحالة الفعلية للخدمات — 27 نوفمبر 2026
+
+- **Backend runtime:** Laravel 13 / PHP 8.4 / FrankenPHP-Caddy / PostgreSQL standard URL / Docker OCI image؛ build and tests occur in GitHub Actions.
+- **Data/cache/queue:** PostgreSQL contract؛ app role and one-off migration role منفصلان؛ database cache/session/queue defaults.
+- **Storage:** local private disk default وS3-compatible Flysystem adapter؛ S3Mock يثبت contract test فقط، لا bucket/provider حقيقي.
+- **Notifications:** encrypted outbox وqueue retry/dead-letter وdisabled Push transport؛ لا email sender أو push delivery provider مفعّل.
+- **Billing:** entitlement/event/wallet read paths and internal ledgers؛ `purchases_enabled=false`, `plans=[]`; no payment provider/webhooks/top-ups.
+- **Release:** build provenance/SBOM/attestations وimmutable release evidence + isolated container rollback rehearsal؛ لا OCI registry publication أو cloud deploy.
+- **IaC:** OpenTofu 1.13.10 provider-neutral scaffold + validation only؛ no provider/resource/module/backend/cloud/credentials/apply.
+
+### قرار المالك D-050
+
+تؤجل جميع اختيارات المزود/المنصة/المنطقة/الخطة/التكلفة إلى ما بعد اكتمال أعمال Backend التي يمكن تطويرها واختبارها دون مزود. لا يُطلب الآن اختيار AWS/Render/Neon/S3/mail/FCM/OneSignal/payment provider أو أي خدمة أخرى. تستمر الأعمال المحايدة فقط، ولا تنشأ accounts/secrets/resources ولا يتم apply أو deploy. بعد اكتمال الأعمال المحايدة تجرى مقارنة شاملة وموافقات مستقلة لكل مورد.
