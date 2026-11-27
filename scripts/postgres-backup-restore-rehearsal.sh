@@ -210,7 +210,7 @@ indexes_manifest() {
     AND tablename LIKE 'migration_synthetic_%'"
 }
 manifest_fingerprint() {
-  printf '%s' "$2" | sha256sum | awk '{print $1}'
+  printf '%s' "$1" | sha256sum | awk '{print $1}'
 }
 assert_manifest_same() {
   name="$1"
@@ -219,10 +219,10 @@ assert_manifest_same() {
   if [ "$expected" != "$actual" ]; then
     echo "::error::$name manifest mismatch; source and restored definitions follow." >&2
     echo "::group::Source $name manifest"
-    printf '%s\\n' "$expected"
+    printf '%s\n' "$expected"
     echo "::endgroup::"
     echo "::group::Restored $name manifest"
-    printf '%s\\n' "$actual"
+    printf '%s\n' "$actual"
     echo "::endgroup::"
     return 1
   fi
@@ -252,12 +252,12 @@ source_schema_manifest="$(constraints_manifest "$source_db")"
 target_schema_manifest="$(constraints_manifest "$target_db")"
 source_index_manifest="$(indexes_manifest "$source_db")"
 target_index_manifest="$(indexes_manifest "$target_db")"
-source_schema_hash="$(manifest_fingerprint "$source_db" "$source_schema_manifest")"
-target_schema_hash="$(manifest_fingerprint "$target_db" "$target_schema_manifest")"
-source_index_hash="$(manifest_fingerprint "$source_db" "$source_index_manifest")"
-target_index_hash="$(manifest_fingerprint "$target_db" "$target_index_manifest")"
-source_constraints_count="$(printf '%s\\n' "$source_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
-target_constraints_count="$(printf '%s\\n' "$target_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
+source_schema_hash="$(manifest_fingerprint "$source_schema_manifest")"
+target_schema_hash="$(manifest_fingerprint "$target_schema_manifest")"
+source_index_hash="$(manifest_fingerprint "$source_index_manifest")"
+target_index_hash="$(manifest_fingerprint "$target_index_manifest")"
+source_constraints_count="$(printf '%s\n' "$source_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
+target_constraints_count="$(printf '%s\n' "$target_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
 
 assert_same "Accounts content fingerprint" "$source_accounts_hash" "$target_accounts_hash"
 assert_same "Media content fingerprint" "$source_media_hash" "$target_media_hash"
