@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified repository SHA قبل شريحة 11C: 9ad253a4a5ebbae229d44f615bcb6ce5fa901ec2 — 26 نوفمبر 2026  
-> application/runtime baseline (unchanged): 84b87d9e2b746a0fa6c1fca26ae57c02d36d9181  
+> latest fully CI-verified repository SHA: 617ce7efd669b4d3af61c42f77b4cd1f986e3fae — 27 نوفمبر 2026  
+> application/runtime note: commit 617ce7e is documentation-only relative to 27cfcc9; application/runtime code was not changed in this documentation synchronization  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -30,7 +30,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 COMPLETE، Phase04 PARTIAL للتكاملات الخارجية، Phase05–07 COMPLETE، Phase08 وPhase09 IN_PROGRESS مع بقاء staging والقرارات التجارية الخارجية. Phase10 IN_PROGRESS؛ 10B مؤجلة يدوياً بطلب المستخدم إلى ما بعد اكتمال خطة تطوير Backend، ولا توقف أعمال التطوير الحالية. Phase11A اكتمل خط الأساس التقني لقابلية النقل، بينما cost scorecard ينتظر المدخلات؛ Phase11B1 اكتمل تصميمه، كما نُفذ وفُحص فصل صلاحيات بناء Docker عن وظيفة توقيع الإصدار الموثوقة على c17fc84. Phase11B2 و11D–11F تنتظر اعتمادياتها وموافقاتها؛ بدأت 11C بعقد OpenTofu محايد للمزود وفحوص محلية read-only فقط، ولا توجد provider resources أو backend أو موارد سحابية. راجع تقرير `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md` لتنفيذ الحماية بعد انتهاء الخطة وقبل النشر.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 و05–07 COMPLETE؛ Phase04 PARTIAL؛ Phase08 و09 IN_PROGRESS؛ Phase10 IN_PROGRESS مع 10B مؤجلة بقرار المالك؛ Phase11 هي مسار العمل الحالي، و11C مكتملة التأسيس المحايد للمزود لكنها تظل IN_PROGRESS؛ Phase12 و13 تنتظران اعتمادياتهما. قرار 27 نوفمبر 2026 يؤجل جميع اختيارات المزود والمنطقة والتكلفة (hosting/database/storage/mail/push/payment/registry/secrets/monitoring/DNS) إلى ما بعد اكتمال أعمال Backend القابلة للتنفيذ دون مزود. لا يوقف ذلك أعمال الكود والاختبارات المحايدة. التفاصيل في `MASTER_PLAN.md` و`DECISIONS.md` وD-050.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 
@@ -52,3 +52,7 @@
 ## قرار المستخدم — تأجيل حماية main
 
 تُنفذ إعدادات Branch protection وRequired status checks يدوياً بعد اكتمال خطة تطوير Backend بالكامل. هذا التأجيل لا يوقف تطوير الميزات أو الاختبارات، لكنه لا يغلق Phase10B ولا يسمح بتجاوزها قبل Phase11B2 والنشر. التفاصيل في `reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`.
+
+## قرار موحد بشأن مزودي الخدمات — 27 نوفمبر 2026
+
+تُؤجل جميع اختيارات المزود/المنصة/المنطقة/التكلفة إلى ما بعد اكتمال أعمال تطوير Backend المستقلة عن المزود، ولا يقتصر ذلك على Push. اقرأ `DECISIONS.md` (D-050) بوصفه القرار الحاكم. ممنوع افتراض اختيار مزود أو إضافة credentials أو provider-specific resources أو deploy قبل قرار لاحق وموافقة صريحة. تستمر أعمال Laravel والـcontracts والاختبارات وCI وprovider-neutral IaC الآن.
