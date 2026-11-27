@@ -72,19 +72,19 @@ assert_reject() {
       ;;
     state)
       printf '{}\n' > "$fixture/infra/opentofu/dev.tfstate"
-      git -C "$fixture" add infra/opentofu/dev.tfstate
+      git -C "$fixture" add -f infra/opentofu/dev.tfstate
       ;;
     backup)
       printf '{}\n' > "$fixture/infra/opentofu/terraform.tfstate.backup"
-      git -C "$fixture" add infra/opentofu/terraform.tfstate.backup
+      git -C "$fixture" add -f infra/opentofu/terraform.tfstate.backup
       ;;
     plan)
       printf 'sensitive\n' > "$fixture/infra/opentofu/review.tfplan"
-      git -C "$fixture" add infra/opentofu/review.tfplan
+      git -C "$fixture" add -f infra/opentofu/review.tfplan
       ;;
     tfvars)
       printf '{"password":"never-commit"}\n' > "$fixture/infra/opentofu/prod.auto.tfvars.json"
-      git -C "$fixture" add infra/opentofu/prod.auto.tfvars.json
+      git -C "$fixture" add -f infra/opentofu/prod.auto.tfvars.json
       ;;
     apply-inline)
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
