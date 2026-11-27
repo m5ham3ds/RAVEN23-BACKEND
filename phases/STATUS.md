@@ -570,3 +570,11 @@
 - كود Flutter يحتوي حقول sourceProvider/sourceId/shareCode/shareUrl ويستدعي endpoints متوقعة لمشاركة القوائم والاستيراد.
 - Backend الحالي لا يملك هذه routes ولا الأعمدة ولا response fields؛ \`POST /sync/playlists\` فقط. Client يوثق صراحةً أن import unavailable إن لم يقدم Backend endpoints.
 - تم توسيع الفجوة إلى \`PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING\`، وتتطلب مراجعة Phase06 قبل أي تنفيذ. هذا توثيق فقط، وليس تغييرا في API/schema.
+
+
+## 33. Phase12A — retention and cursor portability rules
+
+- Recently-watched tombstones: retention 90 days server/client; client full-pull cadence at least every 7 days. Offline devices beyond retention need reconciliation to avoid deleted-record resurrection.
+- Wellness cursor is HMAC-SHA256 signed with APP_KEY and bound to user_id/since_revision/snapshot_revision/last_id; not portable across owner mapping or key change.
+- Bookmark/playlist revisions, cursors, and local checkpoints must be re-established from target full snapshots; preserve pending operation IDs and server idempotency receipts rather than copying pagination state.
+- لا توجد قياسات cohort للأجهزة غير المتصلة أو queue depth حاليًا؛ تبقى ضمن 12A acceptance design ولا تُختلق أرقامًا.

@@ -278,3 +278,28 @@ Controller الحالي يستخدم authenticated user ID من جلسة API ب�
 - Client documents \`unavailable\` عند 404/405 ويصرح بأن backend لا يحتوي imports بعد.
 - هذه فجوة عقد وظيفية، وليست دليلًا على وجود بيانات مشاركة مفقودة في خادم حي. يلزم قرار نطاق بعد مراجعة Phase06؛ Phase12 تسجل الحقول فقط ولا تنفذ الميزات.
 
+
+
+## 15. سياسات revisions وcursors والاحتفاظ التي تؤثر في الترحيل
+
+### 15.1 Recently watched tombstone retention
+
+Backend الحالي يحدد TOMBSTONE_RETENTION_MS = 7,776,000,000 (90 يومًا). وفي sync:
+- يحذف الخادم tombstones الأقدم من 90 يومًا.
+- تعليق Controller يذكر أن Flutter يحذف tombstones المحلية التي سبق sync لها بعد 90 يومًا.
+- العميل يجبر full pull مرة واحدة على الأقل كل 7 أيام.
+
+**مخاطرة ترحيل:** جهاز ظل غير متصل لأكثر من 90 يومًا قد يعود دون tombstone قديم موجود في الخادم أو في local store بعد prune. لا تفترض أن full pull وحده يعيد تاريخ الحذف إذا كانت tombstones حُذفت بالفعل؛ يلزم تحديد سياسة الأجهزة القديمة والبيانات اليتيمة وتعارضات resurrected records قبل أي source switch. يجب قياس هذه الحالة من telemetry/manifest عند السماح لاحقًا، لا تخمينها.
+
+### 15.2 Revisions and pagination cursors are not portable IDs
+
+- Bookmark sync uses account/domain since_revision and until_revision numeric checkpoints plus page cursor. A full snapshot starts at revision zero and rejects incompatible incremental windows. The change log and operation receipts (user_bookmark_changes, user_bookmark_operations) provide idempotency and replay protection.
+- Playlist sync similarly uses account-scoped revisions and numeric item/change cursors, plus user_playlist_operations receipts. Local playlist_meta checkpoint is not a canonical revision in a new database.
+- Wellness cursor is opaque and signed: payload contains version, user_id, since_revision, snapshot_revision, last_id; signature is HMAC-SHA256 using current APP_KEY. Copying it to another user ID or after changing APP_KEY produces invalid cursor. A new target/account/key must start a new authorized full snapshot rather than import the old cursor token.
+- Recently-watched since_revision is account-scoped; if a client revision is ahead of server it must full sync.
+
+**Migration rule:** preserve domain records, tombstones, operation UUIDs, change ledgers and server revision state where source/target semantics truly match, but never copy a local pagination cursor or signed wellness cursor as an independent data record. Initialize new cursors only through the target API after identity mapping and full snapshot acceptance. Replaying pending operations must retain their original operation IDs and be bounded by idempotency receipts.
+
+### 15.3 Expired/offline queue treatment
+
+Before cutover in a future approved migration, classify each device's state into: confirmed server snapshot, pending operation queue, last successful sync time, last server revision/cursor, guest owner scope, and local tombstone retention age. A device that has been offline longer than the server's deletion retention window requires conflict-aware reconciliation; do not blindly upload all remaining local rows or delete local DBs after a single HTTP 200. Device cleanup requires per-operation ACK and stable owner binding.

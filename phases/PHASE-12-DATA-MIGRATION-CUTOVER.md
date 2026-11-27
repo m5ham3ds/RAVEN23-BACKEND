@@ -161,3 +161,14 @@ Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54c
 لكن routes الحالية في Backend تعرض \`POST /sync/playlists\` فقط؛ migration \`user_playlists\` لا تتضمن source/share/visibility columns؛ و\`PlaylistSyncController::playlistPayload\` لا يعيد حقول source أو share. كما يوثق Client أن \`unavailable\` تعني أن Backend لا يملك import endpoint بعد.
 
 هذه فجوة عقد تحتاج قرار نطاق مع Phase06؛ لا ننفذ endpoint/schema أو نغير تطبيق Flutter ضمن مرحلة النقل قبل قرار صريح. لا تعتمد على حقول client-side كبيانات موجودة على الخادم، ولا تسقطها من SQLite عند full refresh دون سياسة واضحة.
+
+
+## 9 — Revisions/cursors واحتفاظ tombstones
+
+سياسات الخادم الحالية تؤثر على تاريخ المزامنة:
+- Recently watched: tombstones تُحذف من الخادم بعد 90 يومًا، والعميل ينظف نسخته المؤكدة بعد 90 يومًا ويطلب full pull على الأقل كل 7 أيام. جهاز كان offline أكثر من retention يحتاج reconciliation خاصة؛ قد لا توجد tombstone قديمة في snapshot الجديد.
+- Wellness: pagination cursor يتضمن user_id/revisions/snapshot_revision/last_id وموقع HMAC-SHA256 باستخدام APP_KEY. لا تنقل token بين حسابات أو APP_KEY مختلف؛ افتح full snapshot جديدًا.
+- Bookmarks/playlists: checkpoints رقمية ومقيدة بمالك الحساب وبسجل revisions/operations؛ لا تنسخ cursor أو local checkpoint إلى وجهة جديدة من دون إعادة تأسيس revision baseline.
+- Pending operations المحلية تحتفظ بـUUIDs نفسها وتُعاد idempotently؛ تبقى ملفات الجهاز الأصلية حتى ACK نهائي لكل عملية.
+
+يجب تضمين offline-device cohort والـtombstone age والـlast-successful-sync وqueue depth في preflight measurement عندما يوافق المالك لاحقًا على مصدر بيانات فعلي. لا تتوفر هذه القياسات حاليًا ولا نفترضها.
