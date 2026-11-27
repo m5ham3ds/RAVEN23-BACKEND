@@ -103,6 +103,15 @@
 - صُمم state management ليشترط العزل حسب البيئة، locking، نسخًا احتياطية قابلة للاستعادة، تشفير state/plan، ومفاتيح خارج المستودع؛ لا backend أو key manager مختار حتى الآن.
 - المتبقي لإغلاق 11C: اعتماد provider/region/workload/cost ثم إضافة adapter modules واختبارها بـprovider versions مقفلة ومراجعة plan آمن. لا يوجد apply أو provisioning في هذه الشريحة. ما زالت هذه الشريحة provider-neutral؛ اجتياز regression guard لا يمنح إذن provisioning.
 
+### 11C — تكملة حاجز الاعتماد: تغطية جميع صيغ OpenTofu — 27 نوفمبر 2026
+
+- كشفت المراجعة أن guardrail الأول كان يفحص ملفات `.tf` فقط، بينما OpenTofu يقبل أيضًا `.tofu` و`.tf.json` و`.tofu.json`. هذا كان bypass محتملًا لسياسة منع provider/resource/backend قبل قرار المالك.
+- تم إصلاح `infra/opentofu/scripts/guardrail-provider-neutral.sh` ليفحص كل الامتدادات الأربعة؛ يفحص HCL native blocks ويمرر JSON configuration عبر parser للتحقق من top-level provider/resource/data/module وterraform backend/cloud/required_providers.
+- توسعت اختبارات `test-guardrail-provider-neutral.sh` من 18 إلى 29 حالة، وتشمل صيغ `.tofu` وJSON وحظر required_providers إضافة إلى الحالات السابقة.
+- أضيفت قواعد `.gitignore` لملفات `*.tfvars.json` و`*.auto.tfvars.json`، مع الإبقاء على فحص منع تتبع state/plan/variable files داخل guardrail.
+- هذه معالجة Provider-neutral لا تختار مزودًا أو region أو تكلفة ولا تضيف resources أو backend أو credentials أو apply. يجب أن تنجح IaC workflow الجديدة على SHA الإصلاح قبل اعتماد هذا الإصلاح.
+- تظل 11C الكلية IN_PROGRESS؛ D-050/D-051 تؤجل أي اختيار مزود إلى نهاية خطة Backend بالكامل، ولا تسمح بتجاوز معايير القبول الخارجية.
+
 ### 11D — Staging provisioning and deployment (WAITING_EXTERNAL)
 يبدأ بعد اختيار المزود والمنطقة والميزانية وموافقة المستخدم الصريحة. ينشئ staging معزولة فقط ولا يستخدم قاعدة إنتاج. لا يفعّل mail/Push/S3 الحقيقي إلا وفق موافقات Phase08 و04 واختبارات التكامل المعتمدة.
 
