@@ -83,3 +83,16 @@ Phase 05 must start from the agreed phase-chain base after Phase 03/04 governanc
 **تقييم الخروج:** code/CI = PASS؛ مرحلة المنتج والحوكمة = PARTIAL. PR #4 وPR #5 Draft/Open وغير مدمجين. Google OAuth الحقيقي من Android والبريد الفعلي في staging لم يختبرا. كما تبقى متطلبات Phase 03 لدى مزود الإنتاج (TLS/proxy/log retention/backup/restore/RPO/RTO) قبل rollout.
 
 يجوز استمرار Phase 05 schema/API على قواعد اختبار معزولة وفق الاستثناء غير المانع في MASTER_PLAN وDECISIONS. لا يعني ذلك دمج PRs أو إجراء migration إنتاجية أو نشرًا.
+
+## تحديث قرار الاعتماديات الخارجية — 27 نوفمبر 2026
+
+**الحالة المعتمدة الآن:** PARTIAL — التنفيذ واختبارات CI موجودة، لكن Google Android OAuth الحقيقي والبريد الفعلي لم يختبرا على staging.
+
+بموجب القرار D-050، يؤجل اختيار مزود البريد وأي إعداد OAuth/موفر خارجي أو credentials أو تجربة staging تحتاج حسابًا حتى ما بعد اكتمال أعمال تطوير Backend المستقلة عن المزود. يستمر الآن فقط العمل الذي يمكن بناؤه واختباره محليًا أو داخل CI دون حسابات خارجية أو أسرار.
+
+- لا تختَر الآن SMTP/Postmark/Resend/Mailgun/SES أو أي mail provider.
+- يبقى `RAVEN23_AUTH_MAIL_ENABLED=false`، ولا تُرسل رسائل تحقق أو استعادة حقيقية.
+- لا تغيّر Google client IDs أو OAuth provider settings بالافتراض؛ اختبار claims المزيفة لا يثبت تسجيل دخول Android حقيقي.
+- لا تُغلق Phase04 بسبب نجاح CI أو mocks؛ ستعاد مراجعة staging بعد قرار المزود الشامل.
+
+هذا التحديث يعلو على handoff التاريخي السابق في هذه الوثيقة، ولا يغيّر أدلة CI التاريخية أو معايير قبول التكامل الحقيقي.
