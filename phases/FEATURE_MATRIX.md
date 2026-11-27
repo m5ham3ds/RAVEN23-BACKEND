@@ -1,8 +1,8 @@
 # مصفوفة ميزات RAVEN23 Backend — الموجود والجزئي والمفقود
 
-**Backend implementation SHA:** fea7045178e603a7b54150e75475f5d27960d306  
+**Repository snapshot SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` (آخر commit؛ تغييرات توثيقية فقط)  
 **Flutter SHA:** 6d12023e446db3d444716c3b407572a89cf545be  
-**الحالة:** COMPLETE على مستوى source feature matrix — المصفوفة لا تدعي أن التكاملات الخارجية اختُبرت إنتاجيًا.
+**الحالة:** COMPLETE كجرد مصدر؛ آخر مزامنة 27 نوفمبر 2026. لا تدعي هذه المصفوفة تشغيل أي مزود خارجي أو staging/production.
 
 الحالات:
 - **موجود ومختبر آليًا:** تنفيذ في Backend وله اختبار يمر.
@@ -22,11 +22,11 @@
 | Google ID token verification | تنفيذ خادمي موجود | لا يوجد إثبات real-device OAuth في run #127 |
 | Logout | موجود ومختبر آليًا | إلغاء presented token |
 | Profile read/update | موجود ومختبر | لا يوجد إثبات client live لكل الحقول |
-| Change email/password | موجود ومختبر جزئيًا | email verification بعد التغيير غير مكتمل |
-| Delete account | موجود ومختبر جزئيًا | يحذف المستخدم والتوكنات؛ user_profiles/preferences/devices/bookmarks/recent media ترتبط بـowner FK cascade؛ wallet-credit contract mismatch ما زال قائمًا |
+| Change email/password | موجود ومختبر آليًا؛ التسليم الخارجي غير مثبت | token verification وpassword change وsession revocation؛ mail notification queued/encrypted لكن mail delivery معطل حتى اختيار مزود بعد تطوير Backend |
+| Delete account | موجود ومختبر آليًا | يحذف الحساب وبيانات owner عبر FK cascade؛ إذا كان wallet credit موجبًا يرفض افتراضيًا بـHTTP 422 ويحتاج `acknowledge_wallet_credit=true` صراحة؛ اختبارات Feature/PostgreSQL |
 | Username availability | موجود | route/controller موجود |
 | Firebase legacy token exchange | client-only / backend missing | Flutter ينادي auth/firebase/exchange |
-| Password reset/email verification | موجود شكليًا/غير مكتمل | endpoints 503؛ لا mail flow كامل |
+| Password reset/email verification | تنفيذ خادمي وqueue موجود؛ التسليم الحقيقي مؤجل | token flow/notifications مشفرة ومجدولة؛ provider/action URL غير معتمدين والإرسال disabled؛ Google/mail staging بعد أعمال Backend المستقلة عن المزود |
 
 ## 2. الأجهزة والجلسات
 
@@ -38,21 +38,21 @@
 | Replace selected device token ID | موجود جزئيًا | scoped للمستخدم؛ لا توجد API لعرض الأجهزة |
 | Active device listing | Backend missing | عميل فيه SignedInDevice / DeviceLimit UI concept |
 | Plan-based concurrent device limit | غير موجود | لم نجد backend enforcement أو policy |
-| FCM device registration | client-only / backend missing | POST devices/register |
-| OneSignal subscription registration | client-only / backend missing | POST push/subscriptions |
+| FCM device registration | endpoint تخزين/تسجيل موجود ومختبر | POST devices/register؛ token مشفر وHMAC lookup؛ لا sender ولا إثبات FCM delivery أو اعتماد FCM provider |
+| OneSignal subscription registration | endpoint تخزين/تسجيل موجود ومختبر | POST/DELETE push/subscriptions؛ UUID مشفر وowner-scoped/idempotent؛ لا sender أو delivery، وOneSignal غير مختار كمزود |
 
 ## 3. بيانات المكتبة والمشاهدة
 
 | الميزة | الحالة | الدليل / الفجوة |
 |---|---|---|
-| Movie/TV favorites cloud | كود Backend موجود؛ CI غير معتمد | migration 000008 وUserBookmark/BookmarkSyncController؛ POST/DELETE routes؛ BookmarkSyncTest في TEST |
-| Custom playlists cloud | كود Backend موجود؛ CI غير معتمد | migration 000010 وPlaylistSyncController؛ العمليات الستة وoperation log وversion conflicts وstable cursor paging؛ اختبارات Feature/PostgreSQL في TEST |
+| Movie/TV favorites cloud | موجود ومختبر آليًا | migration 000008 وBookmarkSyncController؛ Feature + PostgreSQL tests ضمن main/CI |
+| Custom playlists cloud | موجود ومختبر آليًا | migration 000010 وPlaylistSyncController؛ 6 operations وoperation log/version conflict/cursor paging؛ Feature + PostgreSQL tests |
 | Import/share playlists | client-only / backend missing | client repository يطلب playlist-imports/shared-lists |
-| Recently watched movies | كود Backend موجود؛ CI غير معتمد | migration 000009 وuser_recent_media وsync/recently-watched؛ LWW/tombstones/revisions/clock skew |
-| Recently watched episodes | كود Backend موجود؛ CI غير معتمد | episode_id/series_id/season_num/episode_num؛ is_anime يبقى client-local |
+| Recently watched movies | موجود ومختبر آليًا | migration 000009 وrecent sync؛ LWW/tombstones/revisions/clock skew؛ Feature + PostgreSQL tests |
+| Recently watched episodes | موجود ومختبر آليًا | movie/episode progress؛ media metadata وserver revisions؛ اختبارات Feature/PostgreSQL |
 | Playback progress cross-device | endpoint موجود؛ CI غير معتمد | elapsed/remaining/UTC milliseconds مع server revision وupload ack؛ full multi-device/offline orchestration يبقى Phase07 |
-| Wellness/viewing sessions | client-only / backend missing | repository/SQLite/tombstone/revision client موجود؛ server route غائب |
-| Cross-device sync reliability | جزئي / Phase07 | أساس recent revisions/LWW وplaylist snapshot paging موجود؛ offline/device orchestration الكامل لم ينفذ بعد |
+| Wellness/viewing sessions | موجود ومختبر آليًا | POST sync/wellness؛ owner-scoped revisions/cursor/tombstones؛ Feature + PostgreSQL tests |
+| Cross-device sync reliability | COMPLETE وفق Phase07 | 496 Flutter tests و25 Android ABI/offline tests؛ Backend PostgreSQL concurrency و8 workers/daily aggregate evidence في تقرير الإغلاق |
 | Guest local data merge | client orchestration exists | يحتاج backend sync paths حتى يثبت نقل البيانات السحابية |
 
 ## 4. Config, ads, notifications, services
@@ -72,15 +72,15 @@
 
 | الميزة | الحالة | الدليل / الفجوة |
 |---|---|---|
-| Billing plans | route implemented, default-off | GET /api/v1/billing/plans public; returns purchases_enabled=false and plans=[] until commercial plan/price/terms approval. No payment provider. |
+| Billing plans | route موجود؛ default-off | GET /api/v1/billing/plans؛ `purchases_enabled=false` و`plans=[]` حتى اعتماد الخطط والأسعار والشروط؛ لا payment provider |
 | User entitlements | موجود ومختبر آليًا بعد 09A | GET /api/v1/user/entitlements؛ Sanctum owner-scoped، server-calculated، start/expiry/revocation، default-deny. لا write API للعميل. |
-| Subscription event ledger, projection and expiry | 09A–09C verified / 09D under CI | Append-only ledger، atomic projection، stale-event ordering؛ command subscriptions:expire-due preview-first وتكتب فقط مع --apply. No public API/provider. |
-| Wallet balance/history | client-only / backend missing | GET wallet and wallet/transactions |
-| Topups/payment/reconcile | client-only / backend missing | multiple wallet/topups routes |
-| Coin catalog | client-only / backend missing | GET billing/coins |
-| Wallet subscription renewal | client-only / backend missing | PUT/PATCH billing/subscription/wallet |
-| Coupon redemption | client-only / backend missing | POST billing/coupons/redeem |
-| Account deletion wallet-credit check | contract mismatch/unimplemented | Backend validates acknowledge_wallet_credit but does not check wallet credit; client expects 409 wallet_credit_remaining semantics |
+| Subscription event ledger, projection and expiry | موجود ومختبر آليًا حتى 09F | append-only ledger، atomic projection/stale-event ordering؛ `subscriptions:expire-due` preview-first؛ no payment webhook/provider |
+| Wallet balance/history | موجود ومختبر آليًا | GET /api/v1/wallet وGET /api/v1/wallet/transactions؛ owner-scoped cursor pagination، internal append-only ledger؛ لا public credit/top-up API |
+| Topups/payment/reconcile | غير منفذ في Backend | client expectations فقط؛ payment provider وwebhooks مؤجلان بعد تطوير Backend |
+| Coin catalog | غير منفذ في Backend | لا GET billing/coins ولا coin purchase system |
+| Wallet subscription renewal | غير منفذ في Backend | لا wallet renewal API أو auto-renewal |
+| Coupon redemption | غير منفذ كـpublic API | ledger source supports internal coupon classification only؛ لا redemption endpoint |
+| Account deletion wallet-credit check | موجود ومختبر آليًا | Backend يرفض حذف حساب ذي رصيد موجب افتراضيًا، ويتطلب acknowledge_wallet_credit=true؛ HTTP 422 contract |
 
 ## 6. الأمن والتشغيل
 
@@ -90,12 +90,12 @@
 | Runtime readiness/schema verification | موجود | health + startup probe |
 | Safe logs | جزئي | logger omits SQL/password/body but error response still exposes source file/line/diagnostic |
 | Rate limit on auth endpoints | موجود جزئيًا | per-route throttle in routes/api.php |
-| Shared cache across instances | غير متوفر فعليًا | CACHE_STORE=file imposed |
-| Backup and restore rehearsal | غير مثبت | لا workflow أو evidence for successful restore observed |
+| Shared cache across instances | baseline database-backed | `CACHE_STORE=database` recommended/production default؛ ليس file-only؛ provider-specific cache deferred |
+| Backup and restore rehearsal | synthetic CI PASS فقط | PostgreSQL encrypted dump/restore على قواعد مؤقتة اصطناعية؛ لا backup/restore إنتاجي أو مزود مختار |
 | Observability/alerts | غير مثبت | no complete metrics/alert runbooks observed |
-| Provider-neutral runtime | غير متوفر حاليًا | Render/Neon assumptions + PHP built-in server |
+| Provider-neutral runtime | موجود ومختبر آليًا | Laravel 13 + PHP 8.4 + FrankenPHP/Caddy OCI image؛ PostgreSQL standard URL/TLS؛ local private storage default؛ لا provider-specific production deployment |
 | AWS deploy OIDC | غير موجود | no deployment workflow/oidc role in workflows |
-| Provider switch/rollback | غير مختبر | no infrastructure/restore/cutover evidence |
+| Provider switch/rollback | rollback rehearsal محلي فقط | HTTP 200→502→200 في حاويات معزولة؛ لا provider switch أو cloud load-balancer rollback حقيقي |
 
 ## 7. خلاصة الأولويات
 
@@ -115,3 +115,14 @@ Bookmarks وRecently watched وPlaylist sync أصبحت لها migrations/contro
 - أصبحت اختبارات bookmarks وrecently-watched وplaylists وpreferences وPostgreSQL المقابلة كلها في main.
 - اجتاز SHA `800cff70` عدد 81 Feature tests /824 assertions و9 PostgreSQL Integration tests /219 assertions؛ كما نجح Pint وSecurity.
 - لا يثبت ذلك تكامل Google Android أو تسليم البريد الحقيقي أو push/storage/billing أو cross-device/offline orchestration؛ تظل هذه عناصر مراحل مستقبلية أو اختبارات staging.
+
+## 10. مزامنة المصدر الحالية — 27 نوفمبر 2026
+
+- Auth: email/password/guest lifecycle وGoogle ID-token verifier على الخادم؛ claims المزيفة في الاختبارات لا تثبت Google OAuth من Android. Verification/reset notifications مشفرة وqueued؛ الإرسال الخارجي مغلق.
+- User data: profile/preferences/devices/export وbookmarks/recently watched/playlists/wellness/media metadata موجودة مع owner-scoping ومigrations واختبارات SQLite/PostgreSQL.
+- Notifications/storage: private filesystem storage default وS3-compatible adapter contract مع S3Mock؛ push subscriptions registry وencrypted outbox وworker retry/dead-letter. لا يوجد S3 bucket أو mail sender أو Push sender خارجي مفعل.
+- Billing: entitlement read API، subscription event append-only ledger/projection/expiry command، billing plans route default-off، wallet read-only APIs وinternal ledger. لا checkout/top-up/payment/webhook/renewal/coupon public APIs، ولا مشتريات مفعلة.
+- Runtime/security/release: Laravel 13، PHP 8.4، FrankenPHP/Caddy non-root، PostgreSQL roles split، TLS checks، readiness، log redaction، API contract manifest، image provenance/SBOM/signing، وisolated rollback rehearsal.
+- IaC: OpenTofu 1.13.10 provider-neutral scaffold فقط؛ لا providers/resources/modules/backend/cloud/apply أو deployment identity.
+- Current CI evidence on `617ce7e`: Docker SQLite 151/1,719؛ PostgreSQL 31/546 مع optional skip واحد؛ S3Mock 1/8؛ Auth SQLite 20/172 وPostgreSQL 4/99؛ Docker/Auth/Pint/Security SUCCESS. Pint changed-PHP steps skipped لعدم وجود PHP changes بينما strict Pint داخل Docker PASS.
+- Provider selection deferral D-050: لا اختيار مزود/منطقة/خطة/تكلفة الآن. تُستكمل الأعمال المحايدة ثم تُراجع جميع الاختيارات معًا؛ لا يحوّل ذلك أي integration غير مجرب إلى COMPLETE.
