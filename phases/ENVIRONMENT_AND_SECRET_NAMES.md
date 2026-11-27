@@ -1,6 +1,6 @@
 # جرد متغيرات البيئة وأسماء الأسرار
 
-**الحالة:** PARTIAL — جرد أسماء runtime/config/workflows الملتزمة على main SHA `84b87d9`؛ لم تُقرأ قيم أسرار أو GitHub Secret values.
+**آخر مزامنة source:** 27 نوفمبر 2026 على `main`؛ أسماء الإعدادات جرى مطابقتها مع `.env.example` و`config/*.php` وworkflows؛ لم تُقرأ قيم أسرار أو GitHub Secret values.
 
 ## 1. Backend runtime
 
@@ -16,7 +16,7 @@
 | DB_URL | URI PostgreSQL لدور التطبيق الأقل صلاحية | عقد اتصال عام يقبل PostgreSQL URI قياسياً ولا يثبت مزوداً معيناً |
 | DB_MIGRATION_URL | URI PostgreSQL لدور migration أحادي المهمة | منفصل عن DB_URL؛ لا يمرر إلى web runtime |
 | DB_SSLMODE | وضع TLS لقاعدة PostgreSQL | الاتصالات البعيدة في production تفرض require أو verify-ca أو verify-full |
-| CACHE_STORE | مخزن cache | start.sh يفرض file |
+| CACHE_STORE | مخزن cache | الافتراضي database خارج testing؛ يوصى بdatabase لمشاركة الحالة بين instances |
 | GOOGLE_CLIENT_ID | Google OAuth audience | له fallback public client ID في config/services.php؛ لا تضع client secret هنا |
 
 ## 2. PostgreSQL/MySQL/SQLite وRedis/config names
@@ -109,3 +109,18 @@ LARAVEL_API_URL هو account/data API؛ RAVEN23_API_URL هو scraper/source serv
 - متغيرات الإعداد المحايدة ذات الأولوية: `RAVEN23_OBJECT_STORAGE_ACCESS_KEY_ID`, `RAVEN23_OBJECT_STORAGE_SECRET_ACCESS_KEY`, `RAVEN23_OBJECT_STORAGE_REGION`, `RAVEN23_OBJECT_STORAGE_BUCKET`, `RAVEN23_OBJECT_STORAGE_URL`, `RAVEN23_OBJECT_STORAGE_ENDPOINT`, `RAVEN23_OBJECT_STORAGE_USE_PATH_STYLE_ENDPOINT`.
 - أسماء `AWS_*` المقابلة باقية fallback backward-compatible فقط؛ هذا لا يعني اختيار AWS أو إنشاء bucket.
 - Docker S3Mock يمرر الأسماء المحايدة إلى تكوين Laravel الحقيقي. الاختبار لا يقرأ ولا يحتاج أسراراً خارجية.
+
+## 10. مزامنة إعدادات main وقرار تأجيل جميع المزودين — 27 نوفمبر 2026
+
+تمت مطابقة أسماء البيئة مع `.env.example` و`config/cache.php` و`config/queue.php` و`config/filesystems.php` على main. القيم الافتراضية غير السرية المثبتة هي:
+
+- `DB_CONNECTION=pgsql`، و`DB_URL` لدور التطبيق، و`DB_MIGRATION_URL` لمهمة migration المنفصلة.
+- `CACHE_STORE=database`، `SESSION_DRIVER=database`، `QUEUE_CONNECTION=database`.
+- `FILESYSTEM_DISK=local`، `RAVEN23_PRIVATE_STORAGE_DISK=private_media` (private local disk). S3 disk موجود كـadapter قابل للإعداد، لكنه غير مفعّل افتراضيًا.
+- `MAIL_MAILER=log`، `RAVEN23_AUTH_MAIL_ENABLED=false`، و`RAVEN23_AUTH_ACTION_URL` فارغ حتى اعتماد mail provider لاحقًا.
+- `RAVEN23_PUSH_ENABLED=false` و`RAVEN23_PUSH_PROVIDER=none`؛ لا sender credentials أو delivery خارجي.
+- Google client ID runtime configuration فقط؛ لا تثبت هذه القائمة نجاح real Android OAuth.
+
+بموجب D-050، اختيار مزود الاستضافة/قاعدة البيانات/التخزين/البريد/Push/الدفع/registry/secrets/monitoring/DNS/region والتكلفة مؤجل إلى ما بعد أعمال Backend المستقلة عن المزود. لا تضف أسراراً أو accounts أو resources الآن. أسماء متغيرات البيئة ليست اعتمادًا لمزود أو دليلاً على تفعيله.
+
+لم تتم قراءة أي secret value من GitHub أو بيئة التشغيل أو قاعدة البيانات.
