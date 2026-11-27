@@ -242,7 +242,7 @@ check_constraint_count() {
 }
 assert_check_constraint_behavior() {
   database="$1"
-  psql --no-psqlrc --set=ON_ERROR_STOP=1 \\
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 \
     --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$database" <<'SQL'
 DO $raven23_phase12$
 DECLARE
