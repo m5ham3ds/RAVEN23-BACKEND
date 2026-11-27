@@ -94,7 +94,7 @@
 4. مقارنة migration ledger، جرد public tables، تعريفات الأعمدة والقيود والفهارس والـsequences والـtriggers والـviews، ثم row counts وبصمة SHA-256 لمحتوى كل جدول.
 5. نشر JSON aggregate-only يحتوي counts/hashes لا قيم rows؛ تنظيف قواعد المصدر والهدف والملفات المؤقتة.
 
-حدود الإثبات: هذا rehearsal يثبت قابلية dump/restore للمخطط والصفوف الموجودة في PostgreSQL CI disposable فقط. لا يثبت حالة قاعدة إنتاج أو عدد مستخدميها، ولا يثبت تكاملًا مع مزود backup خارجي، ولا يختبر CDC/delta أو الكتابات الحية أو cutover. الاختبار أضيف في commit 46dd00bf9378436465bfec76fed4aaa1d8819ece واجتاز لاحقًا على current main commit 72730281a6c96208979e4c8a1eaa46fbc723dcdd ضمن Docker Validation #671. تقرير artifact سجل 23 migrations/ledger rows و34 public tables وتطابق schema/data manifests؛ artifact #15235408250 (SHA-256: 7cf5bf3ec6b5ce338e9c51e43eaa46fbc723dcdd).
+حدود الإثبات: هذا rehearsal يثبت قابلية dump/restore للمخطط والصفوف الموجودة في PostgreSQL CI disposable فقط. لا يثبت حالة قاعدة إنتاج أو عدد مستخدميها، ولا يثبت تكاملًا مع مزود backup خارجي، ولا يختبر CDC/delta أو الكتابات الحية أو cutover. الاختبار أضيف في commit 46dd00bf9378436465bfec76fed4aaa1d8819ece واجتاز لاحقًا على current main commit 72730281a6c96208979e4c8a1eaa46fbc723dcdd ضمن Docker Validation #671. تقرير artifact سجل 23 migrations/ledger rows و34 public tables وتطابق schema/data manifests؛ artifact #15235408250 (SHA-256: 7cf5bf3ec6b5ce338e9c51e43a92fd7317e38339f41d4435e89b38a12cf91d05).
 
 ## 3 — مسار Phase12A / Phase12B / Phase12C
 

@@ -97,7 +97,7 @@
 دليل full-schema artifact:
 - Run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759
 - Artifact: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759/artifacts/15235408250
-- Digest: \`sha256:7cf5bf3ec6b5ce338e9c51a8eaa46fbc723dcdd\` (see GitHub artifact metadata for the exact archive digest below in the status record).
+- Digest: \`sha256:7cf5bf3ec6b5ce338e9c51e43a92fd7317e38339f41d4435e89b38a12cf91d05\` (see GitHub artifact metadata for the exact archive digest below in the status record).
 
 **محتوى التقرير المقاس:** 23 migration files = 23 migration ledger rows؛ 34 public tables؛ schema manifest SHA-256 \`cfeed3162273eefebe90da3fdd3580bbecdc9bf9956ffeb69b51e9210c36c3c0\`؛ table-data manifest SHA-256 \`274777e346f2ff12d80e206ac4458690f49b19075c41e0caa3c3e688384b0179\`؛ جميع مقارنات الجدول/المخطط/الأعمدة/القيود/الفهارس/sequence definitions/triggers/views/row-counts/fingerprints = matched.
 

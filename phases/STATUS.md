@@ -529,7 +529,7 @@
 - **Current main:** \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\`; branch listing يؤكد \`main\` فقط.
 - **CI on current SHA:** Docker Validation #671 \`46077286759\` SUCCESS؛ Authentication Regression #293 \`46077286619\` SUCCESS؛ Security Scans #417 \`46077286662\` SUCCESS؛ Pint #415 \`46077286802\` SUCCESS.
 - **IaC:** لم تتغير ملفات infra/OpenTofu بعد IaC Validation #31 \`46068443560\` على \`dbd281c545f5a2da5a6816afccebd4d929a02b70\`؛ 30/30 guardrails SUCCESS. لا يُنسب هذا الفحص إلى SHA مختلف.
-- **Full-schema report:** artifact #15235408250، digest \`sha256:7cf5bf3ec6b5ce338e9c51e43eaa\`; GitHub artifact metadata is the authoritative exact digest. Run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759
+- **Full-schema report:** artifact #15235408250، digest \`sha256:7cf5bf3ec6b5ce338e9c51e43a92fd7317e38339f41d4435e89b38a12cf91d05\`; GitHub artifact metadata is the authoritative exact digest. Run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759
 - **Measured CI result:** 23 migration files = 23 migration ledger rows؛ 34 public tables؛ encrypted custom-format PostgreSQL dump round-trip checksum matched؛ restore target منفصل؛ table inventory/schema definitions/columns/constraints/indexes/sequence definitions/triggers/views/row counts/per-table content fingerprints كلها matched.
 - **Evidence boundary:** source is disposable GitHub Actions CI database only. No production DB/secrets/data used or read؛ no cutover؛ source/target clone DBs dropped؛ artifact includes aggregate counts and hashes only, no row values.
 - أضيفت \`phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md\` لتوثيق mapping domains/invariants وحقول API export v3 والفجوات بين end-user export والـdatabase backup الكامل.

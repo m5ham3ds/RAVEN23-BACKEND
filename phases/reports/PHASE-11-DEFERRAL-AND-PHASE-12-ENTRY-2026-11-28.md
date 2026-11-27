@@ -36,7 +36,7 @@
 5. يقارن public table inventory، column definitions، constraints، indexes، sequence definitions، triggers، views، per-table row counts، وSHA-256 content fingerprints.
 6. يرفع تقريرًا aggregate-only؛ لا يضم row values، ويحذف قواعد المصدر والهدف المؤقتة.
 
-حالة الاختبار: PASS على current main 72730281a6c96208979e4c8a1eaa46fbc723dcdd. سجل التقرير 23 migration files و23 ledger rows و34 public tables؛ encrypted dump round-trip وrestore target المستقل ومقارنات schema/data كلها matched. لا بيانات row-level ضمن artifact. رابط Docker run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759 ؛ artifact: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759/artifacts/15235408250 ؛ digest: sha256:7cf5bf3ec6b5ce338e9c51e43eaa46fbc723dcdd.
+حالة الاختبار: PASS على current main 72730281a6c96208979e4c8a1eaa46fbc723dcdd. سجل التقرير 23 migration files و23 ledger rows و34 public tables؛ encrypted dump round-trip وrestore target المستقل ومقارنات schema/data كلها matched. لا بيانات row-level ضمن artifact. رابط Docker run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759 ؛ artifact: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759/artifacts/15235408250 ؛ digest: sha256:7cf5bf3ec6b5ce338e9c51e43a92fd7317e38339f41d4435e89b38a12cf91d05.
 
 ## حدود المرحلة والبيانات
 
