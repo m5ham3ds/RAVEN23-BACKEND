@@ -81,7 +81,7 @@ assert_reject() {
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
       ;;
     apply-multiline)
-      printf '\njobs:\n  unsafe:\n    steps:\n      - name: forbidden\n        run: |\n          tofu \\\n            apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
+      printf '\njobs:\n  unsafe:\n    steps:\n      - name: forbidden\n        run: |\n          tofu \\n            apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
       ;;
     apply-backtick)
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: echo "\x60tofu apply -auto-approve\x60"\n' >> "$fixture/.github/workflows/iac-validation.yml"
@@ -99,37 +99,37 @@ assert_reject() {
       printf 'name: Unapproved deploy\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' > "$fixture/.github/workflows/unapproved-deploy.yml"
       ;;
     provider-tofu)
-      printf '\\nprovider "aws" {}\\n' > "$fixture/infra/opentofu/provider.tofu"
+      printf '\nprovider "aws" {}\n' > "$fixture/infra/opentofu/provider.tofu"
       ;;
     resource-tofu)
-      printf '\\nresource "aws_s3_bucket" "example" {}\\n' > "$fixture/infra/opentofu/storage.tofu"
+      printf '\nresource "aws_s3_bucket" "example" {}\n' > "$fixture/infra/opentofu/storage.tofu"
       ;;
     backend-tofu)
-      printf '\\nterraform { backend "s3" {} }\\n' > "$fixture/infra/opentofu/backend.tofu"
+      printf '\nterraform { backend "s3" {} }\n' > "$fixture/infra/opentofu/backend.tofu"
       ;;
     required-providers-tofu)
-      printf '\\nterraform { required_providers { aws = { source = "hashicorp/aws" } } }\\n' > "$fixture/infra/opentofu/providers.tofu"
+      printf '\nterraform { required_providers { aws = { source = "hashicorp/aws" } } }\n' > "$fixture/infra/opentofu/providers.tofu"
       ;;
     provider-json)
-      printf '{"provider":{"aws":{"region":"us-east-1"}}}\\n' > "$fixture/infra/opentofu/providers.tf.json"
+      printf '{"provider":{"aws":{"region":"us-east-1"}}}\n' > "$fixture/infra/opentofu/providers.tf.json"
       ;;
     resource-json)
-      printf '{"resource":{"aws_s3_bucket":{"example":{"bucket":"example"}}}}\\n' > "$fixture/infra/opentofu/storage.tf.json"
+      printf '{"resource":{"aws_s3_bucket":{"example":{"bucket":"example"}}}}\n' > "$fixture/infra/opentofu/storage.tf.json"
       ;;
     data-json)
-      printf '{"data":{"aws_caller_identity":{"current":{}}}}\\n' > "$fixture/infra/opentofu/data.tofu.json"
+      printf '{"data":{"aws_caller_identity":{"current":{}}}}\n' > "$fixture/infra/opentofu/data.tofu.json"
       ;;
     module-json)
-      printf '{"module":{"network":{"source":"./modules/network"}}}\\n' > "$fixture/infra/opentofu/module.tofu.json"
+      printf '{"module":{"network":{"source":"./modules/network"}}}\n' > "$fixture/infra/opentofu/module.tofu.json"
       ;;
     backend-json)
-      printf '{"terraform":{"backend":{"s3":{}}}}\\n' > "$fixture/infra/opentofu/backend.tf.json"
+      printf '{"terraform":{"backend":{"s3":{}}}}\n' > "$fixture/infra/opentofu/backend.tf.json"
       ;;
     cloud-json)
-      printf '{"terraform":{"cloud":{"organization":"example"}}}\\n' > "$fixture/infra/opentofu/cloud.tofu.json"
+      printf '{"terraform":{"cloud":{"organization":"example"}}}\n' > "$fixture/infra/opentofu/cloud.tofu.json"
       ;;
     required-providers-json)
-      printf '{"terraform":{"required_providers":{"aws":{"source":"hashicorp/aws"}}}}\\n' > "$fixture/infra/opentofu/required-providers.tofu.json"
+      printf '{"terraform":{"required_providers":{"aws":{"source":"hashicorp/aws"}}}}\n' > "$fixture/infra/opentofu/required-providers.tofu.json"
       ;;
     *)
       echo "Unknown test case: $name" >&2
