@@ -36,7 +36,7 @@
 | Device ID/name/platform metadata | موجود ومختبر | migration + feature/PG tests |
 | Replace previous token for same install | موجود ومختبر | نفس device_id |
 | Replace selected device token ID | موجود جزئيًا | scoped للمستخدم؛ لا توجد API لعرض الأجهزة |
-| Active device listing | Backend missing | عميل فيه SignedInDevice / DeviceLimit UI concept |
+| Active device listing | موجود ومختبر آليًا | GET /api/v1/user/devices يعرض جلسات الحساب؛ DELETE /user/devices وDELETE /user/devices/{tokenId} للإلغاء، owner-scoped مع Feature/PostgreSQL tests |
 | Plan-based concurrent device limit | غير موجود | لم نجد backend enforcement أو policy |
 | FCM device registration | endpoint تخزين/تسجيل موجود ومختبر | POST devices/register؛ token مشفر وHMAC lookup؛ لا sender ولا إثبات FCM delivery أو اعتماد FCM provider |
 | OneSignal subscription registration | endpoint تخزين/تسجيل موجود ومختبر | POST/DELETE push/subscriptions؛ UUID مشفر وowner-scoped/idempotent؛ لا sender أو delivery، وOneSignal غير مختار كمزود |
