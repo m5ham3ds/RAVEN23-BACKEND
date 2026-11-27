@@ -64,3 +64,15 @@
 وثّقت أيضًا أن \`GET /api/v1/user/data-export\` format_version 3 لا يشمل كل قاعدة البيانات؛ يجب عدم استخدامه بدل full database backup. المصدر والوجهة الحقيقيان يظلان UNKNOWN_PENDING_SOURCE_APPROVAL / UNKNOWN_PENDING_PROVIDER_DECISION.
 
 الاختبار الكامل يثبت schema/data integrity لقاعدة CI المؤقتة فقط، ولا يثبت source production ولا object blob transfer ولا CDC/delta ولا key continuity ولا cutover.
+
+
+## أدلة تطبيق Flutter وsequence-state — 28 نوفمبر 2026
+
+تم فحص مستودع التطبيق قراءةً فقط على m5ham3ds/RAVEN23@387feafb4865d991223897088b82eacb7a42061a. يصف PRD سابقًا Firebase Auth/Firestore collections؛ ويحتوي التطبيق المحلي على قواعد SQLite للمفضلة والمشاهدة وwellness والقوائم، مع LaravelSyncCoordinator وLegacyFirebaseSession. لا يثبت ذلك أي مصدر إنتاجي حي. كما أن Firebase Auth Scrypt import في PRD يحتاج حقولًا غير موجودة في مخطط Backend الحالي، وسُجلت كفجوة شرطية لا تُعالج قبل قرار المصدر.
+
+في current main commit 6750eac566c513c4fc97951f1b80cb7f54cd0c0a:
+- Docker #675 full-schema step + artifact upload PASS، report schemaVersion 2.
+- 23 migration files/ledger rows، 34 public tables، 21 sequences، last_value/is_called matched.
+- schema manifest cfeed3162273eefebe90da3fdd3580bbecdc9bf9956ffeb69b51e9210c36c3c0؛ data manifest 274777e346f2ff12d80e206ac4458690f49b19075c41e0caa3c3e688384b0179؛ sequence manifest c1c26ace11d8e7b1afeade4b82317767eec87d651062570a96f76cda5c2de0dd.
+- Artifact #15236350311 digest sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654/artifacts/15236350311
+- Docker #675 overall still executing rollback/trusted-main signing at last poll; Pint #419/Auth #297/Security #421 passed. No production DB/secrets/rows, no cutover.

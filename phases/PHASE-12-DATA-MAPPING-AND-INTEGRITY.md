@@ -8,7 +8,7 @@
 
 تحدد هذه الوثيقة نطاق البيانات الذي يجب أخذه في الحسبان عند ترحيل RAVEN23 Backend، وتربط مجالات تطبيق المستخدم بمخطط Laravel الحالي، وتثبت invariants التي يجب عدم كسرها.
 
-المصدر المثبت حاليًا هو **كود Git وملفات migrations وModels وAPI contracts**. جرد المصدر الحالي يقول إن هناك 23 migration. واختبار PostgreSQL في CI على commit \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\` أنشأ 34 public table في قاعدة مؤقتة، واستعاد النسخة بنجاح وقارن schema/data fingerprints. هذه أعداد بيئة CI فقط وليست أعداد قاعدة إنتاج أو مستخدمين فعليين.
+المصدر المثبت حاليًا هو **كود Git وملفات migrations وModels وAPI contracts**. جرد المصدر الحالي يقول إن هناك 23 migration. واختبار PostgreSQL في CI على commit \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\` أنشأ 34 public table في قاعدة مؤقتة، واستعاد النسخة بنجاح وقارن schema/data fingerprints. ثم أضاف commit \`6750eac566c513c4fc97951f1b80cb7f54cd0c0a\` فحص حالة 21 Sequence (last_value وis_called)؛ خطوة full-schema ورفع تقريرها نجحت في Docker #675، بينما كان اختبار rollback النهائي لا يزال جاريًا عند آخر تحقق. هذه أعداد CI فقط وليست أعداد قاعدة إنتاج أو مستخدمين فعليين.
 
 **المصدر الفعلي للبيانات: UNKNOWN_PENDING_SOURCE_APPROVAL.** تظهر في المستندات السابقة إشارات إلى PostgreSQL/Neon وإلى Firebase/Firestore وإلى قواعد محلية في التطبيق؛ لكنها لا تثبت أي مصدر حي هو المرجع النهائي، ولا يجوز دمج مصادر أو افتراض أن كل نسخة متزامنة.  
 **الوجهة الفعلية: UNKNOWN_PENDING_PROVIDER_DECISION.** لا تختار هذه الوثيقة PostgreSQL host أو مزودًا أو منطقة أو تكلفة.
@@ -117,3 +117,77 @@
 - الجداول الحساسة والقيود والمفاتيح والتسلسل الزمني ومخاطر blobs/encryption موثقة.
 - تمرين CI الكامل مشفر ومستعاد مع مقارنة schema/data fingerprints ونجاحه على رأس main موثق.
 - لا raw production rows/secrets ولا اختيار provider/source/target.
+
+
+## 10. مصادر البيانات المرشحة التي ظهرت في مستودع تطبيق Flutter
+
+**مرجع المصدر:** مستودع m5ham3ds/RAVEN23 على commit 387feafb4865d991223897088b82eacb7a42061a (قراءة فقط، لم تعدل هذه المرحلة مستودع التطبيق). هذه أدلة كود/وثائق تاريخية داخل Git، وليست تحققًا من Firebase project أو قاعدة تشغيل حية.
+
+### 10.1 Firebase/Firestore — بنية موثقة قديمة وليست مصدرًا حيًا مثبتًا
+
+الملف docs/migration_prd_firebase_to_laravel.md يصف البنية السابقة التالية:
+- Firebase Authentication للهويات: Email/Password وGoogle وAnonymous.
+- Firestore collections/paths المعروفة في الوصف: users، usernames، bookmarks-v2.0، recently-watched-v1، wellness-v1/{uid}/sessions، wellness-v1/{uid}/daily.
+- Remote Config لإعدادات العميل والثيمات والإعلانات، وFCM لتسجيل واستقبال push.
+- وثيقة docs/wellness_firestore_rules.md تعرض rules مقترحة لملكية مسار wellness، لكنها تنص صراحةً على أن إعداد Firebase environment-level غير موجود في المستودع وأن المقتطف ليس ruleset مستقلًا قابلًا للنشر.
+
+**التفسير:** هذه وثائق معمارية سابقة/legacy candidate. لا تثبت أن Firestore ما زال يملك كل البيانات أو أن تلك collections كاملة أو متزامنة أو أن حساب Firebase نفسه متاح. لا يمكن تعيينها كمصدر ترحيل نهائي دون موافقة وصول صريحة وجرد من المشروع الفعلي.
+
+### 10.2 فجوة ترحيل Firebase Authentication
+
+الـPRD القديم يقترح استيراد firebase_uid وكلمات المرور ذات hash_algorithm=firebase_scrypt مع parameters مثل signer_key وsalt_separator وrounds وmem_cost، ثم lazy re-hash إلى bcrypt بعد تحقق الدخول.
+
+لكن مخطط Backend الحالي ضمن migrations الـ23 وApp\Support\Raven23AuthSchema لا يعرّف firebase_uid أو hash_algorithm أو password_salt، ولم يظهر تنفيذ FirebaseScryptHasher في بحث المصدر الحالي. الحقول الحالية تشمل username وprofile_id وphoto_url وprovider وgoogle_id وحقول التحقق والضيف. لذلك نسجل:
+
+**BLOCKER_FOR_FIREBASE_AUTH_IMPORT_IF_FIREBASE_IS_SOURCE** — لا يمكن اعتبار استيراد Firebase Auth أو الحفاظ على كلمات مرور Scrypt مدعومًا من المخطط الحالي. إذا ثبت لاحقًا أن Firebase هو المصدر المعتمد، فيجب تصميم واعتماد migration/auth compatibility منفصل قبل نقل الهويات؛ لا نضيف حقولًا أو أسرار Scrypt الآن، ولا نفترض ضرورة reset أو lazy re-hash قبل التقييم.
+
+### 10.3 SQLite المحلية على أجهزة المستخدمين
+
+مستودع التطبيق يعرّف قواعد SQLite محلية مستقلة، وهي مصدر محتمل لبيانات guest أو edits لم تُرفع بعد:
+- movies.db — جدول movie_bookmark_table.
+- tv.db — جدول tv_bookmark_table.
+- recent_movies.db — جدول recently_watched_movies_table.
+- recent_episodes_v2.db — جدول recently_watched_tv_shows_table.
+- raven23_wellness_v1.db — wellness_sessions وwellness_daily_summaries.
+- playlists.db — playlists وplaylist_items وplaylist_operations وplaylist_meta.
+
+يضيف LibraryScope.filename suffix .laravel.<owner> على قواعد account-scoped عندما يكون owner isolation مفعّلًا؛ guest يحتفظ بمساراته التاريخية. وLocalLibrary يفتح bookmark/recent databases الأربع، بينما LaravelSyncCoordinator ينسق bookmark/recent/wellness/playlist sync مع Laravel ويملك مسار mergeGuest: ينسخ بيانات guest إلى account، يحاول المزامنة، ثم يمسح فقط النسخ التي لم تتغير بعد نجاح المزامنة. توجد أيضًا LegacyFirebaseSession كجسر لاستعادة جلسة Firebase قديمة.
+
+**النتيجة:** بيانات SQLite محلية لكل جهاز؛ لا يمكن جرد أعدادها من Backend أو GitHub، ولا يجوز افتراض أنها وصلت إلى Laravel. يلزم عند أي نقل حقيقي تحديد سياسة الأجهزة غير المتصلة والـguest data والعمليات المحلية المعلقة، وإبقاء النسخ الأصلية حتى إثبات نجاح المزامنة.
+
+### 10.4 فروق mapping بين وثائق Firebase القديمة وLaravel الحالي
+
+- PRD القديم يصف recently_watched_movies وrecently_watched_episodes؛ Laravel الحالي يستخدم user_recent_media مع media_type وmedia_id وmetadata وelapsed/remaining/timestamps/revision.
+- PRD القديم يصف wellness_sessions وwellness_daily_summaries؛ Laravel الحالي يستخدم user_wellness_sessions وuser_wellness_daily، ومعهما changes وupload receipts لحفظ المزامنة/idempotency.
+- PRD القديم يصف bookmarks كحقول مباشرة؛ Backend الحالي يخزن user_bookmarks.metadata JSON مع unique key على owner/media type/media id، ويحتفظ بعمليات وتغييرات المزامنة.
+- usernames القديمة أصبحت unique key على users.username في Laravel.
+
+هذه فروق schema تحتاج mapping/transform tests لنسخة source dump فعلية لاحقًا؛ أسماء المجالات المتقاربة لا تعني تطابق البيانات أو الوحدات أو قواعد حذف التعارضات.
+
+### 10.5 قرار المصدر المؤجل
+
+تظل مصادر البيانات المحتملة متعددة وغير محسومة:
+1. Firebase Auth/Firestore (legacy documented candidate).
+2. Laravel PostgreSQL current application state (target/current backend candidate، لكن لا يوجد وصول إنتاجي في هذا العمل).
+3. SQLite per-device stores (local/guest/pending changes).
+4. Exports أو backups قديمة إن وجدت لدى المالك (لم يتم الوصول إليها أو التحقق منها).
+
+لا تُدمج هذه المصادر تلقائيًا ولا تستخدم أحدث timestamp وحده لاختيار السجل الصحيح. يلزم في وقت القرار اعتماد source-of-truth لكل domain، وقياس conflicts/coverage، وتحديد precedence وowner ID mapping. حتى ذلك الحين: UNKNOWN_PENDING_SOURCE_APPROVAL.
+
+## 11. تحديث دليل CI — sequence-state coverage
+
+على commit 6750eac566c513c4fc97951f1b80cb7f54cd0c0a، تقرير artifact 15236350311 من run #675 يحتوي:
+- schemaVersion=2، result=passed.
+- 23 migration files = 23 ledger rows، و34 public tables.
+- 21 public sequences فُحصت؛ sequenceCurrentValuesAndIsCalledMatched=true.
+- schema manifest SHA-256: cfeed3162273eefebe90da3fdd3580bbecdc9bf9956ffeb69b51e9210c36c3c0.
+- table-data manifest SHA-256: 274777e346f2ff12d80e206ac4458690f49b19075c41e0caa3c3e688384b0179.
+- sequence-state manifest SHA-256: c1c26ace11d8e7b1afeade4b82317767eec87d651062570a96f76cda5c2de0dd.
+- encrypted custom archive round-trip checksum matched؛ target مستقل؛ لا production DB/secrets/data ولا row values؛ dropped temporary source/target DBs.
+
+روابط الإثبات:
+- Docker #675: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654
+- Artifact #15236350311: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654/artifacts/15236350311
+- Artifact digest: sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6
+
+**حالة البوابة عند توثيق هذه الإضافة:** خطوة full-schema restore ورفع تقريرها = SUCCESS؛ Docker job ما زال يعمل على isolated rollback إلى آخر صورة معروفة، فلا تعتبر Docker Validation #675 كلها مكتملة قبل إنهاء job وtrusted-main signing. على SHA نفسه كانت Pint #419 وAuthentication #297 وSecurity #421 SUCCESS؛ لم تتغير IaC منذ IaC #31 على dbd281c.

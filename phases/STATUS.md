@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest Phase12 CI-verified main SHA:** `72730281a6c96208979e4c8a1eaa46fbc723dcdd` (Docker #671, Authentication #293, Security #417, Pint #415 SUCCESS; IaC #31 remains SUCCESS on unchanged IaC baseline dbd281c)
+**Latest fully completed runtime-gate SHA:** `72730281a6c96208979e4c8a1eaa46fbc723dcdd` (Docker #671/Auth #293/Security #417/Pint #415 SUCCESS). **Current main:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a` — Pint #419/Auth #297/Security #421 SUCCESS; full-schema restore + 21 sequence states SUCCESS within Docker #675; rollback/signing job still IN_PROGRESS at last poll. IaC #31 remains SUCCESS on unchanged IaC baseline dbd281c.
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -21,7 +21,7 @@
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | قرارات الخطط/الأسعار/الشروط ومزود الدفع مؤجلة إلى ما بعد تطوير Backend؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية التحتية المحمولة والنشر | PAUSED / DEFERRED_BY_OWNER عند الحد الخارجي وفق D-050/D-051؛ 11A و11B1 مكتملان تقنيًا، 11C neutral guardrails 30/30 مثبتة، أما 11C adapters و11B2 و11D–11F فتنتظر ما بعد خطة Backend وقرار الخدمات و10B اليدوي. | لا provider/region/cost/resources/backend/registry push/apply/deploy. لا تُعلن Phase11 COMPLETE؛ تستأنف الأعمال الخارجية بعد المراجعة الموحدة والموافقات. |
-| 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. data mapping موثق؛ full-schema encrypted PostgreSQL rehearsal اجتاز على `7273028`: 23 migrations/ledger rows، 34 public tables، schema/data fingerprints matched. | 12B real source/target backup/restore و12C cutover/hypercare تبقى WAITING_EXTERNAL/OWNER_APPROVAL؛ لا production DB أو secrets أو target selection. |
+| 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. mapping now includes documented Firebase/Firestore legacy candidate + per-device SQLite stores; full-schema encrypted PostgreSQL CI step PASS on `6750eac`: 23 migrations/ledger rows، 34 public tables، 21 sequences with last_value/is_called matched; Docker rollback/signing still pending. | 12B real source/target backup/restore و12C cutover/hypercare WAITING_EXTERNAL/OWNER_APPROVAL؛ source-of-truth غير معروف، ولا production DB أو secrets أو target selection. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | تخطيط runbooks/معايير التشغيل المحايدة ممكن؛ provisioning والنسخ والتنبيهات والقياس الفعلي بعد قرار المزود وPhase12. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
@@ -534,3 +534,12 @@
 - **Evidence boundary:** source is disposable GitHub Actions CI database only. No production DB/secrets/data used or read؛ no cutover؛ source/target clone DBs dropped؛ artifact includes aggregate counts and hashes only, no row values.
 - أضيفت \`phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md\` لتوثيق mapping domains/invariants وحقول API export v3 والفجوات بين end-user export والـdatabase backup الكامل.
 - Phase11 remains PAUSED/DEFERRED_BY_OWNER؛ Phase12 remains IN_PROGRESS in 12A only؛ 12B and 12C remain external/owner-approved gates.
+
+
+## 29. Phase12A — مصدر التطبيق المرشح وفحص sequence-state — 28 نوفمبر 2026
+
+- Flutter source evidence pinned to m5ham3ds/RAVEN23@387feafb4865d991223897088b82eacb7a42061a: legacy Firebase/Firestore collections، SQLite per-device files، LegacyFirebaseSession، وLaravel sync coordinator. لا يمثل هذا اتصالًا مباشرًا بخدمات Firebase أو إثبات source-of-truth.
+- Firebase Authentication import remains a conditional blocker: the old PRD requires firebase_uid and Scrypt hash compatibility fields/parameters not defined in current Laravel migrations/auth support. لا تنفيذ حتى يعتمد Firebase مصدرًا.
+- Docker #675 run 46078577654 full-schema restore step and evidence upload SUCCESS: report schemaVersion 2; 23 migration files/ledger rows; 34 public tables; 21 public sequences; sequence state last_value/is_called matched; schema/data/sequence manifests matched; production safety guards all true. Artifact #15236350311, SHA-256 907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6.
+- Same SHA gates: Pint #419 46078577614 SUCCESS; Authentication #297 46078577591 SUCCESS; Security #421 46078577609 SUCCESS. Docker #675 remains IN_PROGRESS on previous-known-good image rollback/trusted-main signing at last poll. IaC #31 46068443560 SUCCESS on unchanged infra baseline dbd281c.
+- Phase11 stays PAUSED/DEFERRED_BY_OWNER. Phase12 stays IN_PROGRESS at 12A; 12B/12C not authorized.

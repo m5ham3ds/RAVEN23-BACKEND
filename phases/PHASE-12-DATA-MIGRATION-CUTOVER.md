@@ -116,3 +116,16 @@
 - push tokens وnotification payloads لها اعتماد تشفيري على APP_KEY؛ لا تغيير مفتاح/إعادة تشفير دون إجراء معتمد.
 - المصدر الفعلي والوجهة الفعلية غير معتمدين؛ لا row counts إنتاجية معروفة.
 
+
+
+## 5 — مصادر التطبيق المرشحة والفجوات المؤجلة
+
+أضيف فحص مستودع تطبيق Flutter m5ham3ds/RAVEN23@387feafb4865d991223897088b82eacb7a42061a إلى خريطة البيانات. النتيجة ليست تحققًا من أي Firebase project حي:
+
+- PRD قديم يصف Firebase Auth/Firestore مع collections users وusernames وbookmarks-v2.0 وrecently-watched-v1 وwellness-v1/{uid}/sessions وwellness-v1/{uid}/daily.
+- العميل ما زال يحتوي LegacyFirebaseSession كجسر جلسة قديمة، وفي الوقت نفسه LaravelSyncCoordinator ينفذ sync إلى Laravel لبيانات bookmarks/recent/wellness/playlists؛ هذا يثبت انتقالًا في الكود، لا يثبت مصدر الحقيقة الحالي.
+- قواعد SQLite المحلية تشمل bookmark/recent/wellness/playlist stores. guest data والعمليات غير المرفوعة قد تبقى على أجهزة المستخدمين، فلا يغطيها Backup PostgreSQL CI.
+- توجد فجوة محتملة في Firebase Auth import: PRD يطلب firebase_uid/Firebase Scrypt fields/parameters، بينما مخطط Laravel الحالي لا يعرّف هذه الحقول أو Firebase Scrypt verifier. نسجل blocker إذا اختير Firebase مصدرًا لاحقًا؛ لا نعالجها ولا ننقل الأسرار الآن.
+- mapping names differs بين PRD القديم والجداول الحالية؛ تفاصيله في phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md.
+
+تظل 12A IN_PROGRESS حتى اعتماد source-of-truth/domain mapping، وتحليل guest/offline device coverage، ومعالجة تصميم الفجوات المحايدة. 12B/12C تبقيان مؤجلتين كما هي.
