@@ -31,7 +31,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 و05–07 COMPLETE؛ Phase04 PARTIAL؛ Phase08 و09 IN_PROGRESS؛ Phase10 IN_PROGRESS مع 10B مؤجلة بقرار المالك؛ Phase11 هي مسار العمل الحالي، و11C مكتملة التأسيس المحايد للمزود لكنها تظل IN_PROGRESS؛ Phase12 و13 تنتظران اعتمادياتهما. قرار 27 نوفمبر 2026 يؤجل جميع اختيارات المزود والمنطقة والتكلفة (hosting/database/storage/mail/push/payment/registry/secrets/monitoring/DNS) إلى ما بعد اكتمال أعمال Backend القابلة للتنفيذ دون مزود. لا يوقف ذلك أعمال الكود والاختبارات المحايدة. التفاصيل في `MASTER_PLAN.md` و`DECISIONS.md` وD-050.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 و05–07 COMPLETE؛ Phase04 PARTIAL؛ Phase08 و09 IN_PROGRESS؛ Phase10 IN_PROGRESS مع 10B مؤجلة بقرار المالك؛ Phase11 هي مسار العمل الحالي، و11C مكتملة التأسيس المحايد للمزود لكنها تظل IN_PROGRESS؛ Phase12 و13 تنتظران اعتمادياتهما. قرار 27 نوفمبر 2026 يؤجل جميع اختيارات المزود والمنطقة والتكلفة (hosting/database/storage/mail/push/payment/registry/secrets/monitoring/DNS) إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل، لا بعد نهاية مرحلة منفردة (D-051). لا يوقف ذلك أعمال الكود والاختبارات المحايدة. التفاصيل في `MASTER_PLAN.md` و`DECISIONS.md` وD-050.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 
