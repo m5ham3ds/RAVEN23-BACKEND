@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard DEFERRED_BY_OWNER until the post-plan provider review؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation مثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral scaffold وفحوص CI ناجحة؛ 18/18 guardrail regression، لكن provider adapters لم تبدأ لغياب اعتماد المزود/المنطقة/التكلفة)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard مؤجل بقرار D-050/D-051 حتى مراجعة المزودين بعد اكتمال خطة Backend؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 DEFERRED_BY_OWNER/WAITING_EXTERNAL بسبب 10B واختيار المزود؛ 11C provider-neutral scaffold والتحقق مكتملان لهذه الشريحة على 74f57a0 مع 30/30 guardrails، لكن 11C الكلية تبقى IN_PROGRESS حتى اعتماد adapter modules وإصداراتها بعد قرار المزود؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً بقرار المالك.
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
@@ -392,3 +392,17 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 ## D-051 — توقيت إعادة فتح القرار بعد نهاية الخطة كاملة
 
 لا يُطلب اختيار أي مزود أو منطقة أو خطة أو تكلفة عند إنهاء هذه المرحلة منفردة. جميع اختيارات المزودين تُؤجل إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل. حتى ذلك الوقت يستمر العمل المحايد الذي لا يحتاج مزودًا، وتبقى معايير القبول التي تستلزم مزودًا حقيقيًا أو staging/device delivery مؤجلة ولا تُسجل COMPLETE. راجع phases/DECISIONS.md (D-050 وD-051).
+
+
+## 14. Phase11 provider-neutral hardening — CI verified on 74f57a01c1475c66a32337dc6be549b187a23344 — 27 November 2026
+
+- اجتازت بوابات Docker [46066319105](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319105)، Authentication [46066319109](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319109)، Security [46066319068](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319068)، IaC [46066319030](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319030)، وPint [46066318988](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066318988) جميعها SUCCESS على SHA نفسه.
+- IaC: 30/30 guardrail regression cases PASS؛ يشمل ذلك HCL/JSON extensions الأربع، أوامر apply في workflow YAML، -chdir، multiline continuation، state/backup/plan/tfvars، و.terraform.lock.hcl قبل اعتماد المزود؛ كما نجح fmt وinit مع -backend=false وvalidate وprovider-free plan.
+- Docker: SQLite Feature 151/1,719؛ PostgreSQL Integration 31/546 مع optional S3 skip واحد في مجموعة PostgreSQL؛ S3Mock integration المنفصل PASS؛ non-root/runtime/liveness/readiness/TLS guards وqueue-worker safety وPHP asset guard PASS.
+- Auth: SQLite 20/172 وPostgreSQL 4/99 PASS. Security: Gitleaks/source scans/image scan والبوابة blocking للـfixable HIGH/CRITICAL PASS؛ ملخص صورة الإنتاج أظهر Clean. Pint workflow PASS؛ changed-PHP steps SKIPPED لعدم وجود ملفات PHP متغيرة، مع نجاح strict Pint داخل Docker.
+- Docker job وtrusted-main signing job نجحا؛ تحقق release manifest وprovenance/SBOM للصورة الحالية والتراجع. Attestations: current provenance [73274092](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274092)، current SBOM [73274098](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274098)، rollback provenance [73274111](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274111)، rollback SBOM [73274117](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274117)، signed release manifest [73274126](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274126).
+- حزمة الإصدار [15230897563](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319105/artifacts/15230897563) هي Docker archive موقعة الأدلة وليست OCI registry push؛ لا يوجد registry manifest digest.
+- synthetic PostgreSQL restore وloopback rollback rehearsal نجاحان داخل CI فقط؛ لا يعاد تفسيرهما على أنهما real provider staging أو Phase12 backup حقيقي أو production rollout.
+- مقارنة 617ce7e...74f57a0 أعادت 80 commits ahead وbehind_by=0؛ لا توجد ملفات app/ أو routes/ أو database/ أو tests/ أو config/ في قائمة التغييرات. هذه الشريحة لا تغير منطق Laravel أو API أو migrations.
+- **الحكم:** الشريحة المحايدة للمزود من 11C اجتازت CI، لكن Phase11 الكلية تظل IN_PROGRESS. 11A cost scorecard تنتظر مدخلات القرار المؤجل؛ 11B2 تنتظر 10B وموافقة الهوية؛ 11C adapter modules تحتاج قرار provider؛ 11D تحتاج حساب/منطقة/ميزانية؛ 11E تحتاج staging حقيقية؛ 11F تحتاج 11D/11E وPhase12/13 وموافقة إنتاج.
+- بموجب D-050/D-051 لا يُطلب أو يُختار مزود أو منطقة أو تكلفة عند نهاية Phase11؛ جميع الاختيارات تؤجل إلى بعد اكتمال خطة Backend بالكامل. لا resources/backend/credentials/registry push/apply/deploy/DNS/production DB. التقرير المستقل: phases/reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md.

@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 27 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified backend SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`
+**Latest fully CI-verified backend SHA:** `74f57a01c1475c66a32337dc6be549b187a23344`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -20,7 +20,7 @@
 | 08 — التخزين والإشعارات والمهام | IN_PROGRESS | الأساس المحايد للمزود و08A–08K منفذ ومختبر؛ real S3/mail/Push وretention/cost مؤجلة إلى ما بعد التطوير؛ الإرسال معطل افتراضيًا. |
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | قرارات الخطط/الأسعار/الشروط ومزود الدفع مؤجلة إلى ما بعد تطوير Backend؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
-| 11 — البنية المحمولة والنشر | 11A COMPLETE تقنيًا؛ 11B1 DESIGN_COMPLETE/معالجة الثقة مثبتة؛ 11C provider-neutral scaffold و18/18 guardrails PASS؛ provider adapters وcost scorecard و11B2 و11D–11F مؤجلة إلى ما بعد تطوير Backend المستقل عن المزود. | لا اختيار provider/region/cost أو resources/apply؛ 10B اليدوية تظل شرطًا قبل 11B2 والنشر. |
+| 11 — البنية المحمولة والنشر | 11A COMPLETE تقنيًا؛ 11B1 DESIGN_COMPLETE/معالجة الثقة مثبتة؛ 11C provider-neutral slice PASS على 74f57a0 (30/30 guardrails + fmt/init/validate/provider-free plan + كل CI gates SUCCESS)؛ 11C الكلية IN_PROGRESS حتى adapter modules بعد D-051؛ 11B2/11D–11F WAITING_EXTERNAL/DEPENDENCY. | لا اختيار provider/region/cost أو resources/backend/registry push/apply/deploy؛ 10B اليدوية وقرار المزود يظلان شرطين قبل trust enforcement/staging. |
 | 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (synthetic preflight PASS) | نجح synthetic encrypted PostgreSQL backup/restore؛ تبقى بيانات المصدر/الوجهة والاستعادة الحقيقية وخطة الكتابات وموافقة cutover، وجميعها مؤجلة لما بعد التطوير وقرار المزود. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | تخطيط runbooks/معايير التشغيل المحايدة ممكن؛ provisioning والنسخ والتنبيهات والقياس الفعلي بعد قرار المزود وPhase12. |
 
@@ -498,3 +498,17 @@
 - قرار المالك D-050/D-051: تأجيل جميع اختيارات مزودي الخدمات والمنصات والمناطق والتكاليف إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل؛ لا تُفتح القرارات عند نهاية مرحلة منفردة. تستمر الأعمال المحايدة الآن وتبقى معايير القبول الخارجية مؤجلة. يشمل الاستضافة وقاعدة البيانات والتخزين والبريد وPush والدفع وregistry/secrets/identity/monitoring/DNS.
 - تستمر الآن جميع أعمال code/API/schema/contracts/tests/CI والـprovider-neutral foundations والـsynthetic tests. لا provider SDK أو credentials أو موارد مدفوعة أو apply أو deployment قبل إعادة فتح القرار والموافقة المحددة.
 - حالات المراحل لم تتغير إلى COMPLETE بسبب التأجيل: 04 PARTIAL؛ 08/09 IN_PROGRESS؛ 10B DEFERRED_BY_OWNER؛ 11C IN_PROGRESS على مستوى scaffold المحايد؛ 12 و13 WAITING_DEPENDENCY. راجع `MASTER_PLAN.md` و`DECISIONS.md` والقرار D-050.
+
+
+## 25. Phase11 — التحقق الكامل من بوابات CI وتحديث حدّ الإغلاق — 27 نوفمبر 2026
+
+- رأس main الذي اجتاز البوابات الخمس: 74f57a01c1475c66a32337dc6be549b187a23344. branch listing أعاد main وحده.
+- Docker [46066319105](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319105): SUCCESS؛ SQLite 151/1,719؛ PostgreSQL 31/546 مع optional S3 skip واحد داخل هذه المجموعة؛ S3Mock المنفصل PASS؛ runtime/non-root/health/TLS/queue-worker/PHP asset guards PASS؛ synthetic restore وloopback rollback PASS؛ trusted-main signing job SUCCESS.
+- Authentication [46066319109](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319109): SUCCESS — SQLite 20/172؛ PostgreSQL 4/99.
+- Security [46066319068](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319068): SUCCESS — Gitleaks/source scan/image scan وfixable HIGH/CRITICAL blocking gate؛ ملخص production image Clean.
+- IaC [46066319030](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319030): SUCCESS — 30/30 provider-neutral guardrails، fmt، init بلا backend، validate، provider-free plan.
+- Pint [46066318988](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066318988): SUCCESS؛ changed-PHP steps skipped لعدم وجود PHP changes، وstrict Pint في Docker PASS.
+- Attestations الحالية/التراجع/الـmanifest: [73274092](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274092)، [73274098](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274098)، [73274111](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274111)، [73274117](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274117)، [73274126](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/73274126). Release bundle [15230897563](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319105/artifacts/15230897563)؛ synthetic restore report [15230907253](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46066319105/artifacts/15230907253).
+- مقارنة 617ce7e...74f57a0: 80 commits ahead، لا تغييرات على app/routes/database/tests/config؛ التغييرات محصورة في inventories/docs/IaC guardrails/workflow path filters/.gitignore.
+- تحديث الحالة: Phase11 لا تزال IN_PROGRESS؛ 11C provider-neutral slice PASS، لكن adapter modules و11B2 و11D–11F لا تغلق قبل قرارات D-050/D-051 و10B وموافقات staging/production. لا يتم اعتبار mock أو loopback rehearsal أو synthetic restore تكاملاً سحابياً حقيقياً.
+- تقرير التفصيل: phases/reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md.
