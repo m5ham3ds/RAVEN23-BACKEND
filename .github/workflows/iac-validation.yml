@@ -6,6 +6,7 @@ on:
     paths:
       - "infra/opentofu/**"
       - ".opentofu-version"
+      - ".gitignore"
       - ".github/workflows/iac-validation.yml"
   pull_request:
     branches: [main]
