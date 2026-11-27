@@ -364,3 +364,18 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 - IaC [45754424342](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45754424342): SUCCESS على SHA `f95e361dc8ec2db4d605806ad54659085c38624a`; 18/18 guardrail regression cases، fmt، init بلا backend، validate، وprovider-free plan.
 - Compare من `f95e361` إلى `c709ba7` أكد أن الملف المتغير الوحيد هو مواصفة Phase11؛ لا تغييرات في `infra/opentofu/` أو `.github/workflows/iac-validation.yml`، مما يبقي إثبات IaC صالحاً لملفاتها الحالية.
 - لا يغلق هذا 11C؛ المتبقي adapter modules وprovider versions مقفلة واختبارها بعد اعتماد provider/region/workload/cost. لا apply أو backend أو موارد أو نشر. 11D تبقى WAITING_EXTERNAL، و10B مؤجلة و11B2 متوقفة.
+
+## تحديث قرار المالك — تأجيل اختيار مزود البنية التحتية — 27 نوفمبر 2026
+
+**الحالة الحالية:** Phase11 تبقى IN_PROGRESS. 11A portability baseline و11B1 trust design ومعالجة فصل صلاحيات attestation مثبتة؛ 11C provider-neutral OpenTofu scaffold وفحوص CI و18/18 guardrails مثبتة. لا يلزم اختيار مزود لإكمال أو مواصلة الأعمال المحايدة.
+
+بموجب D-050، تؤجل جميع اختيارات hosting/compute وPostgreSQL provider/region وobject storage وregistry وsecrets/identity وmonitoring/logs وDNS/edge والتكاليف إلى ما بعد اكتمال أعمال Backend المستقلة عن المزود. لذلك:
+
+- استمر في تحسين العقود المحايدة واختبارات IaC وdocs/guardrails وrelease evidence دون provider أو backend أو credentials أو apply.
+- لا تطلب من المالك الآن provider/region/workload budget أو موافقة موارد؛ scorecard يبقى unpriced/deferred حتى مرحلة الاختيارات النهائية.
+- لا تضف provider adapters/modules أو remote state أو provider lockfile أو resource definitions قبل قرار لاحق وموافقة محددة.
+- 11B2 تبقى مؤجلة حتى تفعيل 10B يدويًا من قبل المالك وفق قرارها السابق، ولا ينشأ GitHub Environment أو deploy identity الآن.
+- 11D–11F تبقى WAITING_EXTERNAL/DEPENDENCY؛ لا provisioning أو OCI registry push أو staging/production deployment أو DNS change.
+- OpenTofu validation الحالية read-only/local فقط؛ نجاحها لا يعني اختيارًا أو إذنًا بالتنفيذ.
+
+عند إعادة فتح الاختيارات بعد تطوير Backend، تجرى مقارنة موحدة تشمل التكلفة الفعلية والـregion والحمل والبيانات والـHA/RPO/RTO والخصوصية والاعتمادية وقابلية الخروج، ثم موافقة منفصلة قبل أي مورد أو apply.
