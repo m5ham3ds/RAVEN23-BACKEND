@@ -16,8 +16,8 @@
 
 تمت مراجعة Git Trees API recursive على main عند SHA 1e4e8d7f8d2617575868604d21452511a9f10c61، وكانت النتيجة truncated=false:
 
-- 252 ملفًا متتبعًا و55 عقدة مجلد.
-- 78 ملفًا داخل phases/، منها 77 ملف Markdown و44 تقريرًا و16 مواصفة مرحلة PHASE-XX.
+- 253 ملفًا متتبعًا و55 عقدة مجلد.
+- 79 ملفًا داخل phases/، منها 78 ملف Markdown و45 تقريرًا و16 مواصفة مرحلة PHASE-XX.
 - 6 GitHub Actions workflows.
 - 23 ملف migration.
 - 42 ملف PHP للاختبارات: 22 Feature و14 Integration والباقي Fixtures/TestCase.
