@@ -108,7 +108,7 @@ assert_reject() {
       printf 'name: Unapproved deploy\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' > "$fixture/.github/workflows/unapproved-deploy.yml"
       ;;
     provider-tofu)
-      printf '\nprovider "aws" {}\n' > "$fixture/infra/opentofu/provider.tofu"
+      printf '\nprovider "aws" {}\n' > "$fixture/infra/opentofu/main.tofu"
       ;;
     resource-tofu)
       printf '\nresource "aws_s3_bucket" "example" {}\n' > "$fixture/infra/opentofu/storage.tofu"
