@@ -96,4 +96,4 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 
 ## Phase12A contract finding — 28 نوفمبر 2026
 
-عميل Flutter يتوقع عمليات playlist import/sharing، لكن Backend الحالي يقدم sync endpoint فقط ولا يملك schema/fields/routes المقابلة. تم توثيق \`PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING\` في خريطة البيانات لإحالته إلى contract review الخاصة بـPhase06 قبل التنفيذ؛ لم يحدث أي تغيير API أو schema.
+عميل Flutter يتوقع عمليات playlist import/sharing، لكن Backend الحالي يقدم sync endpoint فقط ولا يملك schema/fields/routes المقابلة. تم توثيق `PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING` في خريطة البيانات لإحالته إلى contract review الخاصة بـPhase06 قبل التنفيذ؛ لم يحدث أي تغيير API أو schema.
