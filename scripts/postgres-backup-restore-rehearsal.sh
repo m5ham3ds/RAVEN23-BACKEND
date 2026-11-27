@@ -375,4 +375,7 @@ cat > "$REPORT_PATH" <<EOF
 EOF
 
 test -s "$REPORT_PATH"
+# Only the synthetic JSON evidence is shared with the GitHub runner; keep
+# the backup, encryption material and temporary work files private.
+chmod 0644 "$REPORT_PATH"
 echo "PASS: encrypted PostgreSQL backup restored into a separate disposable database; 3 account, 4 media and 2 event rows plus constraints/indexes match."
