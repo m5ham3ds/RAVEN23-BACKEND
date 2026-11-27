@@ -64,3 +64,16 @@
 - حزمة الإصدار: [artifact 15168861287](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168861287).
 
 هذه النتيجة لا تغطي مصدر بيانات حقيقيًا ولا تثبت backup أو restore إنتاجيًا، ولا تفوض cutover أو migration أو النشر. تبقى معايير القبول الرئيسية للمرحلة 12 كما هي في أعلى هذه الوثيقة.
+
+## تحديث قرار التأجيل — Phase12 — 27 نوفمبر 2026
+
+**الحالة:** WAITING_DEPENDENCY. نجح synthetic PostgreSQL encrypted backup/restore preflight على `27cfcc9`، لكنه لا يحقق شروط ترحيل قاعدة RAVEN23 الحقيقية.
+
+بموجب D-050، يُؤجل اختيار مصدر/وجهة قاعدة البيانات ومزود الاستضافة والمنطقة وأي backup service إلى ما بعد أعمال تطوير Backend المستقلة عن المزود. لا يؤجل ذلك استمرار تحسين سكربت rehearsal والـmapping والـchecksums والخطط والاختبارات الاصطناعية التي لا تحتاج بيانات أو أسرار حقيقية.
+
+- لا اتصال بقاعدة الإنتاج ولا قراءة أسرارها ولا أخذ backup منها في هذه المرحلة.
+- لا اختيار target DB أو provider أو retention/RPO/RTO مفترض.
+- لا تنفيذ migrations أو restore أو cutover على بيانات حقيقية، ولا تغيير DNS/API endpoint.
+- قبل cutover لاحقًا: قرار مصدر/وجهة محددين، backup فعلي مشفر، restore إلى بيئة معزولة، مقارنة counts/IDs/relationships/constraints، معالجة delta/الكتابات المتزامنة، rollback rehearsal وموافقة مالك مباشرة تسمي الهدف والنافذة.
+
+نجاح synthetic preflight وCI لا يغيّر حالة Phase12 إلى COMPLETE ولا يمنح تصريحًا للنقل.
