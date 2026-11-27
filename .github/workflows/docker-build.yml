@@ -406,6 +406,7 @@ jobs:
         run: |
           set -eu
           RAVEN23_REHEARSAL_ID="$GITHUB_RUN_ID$GITHUB_RUN_ATTEMPT"
+          export RAVEN23_REHEARSAL_ID
           evidence_dir="$RUNNER_TEMP/raven23-phase12-rehearsal"
           mkdir -p "$evidence_dir"
           docker run --rm --network host \

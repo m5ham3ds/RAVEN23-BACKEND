@@ -72,9 +72,9 @@ scalar() {
 }
 
 cleanup() {
-  psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" \
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname=postgres \
     --command="DROP DATABASE IF EXISTS \"$target_db\" WITH (FORCE)" >/dev/null 2>&1 || true
-  psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" \
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname=postgres \
     --command="DROP DATABASE IF EXISTS \"$source_db\" WITH (FORCE)" >/dev/null 2>&1 || true
   unset RAVEN23_REHEARSAL_PASSPHRASE
   rm -rf "$workdir"
@@ -89,9 +89,9 @@ actual_migrations="$(scalar "$PGDATABASE" "SELECT count(*) FROM public.migration
 }
 
 # Clone the already-migrated disposable CI database. The target starts empty.
-psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" \
+psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname=postgres \
   --command="CREATE DATABASE \"$source_db\" WITH TEMPLATE \"$PGDATABASE\"" >/dev/null
-psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$PGDATABASE" \
+psql --no-psqlrc --set=ON_ERROR_STOP=1 --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname=postgres \
   --command="CREATE DATABASE \"$target_db\" TEMPLATE template0" >/dev/null
 
 backup_file="$workdir/raven23-full-schema.dump"
