@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
 **آخر مزامنة المصدر:** 27 نوفمبر 2026
-**Repository snapshot SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` (الـcommit الحالي توثيقي؛ API source unchanged في هذه الشريحة)
+**Backend API source baseline:** `27cfcc9e577cca33c28e9845096a0c5564b02045`؛ آخر CI baseline قبل مزامنة الوثائق: `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`؛ لا تغيير في routes/contracts في هذه الشريحة
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
