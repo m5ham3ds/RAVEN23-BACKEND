@@ -12,6 +12,7 @@ make_fixture() {
   mkdir -p "$fixture/infra/opentofu/scripts" "$fixture/.github/workflows"
   cp "$guard_source" "$fixture/infra/opentofu/scripts/guardrail-provider-neutral.sh"
   cp "$workflow_source" "$fixture/.github/workflows/iac-validation.yml"
+  cp "$repo_root/.gitignore" "$fixture/.gitignore"
   cat > "$fixture/infra/opentofu/main.tf" <<'HCL'
 terraform {
   required_version = ">= 1.6.0"
@@ -28,6 +29,14 @@ assert_pass() {
   local name="$1"
   local fixture="$tmp_root/$name"
   make_fixture "$fixture"
+  mkdir -p "$fixture/infra/opentofu"
+  for ignored_path in "prod.tfvars" "prod.auto.tfvars" "prod.tfvars.json" "prod.auto.tfvars.json"; do
+    touch "$fixture/infra/opentofu/$ignored_path"
+    if ! git -C "$fixture" check-ignore -q "infra/opentofu/$ignored_path"; then
+      echo "FAIL: .gitignore does not ignore $ignored_path" >&2
+      exit 1
+    fi
+  done
   if ! (cd "$fixture" && bash infra/opentofu/scripts/guardrail-provider-neutral.sh) > "$fixture/output.log" 2>&1; then
     cat "$fixture/output.log"
     echo "FAIL: expected guardrail pass for $name" >&2
