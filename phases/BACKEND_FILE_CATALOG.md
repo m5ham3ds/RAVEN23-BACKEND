@@ -1,160 +1,347 @@
-# فهرس ملفات RAVEN23-BACKEND — خط الأساس والتحديث الحالي
+# فهرس ملفات RAVEN23-BACKEND — المزامنة الحالية مع main
 
-**Commit:** 9f29fa55afa21c0445be82d4590a4a532bb1747c  
-**التاريخ:** 21 نوفمبر 2026  
-**الدليل:** Git Trees API recursive، truncated=false.  
-**النتيجة:** 34 ملفًا tracked في 17 مجلدًا، منها 10 GitHub Actions workflows.
+**لقطة الشجرة:** 1e4e8d7f8d2617575868604d21452511a9f10c61
+**تاريخ المزامنة:** 27 نوفمبر 2026
+**المصدر:** Git Trees API recursive؛ `truncated=false`.
 
-هذا فهرس لكل الملفات المسجلة في Git على commit خط الأساس. الملفات غير المتتبعة أو إعدادات runtime المولدة خارج Git ليست ضمن هذا العدد.
+## ملخص الجرد
 
-## 1. الجذر
+- الملفات المتتبعة (blobs): **252**.
+- مجلدات الشجرة (trees): **55**.
+- مجلد phases: **78 ملفًا**، منها 77 Markdown و44 تقريرًا و16 ملف مواصفة باسم PHASE-XX.
+- GitHub Actions: **6 workflows**.
+- Database migrations: **23**.
+- PHP tests: **42** (22 Feature، 14 Integration، والبقية fixtures/TestCase).
+- App PHP files: **49**؛ config PHP files: **13**.
 
-- .dockerignore
-- Dockerfile
-- README.md
+هذا فهرس snapshot لمحتويات Git على commit المذكور؛ لا يشمل الملفات غير المتتبعة أو runtime state أو secrets أو بيانات أي قاعدة تشغيل.
 
-## 2. GitHub Actions — 10 workflows
+## ملاحظة عن السجل التاريخي
 
-- .github/workflows/auth-smoke.yml
-- .github/workflows/docker-build.yml
-- .github/workflows/production-account-retry.yml
-- .github/workflows/production-account-retry-2.yml
-- .github/workflows/production-account-retry-3.yml
-- .github/workflows/production-account-retry-4.yml
-- .github/workflows/production-account-retry-7.yml
-- .github/workflows/production-account-smoke.yml
-- .github/workflows/production-registration-route-probe.yml
-- .github/workflows/runtime-db-diagnostics.yml
+الأقسام والأعداد القديمة أدناه في النسخ السابقة كانت تصف خط أساس 21–23 نوفمبر، ولا تصف الشجرة الحالية. تم تحديث هذا الفهرس ليكون snapshot كاملًا للمستودع الحالي، مع الإبقاء على تقارير المراحل القديمة كسجلات تاريخية وعدم حذفها.
 
-## 3. التطبيق والنماذج والدعم
+## جميع الملفات المتتبعة حسب المسار
 
-- app/Http/Controllers/Api/AuthController.php
-- app/Models/User.php
-- app/Support/GoogleIdTokenVerifier.php
-- app/Support/Raven23AuthSchema.php
+## .dockerignore/ (1)
 
-## 4. Laravel bootstrap/config
+- `.dockerignore`
 
-- bootstrap/app.php
-- config/cache.php
-- config/database.php
-- config/services.php
+## .env.example/ (1)
 
-## 5. Database migrations — 5
+- `.env.example`
 
-- database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php
-- database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php
-- database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php
-- database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php
-- database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php
+## .github/ (6)
 
-## 6. Docker/runtime helpers — 5
+- `.github/workflows/auth-smoke.yml`
+- `.github/workflows/docker-build.yml`
+- `.github/workflows/iac-validation.yml`
+- `.github/workflows/pint-format-report.yml`
+- `.github/workflows/security-scans.yml`
+- `.github/workflows/users-auth-tests.yml`
 
-- docker/check-database-target.php
-- docker/router.php
-- docker/runtime-db-diagnostics.php
-- docker/start.sh
-- docker/verify-auth-schema.php
+## .gitignore/ (1)
 
-## 7. API routes and tests
+- `.gitignore`
 
-- routes/api.php
-- tests/Feature/AuthLifecycleTest.php
-- tests/Integration/PostgresAuthLifecycleTest.php
+## .opentofu-version/ (1)
 
-## 8. ملفات Laravel الأساسية التي كانت غير موجودة في baseline
+- `.opentofu-version`
 
-لم تظهر ضمن tree:
-- composer.json
-- composer.lock
-- artisan
-- .env.example خاص بالـBackend
-- Laravel full application skeleton committed in source.
-- Migrations كاملة للـLaravel base tables، أو domains الخاصة بمزامنة بيانات RAVEN23.
+## Dockerfile/ (1)
 
-هذه ليست ملفات مفقودة في عملية الجرد؛ هي بالفعل غير tracked في commit المذكور. Dockerfile ينشئ Laravel skeleton أثناء البناء، وهو ما يجعل مصدر التطبيق غير مستقل بالكامل.
+- `Dockerfile`
 
-## 9. ملفات Flutter التي تمت مراجعتها لعقد Laravel
+## README.md/ (1)
 
-مستودع RAVEN23 العام عند SHA 6d12023e446db3d444716c3b407572a89cf545be يحتوي 2,085 tracked files بحسب Git tree API. من ملفات client contract ذات الصلة:
-- lib/core/config/app_environment.dart
-- lib/core/config/app_runtime.dart
-- lib/core/config/migration_flags.dart
-- lib/core/di/injector.dart
-- lib/core/network/interceptors/auth_interceptor.dart
-- lib/data/sources/laravel_api.dart
-- lib/data/sources/legacy_firebase_session.dart
-- lib/data/models/auth_requests.dart
-- lib/data/models/auth_session.dart
-- lib/data/repositories/ads_repository.dart
-- lib/data/repositories/announcement_repository.dart
-- lib/data/repositories/auth_repository.dart
-- lib/data/repositories/billing_repository.dart
-- lib/data/repositories/bookmark_repository.dart
-- lib/data/repositories/config_repository.dart
-- lib/data/repositories/device_repository.dart
-- lib/data/repositories/flix_ai_repository.dart
-- lib/data/repositories/playlist_repository.dart
-- lib/data/repositories/push_message_repository.dart
-- lib/data/repositories/recently_watched_repository.dart
-- lib/data/repositories/wellness_repository.dart
-- lib/data/sync/laravel_sync_coordinator.dart
-- lib/data/sync/sync_transport.dart
-- lib/data/sync/bookmark_sync_engine.dart
-- lib/data/sync/recent_sync_engine.dart
-- lib/data/sync/playlist_sync_engine.dart
-- lib/data/sync/wellness_sync_engine.dart
-- lib/presentation/session/firebase_session_bridge.dart
-- lib/presentation/notifications/device_registration_controller.dart
-- lib/presentation/notifications/in_app_message_controller.dart
-- lib/presentation/notifications/push_message_controller.dart
-- lib/presentation/billing/plus_controller.dart
-- integration/laravel_foundation_smoke_test.dart
-- test/integration/laravel_migration_e2e_test.dart
+- `README.md`
 
-هذا فهرس الملفات المؤثرة في عقد Laravel؛ لا يعني أن كل ملفات Flutter الـ2,085 قد فُحص محتواها سطرًا بسطر. مسارات scraper/TMDB مستقلة عن account backend ويجب أن تبقى خارج نطاق عقد Laravel.
+## app/ (49)
 
+- `app/Console/Commands/CleanupOrphanedPrivateMedia.php`
+- `app/Console/Commands/DispatchPendingNotificationOutbox.php`
+- `app/Console/Commands/ExpireDueEntitlements.php`
+- `app/Console/Commands/NotificationOutboxStatus.php`
+- `app/Contracts/Notifications/NotificationOutboxTransport.php`
+- `app/Contracts/Notifications/PushNotificationTransport.php`
+- `app/Contracts/Storage/PrivateObjectStorage.php`
+- `app/Exceptions/SubscriptionEventConflict.php`
+- `app/Exceptions/WalletTransactionConflict.php`
+- `app/Http/Controllers/Api/AuthController.php`
+- `app/Http/Controllers/Api/BillingCatalogController.php`
+- `app/Http/Controllers/Api/BookmarkSyncController.php`
+- `app/Http/Controllers/Api/EntitlementController.php`
+- `app/Http/Controllers/Api/HealthController.php`
+- `app/Http/Controllers/Api/PlaylistSyncController.php`
+- `app/Http/Controllers/Api/PreferenceSyncController.php`
+- `app/Http/Controllers/Api/PushSubscriptionController.php`
+- `app/Http/Controllers/Api/RecentlyWatchedSyncController.php`
+- `app/Http/Controllers/Api/UserMediaController.php`
+- `app/Http/Controllers/Api/WalletController.php`
+- `app/Http/Controllers/Api/WellnessSyncController.php`
+- `app/Http/Controllers/Controller.php`
+- `app/Http/Middleware/RequestCorrelationId.php`
+- `app/Jobs/DeletePrivateObjectJob.php`
+- `app/Jobs/DeliverNotificationOutboxJob.php`
+- `app/Models/SubscriptionEvent.php`
+- `app/Models/User.php`
+- `app/Models/UserBookmark.php`
+- `app/Models/UserDevice.php`
+- `app/Models/UserEntitlement.php`
+- `app/Models/UserMedia.php`
+- `app/Models/UserPreference.php`
+- `app/Models/UserProfile.php`
+- `app/Models/UserPushSubscription.php`
+- `app/Models/UserRecentMedia.php`
+- `app/Models/UserSyncRevision.php`
+- `app/Models/UserWallet.php`
+- `app/Models/WalletTransaction.php`
+- `app/Notifications/EmailVerificationNotification.php`
+- `app/Notifications/PasswordResetNotification.php`
+- `app/Providers/AppServiceProvider.php`
+- `app/Services/Entitlements/SubscriptionEventLedger.php`
+- `app/Services/Notifications/DisabledPushNotificationTransport.php`
+- `app/Services/Notifications/LaravelNotificationOutboxTransport.php`
+- `app/Services/Notifications/NotificationOutboxService.php`
+- `app/Services/Storage/FilesystemPrivateObjectStorage.php`
+- `app/Services/Wallet/WalletLedger.php`
+- `app/Support/GoogleIdTokenVerifier.php`
+- `app/Support/Raven23AuthSchema.php`
 
-## 10. جرد التنفيذ الحالي — 23 نوفمبر 2026
+## artisan/ (1)
 
-**SHA الذي تمت مراجعته:** `fea7045178e603a7b54150e75475f5d27960d306`. يحتفظ هذا الملف بقائمة baseline القديمة لأنها تسجل تاريخ Phase00؛ الأعداد التالية هي المرجع الحالي بدلًا منها.
+- `artisan`
 
-- Git tree recursive: `truncated=false`, 133 tracked files، 12 workflows، 13 migrations، 44 ملفًا تحت phases، و8 ملفات تحت tests.
-- أصبح `composer.json`, `composer.lock`, `artisan`, و`.env.example` ضمن الشجرة؛ لم تعد فجوة المصدر القديمة قائمة.
-- ملفات Phase06 على main:
-  - `app/Http/Controllers/Api/BookmarkSyncController.php`
-  - `app/Http/Controllers/Api/RecentlyWatchedSyncController.php`
-  - `app/Http/Controllers/Api/PlaylistSyncController.php`
-  - `app/Models/UserBookmark.php`
-  - `app/Models/UserRecentMedia.php`
-  - `app/Models/UserSyncRevision.php`
-  - `database/migrations/2026_11_23_000008_create_user_bookmarks_table.php`
-  - `database/migrations/2026_11_23_000009_create_user_recent_media_tables.php`
-  - `database/migrations/2026_11_23_000010_create_user_playlist_sync_tables.php`
-- `routes/api.php` يضم endpoints المفضلة وسجل المشاهدة والقوائم.
-- `AuthController.php` يصدّر account data بصيغة `format_version=3` متضمنة bookmarks وrecently_watched وplaylists.
-- اختبارات Phase06 في فرع TEST: `BookmarkSyncTest.php`, `RecentlyWatchedSyncTest.php`, `PlaylistSyncTest.php`, `PostgresRecentlyWatchedSyncTest.php`, `PostgresPlaylistSyncTest.php`.
-- Playlist sync core منفذ؛ imports وpublic sharing غير منفذين وخارج نطاق Phase06.
+## bootstrap/ (3)
 
-### القائمة الحالية للـworkflows
-`.github/workflows/`: auth-smoke.yml, docker-build.yml, pint-format-report.yml, security-scans.yml, users-auth-tests.yml, production-account-retry.yml, production-account-retry-2.yml, production-account-retry-3.yml, production-account-retry-4.yml, production-account-retry-7.yml, production-account-smoke.yml, production-registration-route-probe.yml.
+- `bootstrap/app.php`
+- `bootstrap/cache/.gitignore`
+- `bootstrap/providers.php`
 
-### migrations الحالية (12)
-- `0001_01_01_000000_create_users_table.php`
-- `0001_01_01_000001_create_cache_table.php`
-- `0001_01_01_000002_create_jobs_table.php`
-- `2026_11_18_000001_add_raven23_auth_fields_to_users.php`
-- `2026_11_18_000002_ensure_personal_access_tokens_table.php`
-- `2026_11_18_000003_reconcile_raven23_auth_schema.php`
-- `2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php`
-- `2026_11_21_000005_reconcile_guest_account_flag.php`
-- `2026_11_22_000006_create_email_verification_tokens_table.php`
-- `2026_11_22_000007_create_user_data_foundation_tables.php`
-- `2026_11_23_000008_create_user_bookmarks_table.php`
-- `2026_11_23_000009_create_user_recent_media_tables.php`
+## composer.json/ (1)
 
-## 11. تحديث تنظيم الاختبارات — 23 نوفمبر 2026
-- `tests/README.md` يحدد main كمصدر الاختبارات الوحيد ويشرح Feature/SQLite وIntegration/PostgreSQL المؤقتة.
-- أضيفت اختبارات BookmarkSyncTest وPlaylistSyncTest وPreferenceSyncTest وRecentlyWatchedSyncTest، وPostgresBookmarkSyncTest وPostgresPlaylistSyncTest وPostgresPreferenceSyncTest وPostgresRecentlyWatchedSyncTest.
-- Docker/Pint/Security/Auth regression workflows تستهدف main فقط.
-- refs فرعي TEST وUSERS كانت لا تزال ظاهرة في GitHub عند آخر تحقق؛ تقاعدت تنظيميًا ولم يُؤكد حذفها.
+- `composer.json`
+
+## composer.lock/ (1)
+
+- `composer.lock`
+
+## config/ (13)
+
+- `config/app.php`
+- `config/auth.php`
+- `config/cache.php`
+- `config/cors.php`
+- `config/database.php`
+- `config/filesystems.php`
+- `config/logging.php`
+- `config/mail.php`
+- `config/notifications.php`
+- `config/queue.php`
+- `config/security.php`
+- `config/services.php`
+- `config/session.php`
+
+## contracts/ (2)
+
+- `contracts/API-V1.md`
+- `contracts/api-v1.json`
+
+## database/ (23)
+
+- `database/migrations/0001_01_01_000000_create_users_table.php`
+- `database/migrations/0001_01_01_000001_create_cache_table.php`
+- `database/migrations/0001_01_01_000002_create_jobs_table.php`
+- `database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php`
+- `database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php`
+- `database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php`
+- `database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php`
+- `database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php`
+- `database/migrations/2026_11_22_000006_create_email_verification_tokens_table.php`
+- `database/migrations/2026_11_22_000007_create_user_data_foundation_tables.php`
+- `database/migrations/2026_11_23_000008_create_user_bookmarks_table.php`
+- `database/migrations/2026_11_23_000009_create_user_recent_media_tables.php`
+- `database/migrations/2026_11_23_000010_create_user_playlist_sync_tables.php`
+- `database/migrations/2026_11_23_000011_create_user_bookmark_sync_tables.php`
+- `database/migrations/2026_11_23_000012_create_user_preference_sync_tables.php`
+- `database/migrations/2026_11_23_000013_create_user_wellness_sync_tables.php`
+- `database/migrations/2026_11_23_000014_create_user_media_table.php`
+- `database/migrations/2026_11_24_000015_create_notification_outbox_table.php`
+- `database/migrations/2026_11_24_000015_create_user_push_subscriptions_table.php`
+- `database/migrations/2026_11_24_000016_create_user_entitlements_table.php`
+- `database/migrations/2026_11_24_000017_create_subscription_events_table.php`
+- `database/migrations/2026_11_24_000018_add_subscription_event_projection_columns.php`
+- `database/migrations/2026_11_24_000019_create_user_wallets_and_transactions.php`
+
+## docker/ (4)
+
+- `docker/Caddyfile`
+- `docker/entrypoint.sh`
+- `docker/php-production.ini`
+- `docker/queue-worker.sh`
+
+## infra/ (8)
+
+- `infra/opentofu/README.md`
+- `infra/opentofu/contracts/PLATFORM-MODULE-CONTRACTS.md`
+- `infra/opentofu/contracts/STATE-AND-RECOVERY-DESIGN.md`
+- `infra/opentofu/main.tf`
+- `infra/opentofu/outputs.tf`
+- `infra/opentofu/scripts/guardrail-provider-neutral.sh`
+- `infra/opentofu/tests/test-guardrail-provider-neutral.sh`
+- `infra/opentofu/variables.tf`
+
+## phases/ (78)
+
+- `phases/API_CONTRACT_INVENTORY.md`
+- `phases/BACKEND_FILE_CATALOG.md`
+- `phases/BASELINE_AUDIT.md`
+- `phases/BRANCH_POLICY.md`
+- `phases/DATABASE_AND_DATA_INVENTORY.md`
+- `phases/DECISIONS.md`
+- `phases/ENVIRONMENT_AND_SECRET_NAMES.md`
+- `phases/EXECUTION_PROTOCOL.md`
+- `phases/FEATURE_MATRIX.md`
+- `phases/MASTER_PLAN.md`
+- `phases/PHASE-00-BASELINE-INVENTORY.md`
+- `phases/PHASE-01-REPRODUCIBLE-LARAVEL-PROJECT.md`
+- `phases/PHASE-02-PORTABLE-RUNTIME.md`
+- `phases/PHASE-03-SECURITY-OPERATIONS-FOUNDATION.md`
+- `phases/PHASE-04-AUTHENTICATION-COMPLETION.md`
+- `phases/PHASE-05-API-CONTRACTS.md`
+- `phases/PHASE-05-ERD-AND-DATA-DICTIONARY.md`
+- `phases/PHASE-05-USER-DATA-FOUNDATION.md`
+- `phases/PHASE-06-MEDIA-LIBRARY-AND-PLAYBACK.md`
+- `phases/PHASE-07-CROSS-DEVICE-SYNC.md`
+- `phases/PHASE-08-STORAGE-NOTIFICATIONS-JOBS.md`
+- `phases/PHASE-09-SUBSCRIPTIONS-ENTITLEMENTS.md`
+- `phases/PHASE-10-QUALITY-AND-RELEASE-ENGINEERING.md`
+- `phases/PHASE-11-PORTABLE-INFRASTRUCTURE-AND-DEPLOYMENT.md`
+- `phases/PHASE-12-DATA-MIGRATION-CUTOVER.md`
+- `phases/PHASE-13-PRODUCTION-OPERATIONS-RESILIENCE.md`
+- `phases/PUSH-PROVIDER-SELECTION-DEFERRED.md`
+- `phases/README.md`
+- `phases/SECURITY-OPERATIONS-POLICY.md`
+- `phases/STATUS.md`
+- `phases/TOOLS_AND_SERVICES.md`
+- `phases/USER_RULES_AND_CONSTRAINTS.md`
+- `phases/WORKFLOW_INVENTORY.md`
+- `phases/release/rollback-target.json`
+- `phases/reports/PHASE-00-REPORT-2026-11-21.md`
+- `phases/reports/PHASE-01-COMPLETION-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-01-PROGRESS-REPORT-2026-11-21.md`
+- `phases/reports/PHASE-02-COMPLETION-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-02-PROGRESS-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-03-COMPLETION-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-03-PROGRESS-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-04-CI-VERIFICATION-ADDENDUM-2026-11-22.md`
+- `phases/reports/PHASE-04-PROGRESS-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-05-COMPLETION-REPORT-2026-11-22.md`
+- `phases/reports/PHASE-06-COMPLETION-REPORT-2026-11-23.md`
+- `phases/reports/PHASE-06-MAIN-TESTS-CONSOLIDATION-2026-11-23.md`
+- `phases/reports/PHASE-06-PLAYLIST-SYNC-ADDENDUM-2026-11-23.md`
+- `phases/reports/PHASE-06-PROGRESS-REPORT-2026-11-23.md`
+- `phases/reports/PHASE-07-COMPLETION-REPORT-2026-11-24.md`
+- `phases/reports/PHASE-07-PROGRESS-REPORT-2026-11-23.md`
+- `phases/reports/PHASE-07-PROGRESS-REPORT-2026-11-24.md`
+- `phases/reports/PHASE-08-PROGRESS-REPORT-2026-11-23.md`
+- `phases/reports/PHASE-08-PROGRESS-REPORT-2026-11-24-ADDENDUM.md`
+- `phases/reports/PHASE-08-PROGRESS-REPORT-2026-11-24.md`
+- `phases/reports/PHASE-08K-OUTBOX-RETRY-DEAD-LETTER-AND-SECURITY-REMEDIATION-2026-11-26.md`
+- `phases/reports/PHASE-09-ENTRY-AND-CONTRACT-AUDIT-2026-11-24.md`
+- `phases/reports/PHASE-09-PROGRESS-REPORT-2026-11-24-09B.md`
+- `phases/reports/PHASE-09-PROGRESS-REPORT-2026-11-24-09C.md`
+- `phases/reports/PHASE-09-PROGRESS-REPORT-2026-11-24-09D.md`
+- `phases/reports/PHASE-09-PROGRESS-REPORT-2026-11-24-09E.md`
+- `phases/reports/PHASE-09-PROGRESS-REPORT-2026-11-24-09F.md`
+- `phases/reports/PHASE-10-PROGRESS-REPORT-2026-11-24-10A.md`
+- `phases/reports/PHASE-10-PROGRESS-REPORT-2026-11-24-10C-10D.md`
+- `phases/reports/PHASE-10-PROGRESS-REPORT-2026-11-25-10D-10E.md`
+- `phases/reports/PHASE-10-PROGRESS-REPORT-2026-11-25-10E-10F.md`
+- `phases/reports/PHASE-10-PROGRESS-REPORT-2026-11-25-10F-10G.md`
+- `phases/reports/PHASE-10G-RELEASE-MANIFEST-ROLLBACK-CLOSEOUT-2026-11-25.md`
+- `phases/reports/PHASE-11A-PORTABILITY-SCORECARD-AND-11B1-TRUST-DESIGN-2026-11-25.md`
+- `phases/reports/PHASE-11A-PORTABLE-OBJECT-STORAGE-CONFIG-2026-11-25.md`
+- `phases/reports/PHASE-11A-PROVIDER-NEUTRAL-ARCHITECTURE-START-2026-11-25.md`
+- `phases/reports/PHASE-11B1-TRUST-BOUNDARY-REMEDIATION-2026-11-26.md`
+- `phases/reports/PHASE-11B1-TRUST-MODEL-DESIGN-CLOSEOUT-2026-11-25.md`
+- `phases/reports/PHASE-11C-PROVIDER-NEUTRAL-VALIDATION-2026-11-26.md`
+- `phases/reports/PHASE11C-APPLY-COMMAND-SUBSTITUTION-REPAIR.md`
+- `phases/reports/PHASE11C-APPROVAL-GUARDRAIL-TESTS.md`
+- `phases/reports/PHASE11C-PROVIDER-NEUTRAL-IAC-BASELINE.md`
+- `phases/reports/PHASE_REPORT_TEMPLATE.md`
+- `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`
+
+## phpunit.xml/ (1)
+
+- `phpunit.xml`
+
+## public/ (1)
+
+- `public/index.php`
+
+## routes/ (3)
+
+- `routes/api.php`
+- `routes/console.php`
+- `routes/web.php`
+
+## scripts/ (3)
+
+- `scripts/postgres-backup-restore-rehearsal.sh`
+- `scripts/rollback-rehearsal.sh`
+- `scripts/rollback-traffic-proxy.py`
+
+## storage/ (6)
+
+- `storage/app/private/.gitignore`
+- `storage/app/public/.gitignore`
+- `storage/framework/cache/data/.gitignore`
+- `storage/framework/sessions/.gitignore`
+- `storage/framework/views/.gitignore`
+- `storage/logs/.gitignore`
+
+## tests/ (43)
+
+- `tests/Feature/ApiV1ContractTest.php`
+- `tests/Feature/AuthLifecycleTest.php`
+- `tests/Feature/BillingCatalogTest.php`
+- `tests/Feature/BookmarkSyncTest.php`
+- `tests/Feature/DatabaseMigrationRehearsalTest.php`
+- `tests/Feature/EntitlementReadTest.php`
+- `tests/Feature/ExpireDueEntitlementsTest.php`
+- `tests/Feature/LaravelFoundationTest.php`
+- `tests/Feature/PlaylistSyncTest.php`
+- `tests/Feature/PreferenceSyncTest.php`
+- `tests/Feature/PrivateObjectStorageTest.php`
+- `tests/Feature/PushSubscriptionTest.php`
+- `tests/Feature/QueuedNotificationsTest.php`
+- `tests/Feature/RecentlyWatchedSyncTest.php`
+- `tests/Feature/RuntimeHealthTest.php`
+- `tests/Feature/SecurityResponseTest.php`
+- `tests/Feature/SubscriptionEventLedgerTest.php`
+- `tests/Feature/UserDataFoundationMigrationTest.php`
+- `tests/Feature/UserDataFoundationTest.php`
+- `tests/Feature/UserMediaTest.php`
+- `tests/Feature/WalletReadTest.php`
+- `tests/Feature/WellnessSyncTest.php`
+- `tests/Fixtures/ConcurrentWellnessSyncWorker.php`
+- `tests/Fixtures/FailingQueueJob.php`
+- `tests/Fixtures/IdempotentNotificationOutboxTransportFake.php`
+- `tests/Fixtures/PushNotificationTransportFake.php`
+- `tests/Fixtures/TransientFailingNotificationOutboxTransportFake.php`
+- `tests/Integration/PostgresAuthLifecycleTest.php`
+- `tests/Integration/PostgresBookmarkSyncTest.php`
+- `tests/Integration/PostgresEntitlementReadTest.php`
+- `tests/Integration/PostgresExpireDueEntitlementsTest.php`
+- `tests/Integration/PostgresNotificationOutboxTest.php`
+- `tests/Integration/PostgresPlaylistSyncTest.php`
+- `tests/Integration/PostgresPreferenceSyncTest.php`
+- `tests/Integration/PostgresPushSubscriptionTest.php`
+- `tests/Integration/PostgresRecentlyWatchedSyncTest.php`
+- `tests/Integration/PostgresSubscriptionEventLedgerTest.php`
+- `tests/Integration/PostgresUserMediaTest.php`
+- `tests/Integration/PostgresWalletLedgerTest.php`
+- `tests/Integration/PostgresWellnessSyncTest.php`
+- `tests/Integration/S3PrivateObjectStorageTest.php`
+- `tests/README.md`
+- `tests/TestCase.php`
