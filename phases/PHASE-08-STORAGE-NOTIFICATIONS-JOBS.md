@@ -280,7 +280,7 @@ Docker strict Pint، queue-worker guards، PostgreSQL least-privilege، separate
 
 ## قرار موحد لتأجيل اختيار مزودي Phase08 — 27 نوفمبر 2026
 
-**الحالة:** IN_PROGRESS — جميع الأعمال المحايدة والاختبارات المحلية تستمر؛ اختيار مزود التخزين والبريد وPush والتكلفة/الاحتفاظ مؤجل إلى ما بعد اكتمال أعمال Backend المستقلة عن المزود بموجب D-050.
+**الحالة:** IN_PROGRESS — جميع الأعمال المحايدة والاختبارات المحلية تستمر؛ اختيار مزود التخزين والبريد وPush والتكلفة/الاحتفاظ مؤجل إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل (D-051) بموجب D-050.
 
 - لا تختَر S3-compatible provider أو bucket/region/account أو mail provider أو Push provider (FCM/OneSignal) الآن.
 - لا تضف sender adapter أو provider SDK أو credentials أو secrets أو bucket أو موارد مدفوعة أو ترسل رسالة/Push حقيقيًا.
