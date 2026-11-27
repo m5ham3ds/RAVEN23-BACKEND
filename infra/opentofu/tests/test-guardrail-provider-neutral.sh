@@ -30,7 +30,7 @@ assert_pass() {
   local fixture="$tmp_root/$name"
   make_fixture "$fixture"
   mkdir -p "$fixture/infra/opentofu"
-  for ignored_path in "prod.tfvars" "prod.auto.tfvars" "prod.tfvars.json" "prod.auto.tfvars.json"; do
+  for ignored_path in "prod.tfvars" "prod.auto.tfvars" "prod.tfvars.json" "prod.auto.tfvars.json" ".terraform.lock.hcl"; do
     touch "$fixture/infra/opentofu/$ignored_path"
     if ! git -C "$fixture" check-ignore -q "infra/opentofu/$ignored_path"; then
       echo "FAIL: .gitignore does not ignore $ignored_path" >&2
@@ -85,6 +85,10 @@ assert_reject() {
     tfvars)
       printf '{"password":"never-commit"}\n' > "$fixture/infra/opentofu/prod.auto.tfvars.json"
       git -C "$fixture" add -f infra/opentofu/prod.auto.tfvars.json
+      ;;
+    lockfile)
+      printf '# OpenTofu provider selections are owner-approved only.\n' > "$fixture/infra/opentofu/.terraform.lock.hcl"
+      git -C "$fixture" add -f infra/opentofu/.terraform.lock.hcl
       ;;
     apply-inline)
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
@@ -169,6 +173,7 @@ assert_reject "state" "state, backup, plan, or variable-value files"
 assert_reject "backup" "state, backup, plan, or variable-value files"
 assert_reject "plan" "state, backup, plan, or variable-value files"
 assert_reject "tfvars" "state, backup, plan, or variable-value files"
+assert_reject "lockfile" "provider lock, state, backup, plan, or variable-value files"
 assert_reject "provider-tofu" "Provider, resource, data, and module blocks"
 assert_reject "resource-tofu" "Provider, resource, data, and module blocks"
 assert_reject "backend-tofu" "provider requirement, remote state backend, or cloud execution block"
@@ -188,4 +193,4 @@ assert_reject "apply-chdir" "must not contain an apply invocation"
 assert_reject "apply-terraform" "must not contain an apply invocation"
 assert_reject "apply-other-workflow" "must not contain an apply invocation"
 
-echo "PASS: all 29 provider-neutral IaC guardrail regression cases."
+echo "PASS: all 30 provider-neutral IaC guardrail regression cases."

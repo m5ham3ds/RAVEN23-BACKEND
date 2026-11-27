@@ -58,8 +58,10 @@ The CI workflow uses read-only repository permissions and performs no
 ## State, locking, recovery, and secrets
 
 - No remote backend or state location is selected in this slice.
-- Never commit `*.tfstate`, backups, saved plans, `*.tfvars`, provider
-  credentials, or state-encryption keys. The root `.gitignore` excludes these.
+- Never commit `.terraform.lock.hcl` before provider approval, `*.tfstate`,
+  backups, saved plans, `*.tfvars`, provider credentials, or state-encryption
+  keys. The root `.gitignore` excludes these. Once a provider is approved and
+  dependencies are introduced, preserve the reviewed lock file.
 - When a backend is approved, isolate state by environment and security
   boundary; enable backend locking and versioned/recoverable backups.
 - Require encryption at rest for state and saved plans. OpenTofu client-side

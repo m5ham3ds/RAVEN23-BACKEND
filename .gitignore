@@ -23,6 +23,7 @@ yarn-error.log
 
 # OpenTofu / Terraform local metadata, state, plans, and variable values
 **/.terraform/
+**/.terraform.lock.hcl
 *.tfstate
 *.tfstate.*
 *.tfplan

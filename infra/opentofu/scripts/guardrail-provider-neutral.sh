@@ -55,8 +55,8 @@ PY
 done < <(find "$iac_root" -type f \( -name '*.tf' -o -name '*.tofu' -o -name '*.tf.json' -o -name '*.tofu.json' \) -print0 | sort -z)
 
 # State, backup, plan, and variable-value files must never be committed.
-if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\.tfstate.*|.*\.tfplan|.*\.plan|.*\.tfvars|.*\.tfvars\.json)$'; then
-  fail "OpenTofu/Terraform state, backup, plan, or variable-value files must not be committed."
+if git -C "$repo_root" ls-files | grep -E '(^|/)(.*\.tfstate.*|.*\.tfplan|.*\.plan|.*\.tfvars|.*\.tfvars\.json|\.terraform\.lock\.hcl)$'; then
+  fail "OpenTofu/Terraform provider lock, state, backup, plan, or variable-value files must not be committed."
 fi
 
 # Inspect every GitHub Actions workflow, not only this validator. Flatten
