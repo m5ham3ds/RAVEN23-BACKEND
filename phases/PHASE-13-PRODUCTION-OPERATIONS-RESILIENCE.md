@@ -1,7 +1,7 @@
 # المرحلة 13 — تشغيل الإنتاج والتعافي وإدارة التكلفة
 
-**الحالة:** WAITING_DEPENDENCY  
-**الاعتماديات:** المرحلة 12 COMPLETE
+**الحالة:** IN_PROGRESS — Phase13A provider-neutral operations design only. Phase13B runtime operations/production resilience remain WAITING_DEPENDENCY until Phase12 COMPLETE and post-plan provider decisions.  
+**الاعتماديات:** 13A can proceed as provider-neutral design under D-053; 13B requires Phase12 COMPLETE, provider/region/budget approval, and explicit operational authorization.
 
 ## الهدف
 توفير تشغيل مستقر بعد النقل، مع قدرة موثقة على اكتشاف الأعطال واستعادة الخدمة والبيانات والتحكم في التكلفة.
@@ -43,3 +43,18 @@
 ## D-051 — توقيت إعادة فتح القرار بعد نهاية الخطة كاملة
 
 لا يُطلب اختيار أي مزود أو منطقة أو خطة أو تكلفة عند إنهاء هذه المرحلة منفردة. جميع اختيارات المزودين تُؤجل إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل. حتى ذلك الوقت يستمر العمل المحايد الذي لا يحتاج مزودًا، وتبقى معايير القبول التي تستلزم مزودًا حقيقيًا أو staging/production operation مؤجلة ولا تُسجل COMPLETE. راجع phases/DECISIONS.md (D-050 وD-051).
+
+
+## 13A — العمل المحايد لمزود الخدمة (بدأ 28 نوفمبر 2026)
+
+يُنفذ بالتوازي مع بقاء 12B/12C مؤجلتين، بموجب D-053:
+- صياغة runbooks للحوادث التي يمكن تعريفها من كود/عقود الخدمة الحالية.
+- حصر SLI/SLO/alert requirements دون thresholds أو alert destinations غير معتمدة.
+- إعداد أوراق عمل RPO/RTO وbackup/restore evidence دون تعيين قيم أو schedule.
+- توثيق health/readiness endpoints وworker/outbox/private-storage defaults وحدود release/rollback.
+- توثيق نموذج incident review وpatching/access/cost reporting المطلوب.
+
+التفاصيل المرجعية: phases/PHASE-13-OPS-RUNBOOKS.md.
+
+**لا يدخل في 13A:** إنشاء dashboards أو alert rules/targets فعلية، أو حسابات monitoring أو backup provider أو IAM roles أو DNS أو cloud resources؛ ولا تفعيل SMTP/Push/S3 أو جدول نسخ إنتاجي. لا تعتبر 13A اكتمالًا للمرحلة 13.
+

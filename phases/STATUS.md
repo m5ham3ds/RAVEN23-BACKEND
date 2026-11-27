@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified runtime/code SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a` — Docker #675, Pint #419, Authentication #297, Security #421 SUCCESS. IaC #31 remains SUCCESS on unchanged IaC baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30 guardrails). Documentation-only commits continue on the same main branch after this verified runtime SHA.
+**Latest main CI review:** `f46751768a4299aa08de221911343c2f2abb9520` — Docker #681, Security #427, Authentication #303, Pint #425 SUCCESS. IaC #31 remains SUCCESS on unchanged IaC baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30). HTTP smoke is manual and was not run because no approved staging URL exists. Runtime code baseline includes Docker #675/Pint #419/Auth #297/Security #421 SUCCESS on `6750eac`.
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -22,7 +22,7 @@
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية التحتية المحمولة والنشر | PAUSED / DEFERRED_BY_OWNER عند الحد الخارجي وفق D-050/D-051؛ 11A و11B1 مكتملان تقنيًا، 11C neutral guardrails 30/30 مثبتة، أما 11C adapters و11B2 و11D–11F فتنتظر ما بعد خطة Backend وقرار الخدمات و10B اليدوي. | لا provider/region/cost/resources/backend/registry push/apply/deploy. لا تُعلن Phase11 COMPLETE؛ تستأنف الأعمال الخارجية بعد المراجعة الموحدة والموافقات. |
 | 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. mapping includes documented Firebase/Firestore legacy candidate + per-device SQLite stores; full-schema encrypted PostgreSQL CI PASS on `6750eac`: 23 migrations/ledger rows، 34 public tables، 21 sequences with last_value/is_called matched؛ Docker #675 + rollback/signing PASS. | 12B real source/target backup/restore و12C cutover/hypercare WAITING_EXTERNAL/OWNER_APPROVAL؛ source-of-truth غير معروف، ولا production DB أو secrets أو target selection. |
-| 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | تخطيط runbooks/معايير التشغيل المحايدة ممكن؛ provisioning والنسخ والتنبيهات والقياس الفعلي بعد قرار المزود وPhase12. |
+| 13 — تشغيل الإنتاج والتعافي | IN_PROGRESS (13A design-only) | بدأت runbooks/SLI/SLO/DR design المحايدة وفق D-053؛ لا dashboards أو alerts أو backup schedule أو production operations. 13B تبقى WAITING_DEPENDENCY حتى Phase12 COMPLETE وموافقات الخدمات والتشغيل. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
 
@@ -578,3 +578,11 @@
 - Wellness cursor is HMAC-SHA256 signed with APP_KEY and bound to user_id/since_revision/snapshot_revision/last_id; not portable across owner mapping or key change.
 - Bookmark/playlist revisions, cursors, and local checkpoints must be re-established from target full snapshots; preserve pending operation IDs and server idempotency receipts rather than copying pagination state.
 - لا توجد قياسات cohort للأجهزة غير المتصلة أو queue depth حاليًا؛ تبقى ضمن 12A acceptance design ولا تُختلق أرقامًا.
+
+
+## 34. بدء Phase13A المحايدة بعد مراجعة CI — 28 نوفمبر 2026
+
+- رأس main قبل تحديث هذا التوثيق: f46751768a4299aa08de221911343c2f2abb9520؛ الفرع الوحيد main.
+- Docker #681 run 46080902419 SUCCESS؛ Security #427 run 46080902411 SUCCESS؛ Authentication #303 run 46080902380 SUCCESS؛ Pint #425 run 46080902461 SUCCESS.
+- IaC workflow لم يعمل على هذا التحديث لأن مسارات infra/.opentofu-version/.gitignore/Workflow لم تتغير؛ آخر فحص صالح IaC #31 run 46068443560 SUCCESS مع 30/30. HTTP smoke workflow manual-only requires api_base_url، ولم يشغّل لعدم وجود URL staging معتمد.
+- بدأ Phase13A design-only وفق D-053: runbooks وSLI/SLO/RPO/RTO/DR templates موثقة، دون numeric targets أو مزود أو خدمات خارجية. Phase12 تبقى IN_PROGRESS وPhase13B التشغيلية WAITING_DEPENDENCY.

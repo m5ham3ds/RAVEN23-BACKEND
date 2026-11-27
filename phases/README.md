@@ -97,3 +97,9 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 ## Phase12A contract finding — 28 نوفمبر 2026
 
 عميل Flutter يتوقع عمليات playlist import/sharing، لكن Backend الحالي يقدم sync endpoint فقط ولا يملك schema/fields/routes المقابلة. تم توثيق `PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING` في خريطة البيانات لإحالته إلى contract review الخاصة بـPhase06 قبل التنفيذ؛ لم يحدث أي تغيير API أو schema.
+
+
+## Phase13A — دليل التشغيل المحايد
+
+- أضيف phases/PHASE-13-OPS-RUNBOOKS.md، ويحتوي contracts الصحة الفعلية (/up و/ready و/api/v1/health)، وإجراءات API/DB/queue/outbox/private media/credentials/migration/release/backup incidents، وسجل SLI/SLO وRPO/RTO وincident template، مع إبقاء جميع العتبات والأدوار والجدولة والتكلفة TBD.
+- Phase13A design only بدأ وفق D-053 بعد نجاح CI على main. Phase12 تبقى IN_PROGRESS وPhase13B التشغيلية WAITING_DEPENDENCY؛ لا خدمات أو موارد خارجية.

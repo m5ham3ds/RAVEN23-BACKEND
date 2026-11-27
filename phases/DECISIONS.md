@@ -442,3 +442,15 @@
 - القيود: لا اختيار provider/region/SKU/cost أو DB source/target، لا الاتصال بقاعدة إنتاج، ولا قراءة أسرار أو backup لبيانات مستخدم حقيقية، ولا apply/deploy/DNS/cutover. كل ذلك يتطلب إعادة فتح قرار الخدمات بعد الخطة وموافقات مستقلة محددة.
 - حالة المراحل: Phase11 = PAUSED/DEFERRED_BY_OWNER عند الحد الخارجي؛ Phase12 = IN_PROGRESS ضمن 12A فقط؛ 12B real migration و12C production cutover = WAITING_EXTERNAL/OWNER_APPROVAL.
 - السبب: مواصلة التحضير والاختبار الممكنين دون تجاوز D-050/D-051 أو المخاطرة ببيانات المستخدمين.
+
+
+## D-053 — السماح ببدء تصميم Phase13A المحايد بالتوازي مع بوابات Phase12 الخارجية
+
+- **التاريخ:** 28 نوفمبر 2026
+- **الحالة:** نافذ بتوجيه المالك للانتقال إلى المرحلة التالية بعد نجاح عمليات CI.
+- **القرار:** بعد نجاح Docker/Security/Authentication/Pint على main، يُسمح ببدء Phase13A فقط، وهي صياغة runbooks وحصر SLI/SLO/RPO/RTO/DR ومتطلبات التشغيل بصيغة محايدة للمزود، بالتوازي مع استمرار Phase12A وأثناء انتظار Phase12B/12C الخارجية.
+- **لا يغير القرار اعتماد Phase13B:** لا يجوز تشغيل production operations أو اعتماد Phase13 COMPLETE قبل Phase12 COMPLETE؛ كما لا يمنح هذا القرار أي اختيار مزود أو وجهة أو منطقة أو تكلفة.
+- **ما هو مسموح:** توثيق health/readiness contracts، incident scenarios، queue/outbox/storage safe handling، backup/restore evidence requirements، patch/access review templates، وcost-report schema مع إبقاء القيم غير المعتمدة TBD.
+- **ما هو محظور:** لا إنشاء dashboards أو alert destinations/rules فعلية، ولا backup schedules أو IAM/secrets/monitoring accounts أو cloud resources، ولا SMTP/Push/S3/registry/DNS/deploy/production DB، ولا تعيين أرقام RPO/RTO أو alert thresholds من دون موافقة.
+- **حالة المراحل:** Phase12 تبقى IN_PROGRESS؛ 12B/12C WAITING_EXTERNAL/OWNER_APPROVAL. Phase13 تصبح IN_PROGRESS في 13A design-only؛ 13B WAITING_DEPENDENCY حتى Phase12 COMPLETE والموافقات اللازمة.
+- **السبب:** تنفيذ ما يمكن تطويره واختباره دون مزود حتى نهاية خطة Backend بالكامل وفق D-051، من دون تجاوز الاعتماديات الحقيقية أو تحويل نجاح CI إلى ادعاء تشغيل إنتاجي.

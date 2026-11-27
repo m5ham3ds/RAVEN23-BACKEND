@@ -37,7 +37,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
 | 11 | البنية التحتية المحمولة والنشر — PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي (D-050/D-051). 11A و11B1 مكتملان تقنيًا؛ 11C provider-neutral guardrails اجتازت 30/30 وCI السابق ناجح؛ 11C adapters و11B2 و11D–11F مؤجلة حتى قرار الخدمات بعد اكتمال خطة Backend وشرط 10B اليدوي. | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy. لا يُعلن اكتمال Phase11 ككل؛ يُستأنف مسارها الخارجي بعد مراجعة الخدمات الموحدة وموافقات منفصلة. |
 | 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). source-level mapping + Flutter legacy/SQLite candidate map موثق؛ full-schema CI + Docker #675 اجتازت على `6750eac` مع 23 migrations، 34 public tables، 21 sequences وحالة last_value/is_called matched، والتوقيع/rollback نجحا. | 12B real source/target و12C delta/cutover/hypercare مؤجلة إلى ما بعد D-051 واعتماد source-of-truth والمصدر/الوجهة والموافقات الصريحة؛ لا اتصال بالإنتاج. |
-| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — WAITING_DEPENDENCY؛ أعمال التخطيط المحايد ممكنة، أما إعداد الخدمات والتنبيهات والنسخ الفعلية فمؤجل لما بعد قرار المزود والنشر | Phase12 ثم اختيار المزود/المنطقة واعتماد الميزانية وRPO/RTO قبل التشغيل الفعلي |
+| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — IN_PROGRESS (13A provider-neutral runbooks/SLI/SLO/DR design only؛ بدأ بالتوازي وفق D-053). 13B live monitoring/alerts/backup/restore/operations تبقى WAITING_DEPENDENCY. | 13A لا تحتاج Phase12 أو مزودًا؛ 13B تتطلب Phase12 COMPLETE ثم اختيار المزود/المنطقة/الميزانية واعتماد RPO/RTO وموافقة تشغيل منفصلة. |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
 
@@ -75,7 +75,8 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 اكتمال أعمال Backend المستقلة عن المزود ──> قرار موحد بمزودي الخدمات/المنطقة/التكلفة وموافقات منفصلة ──> 11B2 و11C provider adapters و11D–11F provisioning/staging/deployment
 Phase12A محايدة للمزود (inventory + data mapping + CI restore rehearsal) يمكن تنفيذها بالتوازي مع استكمال Backend
 انتهاء جميع أعمال Backend المستقلة ──> قرار مزود موحد + موافقة مصدر/وجهة ──> 11B2/11D–11F وPhase12B real backup/restore
-Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتعافي المستمر
+Phase12A provider-neutral preparation + D-053 ──> Phase13A runbooks/SLI/SLO/DR design (parallel, no services)
+Phase12B + 12C COMPLETE + قرار الخدمات وموافقات تشغيل ──> Phase13B live operations/resilience
 ```
 
 ## 5. بوابة جاهزية المرحلة
@@ -360,3 +361,12 @@ Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتع�
 ## 17. Phase12A — playlist import/sharing contract gap
 
 كشف تدقيق العميل/الخادم أن واجهات import/sharing متوقعة في Flutter لكنها غير منفذة في Backend الحالي. لا ننفذها ضمن Phase12، ولا نفترض توافر تلك البيانات مركزيًا. تراجع ضمن contract review مع Phase06؛ تظل Phase12 تحفظ SQLite fields محليًا ولا تجري migration فعلية.
+
+
+## 18. Phase13A opened after successful CI review — 28 November 2026
+
+- أحدث main قبل هذا التغيير كان f46751768a4299aa08de221911343c2f2abb9520، والفرع الوحيد main.
+- Docker Validation #681, Security #427, Authentication #303, Pint #425 كلها SUCCESS على f467517. تغييرات Infra لم تحدث، لذلك IaC #31 لا تزال latest relevant pass (30/30) على dbd281c. auth-smoke workflow manual فقط ويتطلب api_base_url؛ لا عنوان staging معتمد، لذلك لم يُشغّل.
+- بناءً على نجاح البوابات، بدأ نطاق Phase13A المحايد بموجب D-053 بالتوازي مع بقاء Phase12B/12C الخارجية مؤجلة. لا يعني ذلك أن Phase12 COMPLETE أو أن Phase13 التشغيلية بدأت.
+- Phase13A runbooks/SLI/SLO/RPO/RTO forms هي وثائق design فقط؛ كل القيم والعتبات والأدوار والجدولة والتكلفة TBD.
+- 13B live monitoring, alert delivery, provider backup, restore drills, DNS, deployments and production access remain gated by Phase12 COMPLETE and later owner/provider approvals.
