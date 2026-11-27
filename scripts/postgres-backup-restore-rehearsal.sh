@@ -187,11 +187,45 @@ media_fingerprint() {
 event_fingerprint() {
   scalar "$1" "SELECT md5(COALESCE(string_agg(concat_ws('|', event_id::text, account_id::text, idempotency_key, payload::text, to_char(recorded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')), '|' ORDER BY event_id), '')) FROM migration_synthetic_events"
 }
-schema_fingerprint() {
-  scalar "$1" "SELECT md5(COALESCE(string_agg(conrelid::regclass::text || ':' || contype::text || ':' || pg_get_constraintdef(oid), '|' ORDER BY conrelid::regclass::text, conname), '')) FROM pg_constraint WHERE connamespace = 'public'::regnamespace AND conrelid IN ('migration_synthetic_accounts'::regclass, 'migration_synthetic_media'::regclass, 'migration_synthetic_events'::regclass)"
+constraints_manifest() {
+  scalar "$1" "SELECT COALESCE(string_agg(
+    format('%I.%I|%I|type=%s|definition=%s|validated=%s|deferrable=%s|deferred=%s|local=%s|inheritance_count=%s|noinherit=%s',
+      ns.nspname, tbl.relname, con.conname, con.contype,
+      pg_get_constraintdef(con.oid, false), con.convalidated,
+      con.condeferrable, con.condeferred, con.conislocal,
+      con.coninhcount, con.connoinherit),
+    E'\\n' ORDER BY ns.nspname, tbl.relname, con.conname), '')
+  FROM pg_constraint con
+  JOIN pg_class tbl ON tbl.oid = con.conrelid
+  JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+  WHERE ns.nspname = 'public'
+    AND tbl.relname IN ('migration_synthetic_accounts', 'migration_synthetic_media', 'migration_synthetic_events')"
 }
-index_fingerprint() {
-  scalar "$1" "SELECT md5(COALESCE(string_agg(indexname || ':' || indexdef, '|' ORDER BY indexname), '')) FROM pg_indexes WHERE schemaname = 'public' AND tablename LIKE 'migration_synthetic_%'"
+indexes_manifest() {
+  scalar "$1" "SELECT COALESCE(string_agg(
+    format('%I.%I|%I|%s', schemaname, tablename, indexname, indexdef),
+    E'\\n' ORDER BY schemaname, tablename, indexname), '')
+  FROM pg_indexes
+  WHERE schemaname = 'public'
+    AND tablename LIKE 'migration_synthetic_%'"
+}
+manifest_fingerprint() {
+  printf '%s' "$2" | sha256sum | awk '{print $1}'
+}
+assert_manifest_same() {
+  name="$1"
+  expected="$2"
+  actual="$3"
+  if [ "$expected" != "$actual" ]; then
+    echo "::error::$name manifest mismatch; source and restored definitions follow." >&2
+    echo "::group::Source $name manifest"
+    printf '%s\\n' "$expected"
+    echo "::endgroup::"
+    echo "::group::Restored $name manifest"
+    printf '%s\\n' "$actual"
+    echo "::endgroup::"
+    return 1
+  fi
 }
 
 source_accounts="$(scalar "$source_db" 'SELECT count(*) FROM migration_synthetic_accounts')"
@@ -214,17 +248,27 @@ source_media_hash="$(media_fingerprint "$source_db")"
 target_media_hash="$(media_fingerprint "$target_db")"
 source_events_hash="$(event_fingerprint "$source_db")"
 target_events_hash="$(event_fingerprint "$target_db")"
-source_schema_hash="$(schema_fingerprint "$source_db")"
-target_schema_hash="$(schema_fingerprint "$target_db")"
-source_index_hash="$(index_fingerprint "$source_db")"
-target_index_hash="$(index_fingerprint "$target_db")"
+source_schema_manifest="$(constraints_manifest "$source_db")"
+target_schema_manifest="$(constraints_manifest "$target_db")"
+source_index_manifest="$(indexes_manifest "$source_db")"
+target_index_manifest="$(indexes_manifest "$target_db")"
+source_schema_hash="$(manifest_fingerprint "$source_db" "$source_schema_manifest")"
+target_schema_hash="$(manifest_fingerprint "$target_db" "$target_schema_manifest")"
+source_index_hash="$(manifest_fingerprint "$source_db" "$source_index_manifest")"
+target_index_hash="$(manifest_fingerprint "$target_db" "$target_index_manifest")"
+source_constraints_count="$(printf '%s\\n' "$source_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
+target_constraints_count="$(printf '%s\\n' "$target_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
 
 assert_same "Accounts content fingerprint" "$source_accounts_hash" "$target_accounts_hash"
 assert_same "Media content fingerprint" "$source_media_hash" "$target_media_hash"
 assert_same "Events content fingerprint" "$source_events_hash" "$target_events_hash"
+assert_same "Synthetic database constraint count" "10" "$source_constraints_count"
+assert_same "Restored database constraint count" "$source_constraints_count" "$target_constraints_count"
+assert_manifest_same "Database constraints" "$source_schema_manifest" "$target_schema_manifest"
 assert_same "Database constraints fingerprint" "$source_schema_hash" "$target_schema_hash"
+assert_manifest_same "Database indexes" "$source_index_manifest" "$target_index_manifest"
 assert_same "Database indexes fingerprint" "$source_index_hash" "$target_index_hash"
-echo "::notice::Synthetic row content, constraints and indexes matched after restore."
+echo "::notice::Synthetic row content, all 10 constraints and indexes matched after restore."
 
 mkdir -p "$(dirname "$REPORT_PATH")"
 cat > "$REPORT_PATH" <<EOF
