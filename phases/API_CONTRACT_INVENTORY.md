@@ -1,7 +1,7 @@
 # جرد عقد API بين تطبيق RAVEN23 وRAVEN23-BACKEND
 
-**تاريخ الجرد:** 24 نوفمبر 2026
-**Backend implementation SHA:** f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19
+**آخر مزامنة المصدر:** 27 نوفمبر 2026
+**Repository snapshot SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` (الـcommit الحالي توثيقي؛ API source unchanged في هذه الشريحة)
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE — جرد source-level لمسارات Backend ومستهلكي Laravel الأساسية؛ التكامل الحي يؤجل إلى staging.
 
@@ -15,7 +15,7 @@
 
 ## 2. المسارات الموجودة في Backend الحالي
 
-المصدر: routes/api.php على main implementation SHA f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19.
+المصدر التاريخي: routes/api.php على main SHA f0b9823c2ab5dba2ddcc9b92600abe6ac1476c19؛ الجدول الكامل الحالي مشتق من contracts/api-v1.json واختبار ApiV1ContractTest.
 
 | الطريقة | المسار | المصادقة | وضع التنفيذ |
 |---|---|---|---|
@@ -25,8 +25,8 @@
 | POST | /api/v1/auth/login | عام | تسجيل الدخول بالبريد وكلمة المرور |
 | POST | /api/v1/auth/google | عام | تحقق Google ID token ثم إصدار session |
 | POST | /api/v1/auth/guest | عام | إنشاء حساب ضيف خادمي |
-| POST | /api/v1/auth/forgot-password | عام | المسار موجود لكن يعيد 503؛ غير مكتمل |
-| POST | /api/v1/auth/reset-password | عام | المسار موجود لكن يعيد 503؛ غير مكتمل |
+| POST | /api/v1/auth/forgot-password | عام | PasswordBroker flow موجود؛ تسليم البريد معطل حتى اعتماد mail provider/action URL |
+| POST | /api/v1/auth/reset-password | عام | one-time reset flow موجود؛ التسليم الخارجي للرسائل معطل حتى اعتماد المزود |
 | GET | /api/v1/users/check-username | عام | التحقق من توفر اسم المستخدم |
 | POST | /api/v1/auth/logout | Bearer | إلغاء token الحالي |
 | POST | /api/v1/devices/register | Bearer | تسجيل/تحديث FCM token مشفر ومرتبط بالمستخدم الحالي؛ fcm_token, platform, app_version |
@@ -40,7 +40,7 @@
 | PUT | /api/v1/user/profile | Bearer | تحديث الاسم وusername وprofile_id وphoto_url |
 | POST | /api/v1/user/change-email | Bearer | تغيير البريد مع تحقق كلمة المرور |
 | POST | /api/v1/user/change-password | Bearer | تغيير كلمة المرور وإلغاء جميع tokens |
-| DELETE | /api/v1/user/account | Bearer | إلغاء tokens ثم حذف الحساب مع cascade لبيانات owner FK |
+| DELETE | /api/v1/user/account | Bearer | حذف الحساب مع cascade؛ يمنع حذف الحساب ذي wallet credit موجب حتى تأكيد acknowledge_wallet_credit=true (HTTP 422) |
 | POST | /api/v1/sync/bookmarks | Bearer | مزامنة movie/tv bookmarks، owner-scoped |
 | DELETE | /api/v1/sync/bookmarks/{type}/{id} | Bearer | حذف bookmark idempotent للمستخدم الحالي |
 | POST | /api/v1/sync/recently-watched | Bearer | مزامنة movie/episode progress مع revision/tombstones |
@@ -286,3 +286,60 @@ SyncTransport يضيف client_time_utc إلى كل POST sync payload ويطلب 
 - The response omits wallet limits and any plan price/period/currency/terms. Flutter model defaults are not evidence of approved commercial values.
 - Query parameters cannot open purchases or introduce plan values. There is no mutation endpoint, payment provider, wallet, checkout or webhook.
 - The route restores the read contract only; purchase enablement awaits explicit approval of product terms.
+
+## 20. المصدر الحالي الكامل لعقد API v1 — 27 نوفمبر 2026
+
+- `contracts/api-v1.json` هو manifest الآلي الحالي، ويحتوي 39 سجل route/method/auth.
+- `contracts/API-V1.md` يشرح الاستجابات المرئية، و`tests/Feature/ApiV1ContractTest.php` يقارن manifest بالـRouter ويختبر حدود المصادقة وأشكال الاستجابة.
+- `GET /up` هو liveness من Laravel bootstrap خارج API v1؛ readiness داخل `GET /api/v1/health`.
+- الـcommit `617ce7e` لا يغير `routes/api.php` أو `contracts/api-v1.json`؛ الجدول أدناه هو المرجع الحالي ويعلو على الجداول الأقدم في هذه الوثيقة عند التعارض.
+
+| Method | API path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/health` | Public/signed | API health and schema readiness summary |
+| GET | `/billing/plans` | Public/signed | Public catalog; purchases stay disabled until commercial approval |
+| GET | `/user/media/{owner}/{media}/temporary` | Public/signed | Signed short-lived media URL; signed middleware is required |
+| POST | `/auth/register` | Public/signed | Create account and initial Sanctum session |
+| POST | `/auth/login` | Public/signed | Password login and Sanctum session |
+| POST | `/auth/google` | Public/signed | Verified Google login and Sanctum session |
+| POST | `/auth/guest` | Public/signed | Create guest account and session |
+| POST | `/auth/forgot-password` | Public/signed | Non-enumerating password recovery request |
+| POST | `/auth/reset-password` | Public/signed | One-time password reset |
+| POST | `/auth/verify-email` | Public/signed | One-time email verification |
+| GET | `/users/check-username` | Public/signed | Username availability |
+| POST | `/auth/logout` | Bearer | Revoke the current Sanctum token |
+| POST | `/devices/register` | Bearer | Register authenticated FCM installation |
+| POST | `/push/subscriptions` | Bearer | Register authenticated OneSignal subscription |
+| DELETE | `/push/subscriptions/{subscriptionId}` | Bearer | Remove an owned OneSignal subscription |
+| POST | `/auth/email/verification-notification` | Bearer | Request verification notification |
+| GET | `/user/devices` | Bearer | List the authenticated account's device sessions |
+| DELETE | `/user/devices` | Bearer | Revoke all device sessions for the authenticated account |
+| DELETE | `/user/devices/{tokenId}` | Bearer | Revoke one owned device session |
+| GET | `/user/media/{media}` | Bearer | Read owned private media metadata/content |
+| POST | `/user/media` | Bearer | Create private media record |
+| DELETE | `/user/media/{media}` | Bearer | Delete owned private media record |
+| GET | `/user/entitlements` | Bearer | Read server-calculated entitlements |
+| GET | `/wallet` | Bearer | Read authenticated account wallet |
+| GET | `/wallet/transactions` | Bearer | Read owner-scoped cursor-paginated wallet ledger |
+| GET | `/user/profile` | Bearer | Read authenticated account profile |
+| PUT | `/user/profile` | Bearer | Update allowed profile fields |
+| GET | `/user/preferences` | Bearer | Read authenticated account preferences |
+| PUT | `/user/preferences` | Bearer | Update authenticated account preferences |
+| GET | `/user/data-export` | Bearer | Export the authenticated account's server-held data |
+| POST | `/user/change-email` | Bearer | Request account email change |
+| POST | `/user/change-password` | Bearer | Change account password |
+| DELETE | `/user/account` | Bearer | Delete authenticated account with wallet-credit acknowledgement rule |
+| POST | `/sync/bookmarks` | Bearer | Bookmark full/delta synchronization |
+| DELETE | `/sync/bookmarks/{type}/{id}` | Bearer | Delete one owned bookmark |
+| POST | `/sync/recently-watched` | Bearer | Recently-watched synchronization |
+| POST | `/sync/playlists` | Bearer | Playlist synchronization |
+| POST | `/sync/preferences` | Bearer | Preference revision synchronization |
+| POST | `/sync/wellness` | Bearer | Wellness session and daily-summary synchronization |
+
+### قراءة حالة المجالات الحالية
+
+- Auth routes موجودة، لكن real Google Android OAuth وmail delivery staging غير مثبتين؛ mail provider selection مؤجل بموجب D-050.
+- Push routes تسجل FCM/OneSignal installation tokens المشفرة فقط؛ وجودها لا يعني اعتماد مزود sender أو إثبات التسليم.
+- Private media routes موجودة مع signed short-lived URL وowner authorization؛ storage default محلي، واختبار S3Mock لا يثبت bucket خارجي.
+- Entitlements وwallet routes الحالية read-only؛ لا top-up/checkout/payment/webhook/renewal/coupon public routes.
+- Billing plan catalog موجود لكنه مغلق افتراضيًا (`purchases_enabled=false`, `plans=[]`).
