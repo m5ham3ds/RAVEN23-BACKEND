@@ -105,10 +105,10 @@ assert_reject() {
       printf '\nresource "aws_s3_bucket" "example" {}\n' > "$fixture/infra/opentofu/storage.tofu"
       ;;
     backend-tofu)
-      printf '\nterraform { backend "s3" {} }\n' > "$fixture/infra/opentofu/backend.tofu"
+      printf '\nterraform {\n  backend "s3" {}\n}\n' > "$fixture/infra/opentofu/backend.tofu"
       ;;
     required-providers-tofu)
-      printf '\nterraform { required_providers { aws = { source = "hashicorp/aws" } } }\n' > "$fixture/infra/opentofu/providers.tofu"
+      printf '\nterraform {\n  required_providers {\n    aws = { source = "hashicorp/aws" }\n  }\n}\n' > "$fixture/infra/opentofu/providers.tofu"
       ;;
     provider-json)
       printf '{"provider":{"aws":{"region":"us-east-1"}}}\n' > "$fixture/infra/opentofu/providers.tf.json"
