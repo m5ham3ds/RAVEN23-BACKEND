@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified repository SHA: 617ce7efd669b4d3af61c42f77b4cd1f986e3fae — 27 نوفمبر 2026  
+> latest fully CI-verified backend baseline before the docs-only reconciliation: 617ce7efd669b4d3af61c42f77b4cd1f986e3fae — 27 نوفمبر 2026  
 > application/runtime note: commit 617ce7e is documentation-only relative to 27cfcc9; application/runtime code was not changed in this documentation synchronization  
 > الفرع التشغيلي الوحيد: main
 
@@ -27,6 +27,7 @@
 15. PHASE-XX-*.md — مواصفات كل مرحلة ومعايير قبولها.
 16. PUSH-PROVIDER-SELECTION-DEFERRED.md — قرار تأجيل اختيار FCM/OneSignal.
 17. reports/PHASE_REPORT_TEMPLATE.md — قالب التقرير الإلزامي.
+18. reports/PHASES-SOURCE-RECONCILIATION-AND-GLOBAL-PROVIDER-DEFERRAL-2026-11-27.md — أحدث مزامنة للمصدر وقرار D-050.
 
 ## الحالة الحالية
 
