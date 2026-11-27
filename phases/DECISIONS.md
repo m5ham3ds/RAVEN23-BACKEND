@@ -406,3 +406,16 @@
 - **السبب:** المحاولة الثانية على `19a3a81` أنشأت الجداول وأدخلت الصفوف الاصطناعية ثم خرجت برمز 1 دون رسالة محددة؛ لم يكن ممكنًا معرفة إن كان الإخفاق في dump أو encryption أو restore أو fingerprint guard.
 - **الإصلاح:** إضافة milestones واضحة وعبارات خطأ لكل command، وفحوص archive/checksum/row count/fingerprint مع إظهار اسم وقيم المقارنة فقط (بيانات اصطناعية/sha256)، وتعديل دالة الاستعلام حتى لا تبتلع pipeline حالة فشل psql.
 - **الحدود:** لا تغيير runtime أو schema الإنتاجي؛ قاعدة CI المؤقتة وحدها.
+
+## D-050 — تأجيل موحد لجميع اختيارات مزودي الخدمات إلى ما بعد تطوير Backend المستقل عن المزود
+
+- **التاريخ:** 27 نوفمبر 2026
+- **الحالة:** قرار مالك صريح ونافذ على جميع المراحل ذات الاعتماد الخارجي.
+- **القرار:** لا يختار المالك الآن أي مزود استضافة أو قاعدة بيانات أو تخزين ملفات أو بريد أو Push أو دفع أو registry أو secrets/identity أو monitoring/logs أو DNS/edge أو region أو خطة/تكلفة تشغيلية. تُجمع هذه القرارات في مراجعة واحدة بعد اكتمال جميع أعمال تطوير Backend التي يمكن تنفيذها والتحقق منها دون الاعتماد على مزود خارجي، وقبل تنفيذ provisioning أو staging integrations أو production cutover.
+- **النطاق الذي يشمله:** Phase04 (Google Android OAuth/mail provider staging)، Phase08 (S3/mail/Push provider and retention/cost)، Phase09 (PaymentProvider والخطط والشروط التجارية)، Phase11 (hosting/database/region/registry/secrets/identity/monitoring/DNS وprovider-specific adapters/cost scorecard)، Phase12 (source/destination selection وreal backup/restore/cutover)، Phase13 (production operations/DR/monitoring/cost). لا يُختار FCM أو OneSignal أو مزود S3 أو بريد أو دفع أو cloud provider بالافتراض.
+- **العمل المسموح الآن:** تطوير واختبار Laravel/API/schema/migrations/contracts والميزات والـprovider-neutral abstractions والـIaC scaffold والاختبارات المحلية/SQLite/PostgreSQL/S3Mock/fake transports والـsynthetic backup/restore وCI، بشرط عدم الحاجة إلى credentials أو موارد خارجية.
+- **المحظورات حتى إعادة فتح القرار:** لا provider-specific SDK/sender/payment adapters أو credentials/secrets أو حسابات أو موارد مدفوعة أو remote state/backend أو OpenTofu apply أو OCI registry push أو DNS change أو staging/production deployment أو اتصال/تغيير في قاعدة الإنتاج.
+- **السلوك الافتراضي الذي يبقى كما هو:** `RAVEN23_PUSH_ENABLED=false` و`RAVEN23_PUSH_PROVIDER=none`، إرسال البريد مغلق، `purchases_enabled=false` و`plans=[]`، والتخزين المحلي الخاص هو default؛ S3Mock لا يثبت مزودًا فعليًا.
+- **أثر الحالة:** لا يُحوّل هذا التأجيل أي مرحلة إلى COMPLETE؛ Phase04 تبقى PARTIAL، Phase08/09/11 تبقى IN_PROGRESS، Phase10B تبقى DEFERRED_BY_OWNER، Phase12/13 تبقيان WAITING_DEPENDENCY. لا تتوقف أعمال التطوير المستقلة عن المزود.
+- **إعادة فتح القرار:** بعد إكمال الأعمال المحايدة، تُقدم مقارنة موثقة تشمل المتطلبات والتكلفة والأمن والخصوصية والنقل والاعتمادية، ثم يوافق المالك صراحة على كل حساب/مزود/منطقة/ميزانية/موارد ونطاق تنفيذ على حدة. اختيار المزود لا يعد موافقة على apply أو cutover.
+- **العلاقة بالقرار السابق:** يوسع D-050 قرار `PUSH-PROVIDER-SELECTION-DEFERRED.md` المؤرخ 24 نوفمبر؛ لا يلغي أي قرار سابق ولا يعيد تفسير نجاح CI أو mocks على أنها تكامل خارجي.
