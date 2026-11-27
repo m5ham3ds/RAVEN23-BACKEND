@@ -1,6 +1,6 @@
 # مصفوفة ميزات RAVEN23 Backend — الموجود والجزئي والمفقود
 
-**Repository snapshot SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` (آخر commit؛ تغييرات توثيقية فقط)  
+**Backend application/runtime baseline:** `27cfcc9e577cca33c28e9845096a0c5564b02045`؛ **آخر SHA اجتاز CI الأربع قبل مزامنة الوثائق:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` (التغييرات بينهما توثيقية فقط)  
 **Flutter SHA:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE كجرد مصدر؛ آخر مزامنة 27 نوفمبر 2026. لا تدعي هذه المصفوفة تشغيل أي مزود خارجي أو staging/production.
 
