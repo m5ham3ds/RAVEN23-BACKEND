@@ -28,6 +28,8 @@ yarn-error.log
 *.tfplan
 *.plan
 *.tfvars
+*.tfvars.json
 *.auto.tfvars
+*.auto.tfvars.json
 crash.log
 crash.*.log
