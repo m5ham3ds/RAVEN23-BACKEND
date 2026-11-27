@@ -369,7 +369,7 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 
 **الحالة الحالية:** Phase11 تبقى IN_PROGRESS. 11A portability baseline و11B1 trust design ومعالجة فصل صلاحيات attestation مثبتة؛ 11C provider-neutral OpenTofu scaffold وفحوص CI و18/18 guardrails مثبتة. لا يلزم اختيار مزود لإكمال أو مواصلة الأعمال المحايدة.
 
-بموجب D-050، تؤجل جميع اختيارات hosting/compute وPostgreSQL provider/region وobject storage وregistry وsecrets/identity وmonitoring/logs وDNS/edge والتكاليف إلى ما بعد اكتمال أعمال Backend المستقلة عن المزود. لذلك:
+بموجب D-050، تؤجل جميع اختيارات hosting/compute وPostgreSQL provider/region وobject storage وregistry وsecrets/identity وmonitoring/logs وDNS/edge والتكاليف إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل (D-051). لذلك:
 
 - استمر في تحسين العقود المحايدة واختبارات IaC وdocs/guardrails وrelease evidence دون provider أو backend أو credentials أو apply.
 - لا تطلب من المالك الآن provider/region/workload budget أو موافقة موارد؛ scorecard يبقى unpriced/deferred حتى مرحلة الاختيارات النهائية.
