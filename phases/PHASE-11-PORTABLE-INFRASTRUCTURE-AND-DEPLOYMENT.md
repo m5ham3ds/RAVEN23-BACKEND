@@ -410,7 +410,7 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 - وثيقة التنفيذ المتصل بعد إعادة فتح D-051: `infra/opentofu/contracts/POST-PLAN-11B2-11F-EXECUTION-PLAYBOOK.md`؛ تجمع متطلبات 11B2 و11C و11D و11E و11F دون اختيار مزود مسبقًا.
 
 
-## 11. انتقال المرحلة إلى التأجيل — 28 نوفمبر 2026
+## 15. انتقال المرحلة إلى التأجيل — 28 نوفمبر 2026
 
 بناءً على توجيه المالك، لا نستمر في 11B2 أو adapters الخاصة بمزود أو إعداد environments/identity أو provisioning/staging/deployment الآن. تُجمع هذه الاختيارات مع خدمات Phase04 و08 و09 و12 و13 في مراجعة واحدة بعد اكتمال تطوير Backend المستقل عن المزود (D-050/D-051).
 
@@ -419,3 +419,10 @@ Repository SHA: c17fc84ac0f6acbe4a6d300913871441fb4e7ebe (workflow and documenta
 ما بقي: مرحلة 11 ليست COMPLETE. يظل 11C الكلي بانتظار adapter modules بعد القرار الموحد؛ 11B2 و11D–11F تتطلب 10B والموافقات والخدمات الحقيقية. العمل لا يمنع بدء Phase12A المحايدة ولا يعيد فتح أي اختيار مزود.
 
 لا registry push أو cloud resources أو secrets/OIDC role أو apply/deploy أو DNS أو production DB access في هذا الانتقال.
+
+
+### تحديث تحقق Phase12 على main — 28 نوفمبر 2026
+
+- Phase11 لم تُفتح مجددًا ولم تُعلن مكتملة؛ يبقى D-050/D-051 هو الحاكم لاختيارات الخدمات.
+- CI على current main \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\` اجتاز Docker #671/Auth #293/Security #417/Pint #415 جميعها SUCCESS؛ IaC #31 بقي SUCCESS على baseline dbd281c لأن ملفات IaC لم تتغير.
+- Full-schema database rehearsal هو عمل Phase12A، وليس provisioning أو staging ضمن Phase11. نجاحه لا يعني قاعدة إنتاج أو مزودًا أو registry push.

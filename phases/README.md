@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified baseline SHA: dbd281c545f5a2da5a6816afccebd4d929a02b70 — all five gates SUCCESS; Phase12 harness commits await their own CI verification — 28 نوفمبر 2026  
+> latest Phase12 CI-verified main SHA: 72730281a6c96208979e4c8a1eaa46fbc723dcdd — Docker/Auth/Security/Pint SUCCESS; IaC #31 SUCCESS on unchanged IaC baseline dbd281c — 28 نوفمبر 2026  
 > application/runtime note: commit 617ce7e is documentation-only relative to 27cfcc9; application/runtime code was not changed in this documentation synchronization  
 > الفرع التشغيلي الوحيد: main
 
@@ -16,6 +16,7 @@
 4. BACKEND_FILE_CATALOG.md — فهرس كل الملفات المتتبعة في Backend عند خط الأساس.
 5. API_CONTRACT_INVENTORY.md — مطابقة المسارات الحالية مع طلبات تطبيق RAVEN23.
 6. DATABASE_AND_DATA_INVENTORY.md — جرد الجداول والبيانات والـmigrations.
+7. PHASE-12-DATA-MAPPING-AND-INTEGRITY.md — خريطة ترحيل البيانات والعقود والقيود والتكامل.
 7. ENVIRONMENT_AND_SECRET_NAMES.md — أسماء متغيرات البيئة والأسرار فقط، دون قيم.
 8. WORKFLOW_INVENTORY.md — جرد GitHub Actions والاختبارات وعمليات النشر.
 9. FEATURE_MATRIX.md — ما هو موجود ومختبر، وما هو جزئي أو مفقود.
@@ -66,10 +67,16 @@
 رأس main 74f57a01c1475c66a32337dc6be549b187a23344 اجتاز بوابات Docker/Auth/Security/IaC/Pint الخمس؛ guardrails المحايدة للمزود 30/30. راجع تقرير reports/PHASE-11-CI-AND-PROVIDER-NEUTRAL-READINESS-2026-11-27.md. لا يغلق ذلك Phase11 الكلية: تبقى 11B2 و11C provider adapters و11D–11F مؤجلة حسب D-050/D-051، وPhase11 تظل IN_PROGRESS.
 
 20. infra/opentofu/contracts/POST-PLAN-11B2-11F-EXECUTION-PLAYBOOK.md — تسلسل التنفيذ ومعايير قبول 11B2–11F بعد نقطة قرار D-051.
+21. PHASE-12-DATA-MAPPING-AND-INTEGRITY.md — source-level mapping وAPI export v3 والـintegrity invariants.
 
 
 ## انتقال 28 نوفمبر 2026
 
 - Phase11 متوقفة عند بوابات مزود الخدمة، وليست مكتملة؛ جميع الاختيارات تبقى مؤجلة حتى نهاية خطة Backend.
-- Phase12A هي المرحلة النشطة الآن للأعمال المحايدة، ويظل اختبار full-schema على commit 46dd00b بانتظار CI.
+- Phase12A هي المرحلة النشطة الآن للأعمال المحايدة، وقد اجتاز full-schema rehearsal على main 7273028؛ خريطة mapping والـintegrity في PHASE-12-DATA-MAPPING-AND-INTEGRITY.md.
 - main هو الفرع الدائم الوحيد. لا تنشئ فروعًا إضافية.
+
+
+## تحديث Phase12A — CI result and mapping — 28 نوفمبر 2026
+
+اجتازت على current main بوابات Docker #671 وAuthentication #293 وSecurity #417 وPint #415. اختبار IaC #31 اجتاز على dbd281c وبقي صالحًا لأن ملفات IaC لم تتغير. تقرير full-schema artifact #15235408250: 23 migration files/ledger rows و34 public tables، وكل المقارنات المقررة متطابقة. لا يدل ذلك على بيانات إنتاج ولا يمنح إذنًا للترحيل الحقيقي.

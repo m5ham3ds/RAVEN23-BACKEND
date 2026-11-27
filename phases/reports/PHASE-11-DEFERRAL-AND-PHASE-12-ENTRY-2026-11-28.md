@@ -14,7 +14,7 @@
   - Pint #412 — SUCCESS: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46068443597
   - Authentication Regression #290 — SUCCESS: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46068443593
   - Security Scans #414 — SUCCESS: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46068443550
-- بعد هذا baseline أضيف اختبار full-schema rehearsal في d227461، ثم صُححت اتصالات CREATE/DROP وتصدير متغير rehearsal في 46dd00b. CI المرتبط بـ46dd00b كان قيد التنفيذ وقت إنشاء هذا التقرير؛ لذلك لا يُعلن نجاح الاختبار الجديد قبل استلام نتيجته.
+- بعد هذا baseline أضيف اختبار full-schema rehearsal في d227461، ثم صُححت اتصالات CREATE/DROP وتصدير متغير rehearsal في 46dd00b. اجتاز على current main 72730281a6c96208979e4c8a1eaa46fbc723dcdd ضمن Docker Validation #671 SUCCESS. كما اجتاز Docker على commit الوسيط 46dd00b؛ لا حاجة لافتراض نتيجة.
 - فحوص IaC/provider-neutral السابقة على 74f57a0 كانت 30/30، ولا تعني اعتماد مزود أو إنشاء مورد.
 
 ## Phase11 — ما أُنجز وما أُجّل
@@ -36,7 +36,7 @@
 5. يقارن public table inventory، column definitions، constraints، indexes، sequence definitions، triggers، views، per-table row counts، وSHA-256 content fingerprints.
 6. يرفع تقريرًا aggregate-only؛ لا يضم row values، ويحذف قواعد المصدر والهدف المؤقتة.
 
-حالة هذا الاختبار: PENDING CI على commit 46dd00bf9378436465bfec76fed4aaa1d8819ece. عند الفشل، يُفحص job log ويُصلح الاختبار ثم يعاد التحقق قبل اعتماد 12A slice.
+حالة الاختبار: PASS على current main 72730281a6c96208979e4c8a1eaa46fbc723dcdd. سجل التقرير 23 migration files و23 ledger rows و34 public tables؛ encrypted dump round-trip وrestore target المستقل ومقارنات schema/data كلها matched. لا بيانات row-level ضمن artifact. رابط Docker run: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759 ؛ artifact: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46077286759/artifacts/15235408250 ؛ digest: sha256:7cf5bf3ec6b5ce338e9c51e43eaa46fbc723dcdd.
 
 ## حدود المرحلة والبيانات
 
@@ -54,4 +54,13 @@
 - Phase12C: WAITING_OWNER_APPROVAL.
 - Phase13: تبقى لاحقة لـPhase12 والتحويل المعتمد.
 
-هذا التقرير يسجل انتقال نطاق العمل، ولا يمثل تقرير نجاح لاختبار full-schema الجديد أو تصريحًا بترحيل إنتاجي.
+أضيفت خريطة source-level mapping في phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md. اجتاز current main Docker #671 وAuth #293 وSecurity #417 وPint #415؛ IaC #31 بقي SUCCESS على dbd281c لأن infra files لم تتغير. هذا لا يمثل ترحيلًا إنتاجيًا أو تصريح cutover.
+
+
+## خريطة البيانات والـintegrity — 28 نوفمبر 2026
+
+أنشئ \`phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md\` لتثبيت المجالات والجداول والحقول التي يجب الحفاظ عليها: identity/auth، profiles/preferences/devices، bookmarks/recent/playlists/wellness، private media، notifications/push، entitlements/subscription ledger، wallets، وLaravel queue/session/cache.
+
+وثّقت أيضًا أن \`GET /api/v1/user/data-export\` format_version 3 لا يشمل كل قاعدة البيانات؛ يجب عدم استخدامه بدل full database backup. المصدر والوجهة الحقيقيان يظلان UNKNOWN_PENDING_SOURCE_APPROVAL / UNKNOWN_PENDING_PROVIDER_DECISION.
+
+الاختبار الكامل يثبت schema/data integrity لقاعدة CI المؤقتة فقط، ولا يثبت source production ولا object blob transfer ولا CDC/delta ولا key continuity ولا cutover.

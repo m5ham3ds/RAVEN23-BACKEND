@@ -1,7 +1,7 @@
 # المرحلة 12 — ترحيل البيانات والتحويل الإنتاجي والرجوع الآمن
 
 **الحالة:** IN_PROGRESS — نطاق 12A المحايد للمزود (inventory وCI synthetic/full-schema backup-restore rehearsals). 12B real source/target migration و12C cutover/hypercare تبقى WAITING_EXTERNAL/OWNER_APPROVAL؛ لا إنتاج ولا موافقة cutover.  
-**الاعتماديات:** المراحل 04–11 + backup/restore rehearsal + قرار المستخدم
+**الاعتماديات:** 12A تعتمد على source inventory والمخطط والـmigrations والـCI المحايد؛ يمكن تنفيذها بالتوازي مع بقية أعمال Backend. 12B/12C فقط تنتظر D-051 وقرار الخدمات والمصدر/الوجهة وموافقة مستقلة.
 
 ## الهدف
 نقل بيانات المستخدم الحالية إلى قاعدة الوجهة دون فقد هوية الحساب أو جلساته/بياناته، وتحويل API بأقل انقطاع ممكن مع وجود خطة rollback.
@@ -94,7 +94,7 @@
 4. مقارنة migration ledger، جرد public tables، تعريفات الأعمدة والقيود والفهارس والـsequences والـtriggers والـviews، ثم row counts وبصمة SHA-256 لمحتوى كل جدول.
 5. نشر JSON aggregate-only يحتوي counts/hashes لا قيم rows؛ تنظيف قواعد المصدر والهدف والملفات المؤقتة.
 
-حدود الإثبات: هذا rehearsal يثبت قابلية dump/restore للمخطط والصفوف الموجودة في PostgreSQL CI disposable فقط. لا يثبت حالة قاعدة إنتاج أو عدد مستخدميها، ولا يثبت تكاملًا مع مزود backup خارجي، ولا يختبر CDC/delta أو الكتابات الحية أو cutover. الاختبار أُضيف في commit 46dd00bf9378436465bfec76fed4aaa1d8819ece؛ يظل PENDING CI حتى يكتمل Docker gate على هذا الرأس.
+حدود الإثبات: هذا rehearsal يثبت قابلية dump/restore للمخطط والصفوف الموجودة في PostgreSQL CI disposable فقط. لا يثبت حالة قاعدة إنتاج أو عدد مستخدميها، ولا يثبت تكاملًا مع مزود backup خارجي، ولا يختبر CDC/delta أو الكتابات الحية أو cutover. الاختبار أضيف في commit 46dd00bf9378436465bfec76fed4aaa1d8819ece واجتاز لاحقًا على current main commit 72730281a6c96208979e4c8a1eaa46fbc723dcdd ضمن Docker Validation #671. تقرير artifact سجل 23 migrations/ledger rows و34 public tables وتطابق schema/data manifests؛ artifact #15235408250 (SHA-256: 7cf5bf3ec6b5ce338e9c51e43eaa46fbc723dcdd).
 
 ## 3 — مسار Phase12A / Phase12B / Phase12C
 
@@ -103,3 +103,16 @@
 - 12C — Production cutover and hypercare (WAITING_OWNER_APPROVAL): نافذة صريحة، موافقة مالك منفصلة، final backup/delta، validation/smoke tests، routing/cutover، rollback drill وفترة مراقبة متفق عليها. لا تنفذ الآن.
 
 لا تعني حالة IN_PROGRESS في 12A أن بيانات Neon/Render أو Firebase أصبحت متاحة أو أن قرار مزود قاعدة البيانات قد فُتح.
+
+
+## 4 — توثيق خريطة البيانات والـintegrity
+
+توجد خريطة الجداول والحقول والقيود ومخاطر التشفير وحدود API export في \`phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md\`.
+
+النقاط التي لا يجوز إغفالها:
+- API \`GET /api/v1/user/data-export\` يعيد format_version 3 لبيانات الحساب والملف والتفضيلات والأجهزة والوسائط الوصفية والمفضلة وسجل المشاهدة والقوائم؛ لا يحتوي كل سجلات DB ولا blob files ولا credentials. ليس database backup بديلًا.
+- يلزم حفظ user IDs وUUIDs وidempotency/change receipts/tombstones/revisions والتوقيت UTC milliseconds والـappend-only ledgers.
+- media blobs خارج PostgreSQL وتتطلب نقل bytes والتحقق من size/checksum بصورة منفصلة.
+- push tokens وnotification payloads لها اعتماد تشفيري على APP_KEY؛ لا تغيير مفتاح/إعادة تشفير دون إجراء معتمد.
+- المصدر الفعلي والوجهة الفعلية غير معتمدين؛ لا row counts إنتاجية معروفة.
+

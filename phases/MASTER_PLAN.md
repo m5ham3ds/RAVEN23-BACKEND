@@ -36,7 +36,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 09 | الاشتراكات والصلاحيات — IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI؛ اعتماد الخطط والأسعار والشروط ومزود الدفع مؤجل إلى ما بعد تطوير Backend) | 03–05؛ لا مشتريات أو أسعار أو PaymentProvider قبل قرار المالك في مرحلة الاختيارات النهائية |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
 | 11 | البنية التحتية المحمولة والنشر — PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي (D-050/D-051). 11A و11B1 مكتملان تقنيًا؛ 11C provider-neutral guardrails اجتازت 30/30 وCI السابق ناجح؛ 11C adapters و11B2 و11D–11F مؤجلة حتى قرار الخدمات بعد اكتمال خطة Backend وشرط 10B اليدوي. | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy. لا يُعلن اكتمال Phase11 ككل؛ يُستأنف مسارها الخارجي بعد مراجعة الخدمات الموحدة وموافقات منفصلة. |
-| 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). synthetic PostgreSQL encrypted backup/restore سبق نجاحه؛ أضيف اختبار full-schema backup/restore على PostgreSQL CI المعزول وينتظر CI على 46dd00b. | لا يزال اختيار المصدر/الوجهة والنسخ الحقيقي والاستعادة المعزولة وwrite-delta plan وcutover الفعلي مؤجلًا إلى ما بعد D-051 وموافقات صريحة؛ لا اتصال بالإنتاج. |
+| 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). source-level data mapping موثق؛ full-schema encrypted PostgreSQL CI rehearsal اجتاز على `7273028` (23 migrations، 34 public tables، schema/data fingerprints matched). | 12B real source/target backup/restore و12C delta/cutover/hypercare مؤجلة إلى ما بعد D-051 واعتماد المصدر/الوجهة وموافقات صريحة؛ لا اتصال بالإنتاج. |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — WAITING_DEPENDENCY؛ أعمال التخطيط المحايد ممكنة، أما إعداد الخدمات والتنبيهات والنسخ الفعلية فمؤجل لما بعد قرار المزود والنشر | Phase12 ثم اختيار المزود/المنطقة واعتماد الميزانية وRPO/RTO قبل التشغيل الفعلي |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
@@ -73,7 +73,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 02 + 03 + 10G ──> 11A portability baseline + 11B1 trust design
 11A + 11B1 ──> 11C provider-neutral IaC design/validation (لا موارد ولا backend)
 اكتمال أعمال Backend المستقلة عن المزود ──> قرار موحد بمزودي الخدمات/المنطقة/التكلفة وموافقات منفصلة ──> 11B2 و11C provider adapters و11D–11F provisioning/staging/deployment
-Phase12A محايدة للمزود (inventory + CI restore rehearsal) يمكن تنفيذها بالتوازي مع استكمال Backend
+Phase12A محايدة للمزود (inventory + data mapping + CI restore rehearsal) يمكن تنفيذها بالتوازي مع استكمال Backend
 انتهاء جميع أعمال Backend المستقلة ──> قرار مزود موحد + موافقة مصدر/وجهة ──> 11B2/11D–11F وPhase12B real backup/restore
 Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتعافي المستمر
 ```
@@ -321,3 +321,11 @@ Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتع�
 - الالتزام 46dd00b أضاف السكربت والـworkflow بعد مراجعة مسار اتصال CREATE/DROP ومتغير rehearsal. النتيجة ما تزال بانتظار CI؛ لا تسجل PASS قبل انتهاء Docker gate بنجاح.
 - لا اتصال بقاعدة Neon/Render أو Firebase، ولا قراءة secrets، ولا backup/restore لبيانات مستخدمين، ولا اختيار target DB أو cutover أو تغيير DNS.
 - تظل Phase12 الكلية IN_PROGRESS فقط لأعمال 12A المحايدة؛ 12B real-source/target migration و12C cutover/hypercare تنتظر قرار الخدمات والموافقات المحددة.
+
+
+## 13. Phase12A full-schema CI acceptance and data mapping — 28 November 2026
+
+- اجتاز Docker Validation #671 على main commit 72730281a6c96208979e4c8a1eaa46fbc723dcdd تمرين full-schema PostgreSQL backup/encryption/restore؛ تقرير artifact سجل 23 migration files و23 ledger rows و34 public tables، مع تطابق schema/data manifests.
+- بقية بوابات الرأس نفسه: Docker #671 SUCCESS؛ Authentication #293 SUCCESS؛ Security #417 SUCCESS؛ Pint #415 SUCCESS. IaC لم تتغير منذ IaC #31 SUCCESS على dbd281c (30/30 guardrails)، ولذلك يسجل التقرير SHA منفصلًا ولا يدعي أنها أعيد تشغيلها على 7273028.
+- خريطة البيانات وعقد integrity أصبحت في \`phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md\`. تفرق بين API export v3 ونسخة database كاملة، وتحدد أن source/target الحقيقيين لا يزالان مجهولين حتى الموافقات.
+- Phase12A تبقى IN_PROGRESS حتى إكمال mapping والمخاطر/التسلسل والـsequence high-water checks وخطة consistent snapshot/delta المحايدة. لا يبدأ 12B/12C قبل D-051 وقرار الخدمات والمصدر/الوجهة وموافقات منفصلة.
