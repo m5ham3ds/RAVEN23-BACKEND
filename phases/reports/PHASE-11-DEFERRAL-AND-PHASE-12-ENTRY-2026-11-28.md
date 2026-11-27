@@ -76,3 +76,14 @@
 - schema manifest cfeed3162273eefebe90da3fdd3580bbecdc9bf9956ffeb69b51e9210c36c3c0؛ data manifest 274777e346f2ff12d80e206ac4458690f49b19075c41e0caa3c3e688384b0179؛ sequence manifest c1c26ace11d8e7b1afeade4b82317767eec87d651062570a96f76cda5c2de0dd.
 - Artifact #15236350311 digest sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654/artifacts/15236350311
 - Docker #675 overall still executing rollback/trusted-main signing at last poll; Pint #419/Auth #297/Security #421 passed. No production DB/secrets/rows, no cutover.
+
+
+## إغلاق بوابة Docker #675 والتحقيق في التشغيل الوسيط — 28 نوفمبر 2026
+
+Docker Validation #675 على 6750eac566c513c4fc97951f1b80cb7f54cd0c0a اكتمل SUCCESS، بعد إصلاح Docker #674 الذي فشل في sequence-state query لأن script حاول قراءة parameter $2 غير الممرر. الإصلاح جعل SQL query file name مشتقًا من database argument. أعيد full-schema test ونجح مع 21 sequences، ثم نجح rollback والتوقيع الموثوق.
+
+- Docker #674 failure: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078538941
+- Docker #675 success: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654
+- Phase12 report artifact #15236350311, SHA-256 907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6.
+
+بوابات Pint #419/Auth #297/Security #421 نجحت على runtime SHA نفسه. IaC #31 بقيت على dbd281c لأن ملفات IaC لم تتغير. رأس main الحالي 522f967 وثائقي فقط بعد runtime SHA 6750eac.

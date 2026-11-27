@@ -129,3 +129,10 @@
 - mapping names differs بين PRD القديم والجداول الحالية؛ تفاصيله في phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md.
 
 تظل 12A IN_PROGRESS حتى اعتماد source-of-truth/domain mapping، وتحليل guest/offline device coverage، ومعالجة تصميم الفجوات المحايدة. 12B/12C تبقيان مؤجلتين كما هي.
+
+
+## 6 — إغلاق بوابة اختبار full-schema sequence-state في Docker #675
+
+Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54cd0c0a. يضم تقرير Phase12 schemaVersion 2: 23 migration files/ledger rows، 34 public tables، و21 sequence states متطابقة بين المصدر/الهدف (last_value/is_called). اجتازت مقارنات schema/data/sequence manifests؛ artifact #15236350311.
+
+فشل Docker #674 في نفس الخطوة بسبب استخدام $2 غير الممرر تحت set -u؛ أصلح commit 6750eac مسار الملف وجعل Docker #675 يعيد التمرين بنجاح. كما اكتمل isolated rollback والتوقيع الموثوق. هذا لا يفتح 12B/12C ولا يغير شرط قرار المصدر/الوجهة وموافقة المالك.

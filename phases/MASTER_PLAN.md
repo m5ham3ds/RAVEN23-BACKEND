@@ -36,7 +36,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 09 | الاشتراكات والصلاحيات — IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI؛ اعتماد الخطط والأسعار والشروط ومزود الدفع مؤجل إلى ما بعد تطوير Backend) | 03–05؛ لا مشتريات أو أسعار أو PaymentProvider قبل قرار المالك في مرحلة الاختيارات النهائية |
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
 | 11 | البنية التحتية المحمولة والنشر — PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي (D-050/D-051). 11A و11B1 مكتملان تقنيًا؛ 11C provider-neutral guardrails اجتازت 30/30 وCI السابق ناجح؛ 11C adapters و11B2 و11D–11F مؤجلة حتى قرار الخدمات بعد اكتمال خطة Backend وشرط 10B اليدوي. | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy. لا يُعلن اكتمال Phase11 ككل؛ يُستأنف مسارها الخارجي بعد مراجعة الخدمات الموحدة وموافقات منفصلة. |
-| 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). source-level mapping + Flutter legacy/SQLite candidate map موثق؛ full-schema CI step اجتازت على `6750eac` مع 23 migrations، 34 public tables، 21 sequences وحالة last_value/is_called matched. Docker #675 ما زالت تكمل rollback. | 12B real source/target و12C delta/cutover/hypercare مؤجلة إلى ما بعد D-051 واعتماد source-of-truth والمصدر/الوجهة والموافقات الصريحة؛ لا اتصال بالإنتاج. |
+| 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). source-level mapping + Flutter legacy/SQLite candidate map موثق؛ full-schema CI + Docker #675 اجتازت على `6750eac` مع 23 migrations، 34 public tables، 21 sequences وحالة last_value/is_called matched، والتوقيع/rollback نجحا. | 12B real source/target و12C delta/cutover/hypercare مؤجلة إلى ما بعد D-051 واعتماد source-of-truth والمصدر/الوجهة والموافقات الصريحة؛ لا اتصال بالإنتاج. |
 | 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — WAITING_DEPENDENCY؛ أعمال التخطيط المحايد ممكنة، أما إعداد الخدمات والتنبيهات والنسخ الفعلية فمؤجل لما بعد قرار المزود والنشر | Phase12 ثم اختيار المزود/المنطقة واعتماد الميزانية وRPO/RTO قبل التشغيل الفعلي |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
@@ -338,3 +338,12 @@ Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتع�
 - full-schema PostgreSQL CI rehearsal على 6750eac566c513c4fc97951f1b80cb7f54cd0c0a نجح كخطوة مستقلة: 23 migrations/ledger rows، 34 public tables، 21 sequences، state matched، schema/data fingerprints matched، safety flags سليمة. Artifact #15236350311، digest sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6.
 - في نفس SHA، Pint #419/Auth #297/Security #421 SUCCESS. Docker #675 ما زالت في isolated rollback عند آخر poll؛ لا تعلن البوابة كاملة حتى job/signing تنتهي. IaC #31 بقيت صالحة على dbd281c لأن ملفات IaC لم تتغير.
 - Phase12A تواصل source mapping والـguest/offline data coverage؛ Phase12B/12C تنتظران القرار الموحد وموافقات المالك.
+
+
+## 15. Phase12A — اكتمال Docker #675 وإصلاح sequence-state — 28 November 2026
+
+- Docker #675 (46078577654) SUCCESS على runtime SHA 6750eac؛ تضمنت full-schema backup/restore، التحقق من 21 Sequence، isolated rollback للصورة السابقة، وتوقيع أدلة الإصدار.
+- Docker #674 فشلت لأن دالة sequence manifest قرأت $2 مع set -u دون parameter؛ تم إصلاح مصدر اسم ملف الاستعلام في 6750eac وأعيدت التجربة بنجاح.
+- Pint #419/Auth #297/Security #421 SUCCESS على 6750eac؛ IaC #31 بقيت SUCCESS على dbd281c لأن مسارات infra لم تتغير.
+- رأس main الحالي 522f967 وثائقي بعد نجاح runtime SHA؛ الفرع الوحيد main.
+- Phase12A تبقى IN_PROGRESS لعمل source-of-truth/guest/offline and mapping acceptance؛ Phase12B/C ما زالتا مؤجلتين.

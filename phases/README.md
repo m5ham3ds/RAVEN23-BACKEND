@@ -2,7 +2,7 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> last completed runtime-gate SHA: 72730281a6c96208979e4c8a1eaa46fbc723dcdd (Docker/Auth/Security/Pint SUCCESS); current main 6750eac has Phase12 full-schema+21-sequence step PASS, Pint/Auth/Security SUCCESS, Docker rollback/signing pending; IaC #31 on unchanged dbd281c — 28 نوفمبر 2026  
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c. Current main 522f967 is documentation-only after the verified runtime SHA — 28 نوفمبر 2026  
 > application/runtime note: commit 617ce7e is documentation-only relative to 27cfcc9; application/runtime code was not changed in this documentation synchronization  
 > الفرع التشغيلي الوحيد: main
 
@@ -86,4 +86,4 @@
 
 خريطة PHASE-12-DATA-MAPPING-AND-INTEGRITY.md تتضمن الآن أدلة مستودع RAVEN23 Flutter على commit 387feafb: Firebase/Firestore legacy candidate، ملفات SQLite المحلية، الانتقال عبر LaravelSyncCoordinator، وفجوة حقول Firebase Scrypt المشروطة. لا يوجد إثبات لمصدر production حي.
 
-full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 23 migrations/34 public tables. خطوة الاستعادة ورفع artifact PASS؛ Docker gate الكاملة لا تزال بانتظار rollback/signing.
+full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 23 migrations/34 public tables؛ Docker #675 اجتاز أيضًا rollback والتوقيع الموثوق. Docker #674 فشل مؤقتًا بسبب parameter $2 غير الممرر، وأُصلح ذلك في 6750eac وأعيد الاختبار بنجاح.

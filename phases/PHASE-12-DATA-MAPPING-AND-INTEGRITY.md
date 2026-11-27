@@ -8,7 +8,7 @@
 
 تحدد هذه الوثيقة نطاق البيانات الذي يجب أخذه في الحسبان عند ترحيل RAVEN23 Backend، وتربط مجالات تطبيق المستخدم بمخطط Laravel الحالي، وتثبت invariants التي يجب عدم كسرها.
 
-المصدر المثبت حاليًا هو **كود Git وملفات migrations وModels وAPI contracts**. جرد المصدر الحالي يقول إن هناك 23 migration. واختبار PostgreSQL في CI على commit \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\` أنشأ 34 public table في قاعدة مؤقتة، واستعاد النسخة بنجاح وقارن schema/data fingerprints. ثم أضاف commit \`6750eac566c513c4fc97951f1b80cb7f54cd0c0a\` فحص حالة 21 Sequence (last_value وis_called)؛ خطوة full-schema ورفع تقريرها نجحت في Docker #675، بينما كان اختبار rollback النهائي لا يزال جاريًا عند آخر تحقق. هذه أعداد CI فقط وليست أعداد قاعدة إنتاج أو مستخدمين فعليين.
+المصدر المثبت حاليًا هو **كود Git وملفات migrations وModels وAPI contracts**. جرد المصدر الحالي يقول إن هناك 23 migration. واختبار PostgreSQL في CI على commit \`72730281a6c96208979e4c8a1eaa46fbc723dcdd\` أنشأ 34 public table في قاعدة مؤقتة، واستعاد النسخة بنجاح وقارن schema/data fingerprints. ثم أضاف commit \`6750eac566c513c4fc97951f1b80cb7f54cd0c0a\` فحص حالة 21 Sequence (last_value وis_called)، واكتمل Docker #675 كله SUCCESS بما في ذلك isolated rollback والتوقيع الموثوق. هذه أعداد CI فقط وليست أعداد قاعدة إنتاج أو مستخدمين فعليين.
 
 **المصدر الفعلي للبيانات: UNKNOWN_PENDING_SOURCE_APPROVAL.** تظهر في المستندات السابقة إشارات إلى PostgreSQL/Neon وإلى Firebase/Firestore وإلى قواعد محلية في التطبيق؛ لكنها لا تثبت أي مصدر حي هو المرجع النهائي، ولا يجوز دمج مصادر أو افتراض أن كل نسخة متزامنة.  
 **الوجهة الفعلية: UNKNOWN_PENDING_PROVIDER_DECISION.** لا تختار هذه الوثيقة PostgreSQL host أو مزودًا أو منطقة أو تكلفة.
@@ -191,3 +191,17 @@
 - Artifact digest: sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6
 
 **حالة البوابة عند توثيق هذه الإضافة:** خطوة full-schema restore ورفع تقريرها = SUCCESS؛ Docker job ما زال يعمل على isolated rollback إلى آخر صورة معروفة، فلا تعتبر Docker Validation #675 كلها مكتملة قبل إنهاء job وtrusted-main signing. على SHA نفسه كانت Pint #419 وAuthentication #297 وSecurity #421 SUCCESS؛ لم تتغير IaC منذ IaC #31 على dbd281c.
+
+
+## 12. سجل إصلاح الفشل والقبول الكامل لـDocker #675
+
+كان Docker #674 على SHA 2d57458141b554f94d2b9c3cc8d8e60c1122fb7a يفشل في خطوة full-schema restore بسبب shell nounset: line 198: 2: parameter not set. السبب أن دالة sequence-state manifest استخدمت الوسيط $2 رغم أن caller مرر اسم قاعدة البيانات فقط.
+
+أُصلح ذلك في commit 6750eac566c513c4fc97951f1b80cb7f54cd0c0a باستخدام اسم ملف مشتق من قيمة database. إعادة التشغيل في Docker #675 اجتازت خطوة full-schema ورفعت artifact، ثم اجتاز job كاملًا SUCCESS بما في ذلك rollback للصورة السابقة وتوقيع أدلة الإصدار.
+
+روابط التشغيل:
+- Docker #674 failed (fixed): https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078538941
+- Docker #675 success: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654
+- Artifact #15236350311: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654/artifacts/15236350311
+
+هذا الاختبار يثبت rehearsal على قاعدة CI مؤقتة فقط؛ لا يثبت production source/target أو blob transfer أو delta/CDC أو cutover.
