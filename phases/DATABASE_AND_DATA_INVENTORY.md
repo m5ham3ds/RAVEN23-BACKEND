@@ -1,6 +1,6 @@
 # جرد قاعدة البيانات والبيانات — RAVEN23
 
-**Backend implementation SHA:** df390286cbe2170d4b18a96dad06835379091019 — الجرد الأساسي للأقسام التالية مؤرخ 21 نوفمبر 2026  
+**آخر مزامنة مصدر:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` — 27 نوفمبر 2026؛ الأقسام الأولى تحتفظ ببعض سياق خط الأساس التاريخي  
 **Android baseline:** 6d12023e446db3d444716c3b407572a89cf545be  
 **الحالة:** COMPLETE على مستوى source inventory — مبني على جميع migrations/models/client data stores؛ لم يتم الاتصال بقاعدة الإنتاج وفق قواعد السلامة.
 
@@ -8,7 +8,7 @@
 
 ### جدول users
 
-قاعدة المشروع التي ينشئها Dockerfile هي Laravel 13، لكن Laravel scaffold نفسه يُنزّل أثناء build ولا توجد نسخة كاملة منه في Git. حقول RAVEN23 التي تضيفها migrations/model:
+المشروع الحالي يحتوي Laravel 13 source و`composer.json`/`composer.lock` و`artisan` و`bootstrap` و`app` و`routes` ملتزمة في Git. هذا يلغي فجوة scaffold القديمة المسجلة في جرد 21 نوفمبر. حقول RAVEN23 التي تضيفها migrations/model:
 
 | العمود | الغرض |
 |---|---|
@@ -26,7 +26,7 @@
 | created_at / updated_at | تواريخ الإنشاء والتحديث |
 | remember_token | حقل Laravel الأساسي إنشاؤه scaffold |
 
-حقول Laravel الأساسية أعلاه تُستمد من scaffold وقت البناء واختبارات Laravel، وليست جميعها موثقة بملف migration committed داخل المستودع. يجب تثبيت migrations الأصلية ضمن المرحلة 01 بدل الاعتماد على scaffold خارجي.
+المخطط الأساسي الحالي يتضمن migrations Laravel القياسية الملتزمة في `database/migrations/0001_01_01_*`، إلى جانب اختبارات `LaravelFoundationTest` و`DatabaseMigrationRehearsalTest`. لا تعتمد النسخة الحالية على تنزيل skeleton غير محفوظ من Git.
 
 الفهارس/القيود التي تذكرها Raven23AuthSchema:
 - unique على username.
@@ -57,7 +57,7 @@ Sanctum bearer sessions:
 
 ### الجداول الأخرى
 
-على baseline 21 نوفمبر لم تكن توجد migrations لهذه المجالات. على main الحالي أضيفت bookmarks وrecent media وplaylists:
+على baseline 21 نوفمبر لم تكن توجد migrations لهذه المجالات. على main الحالي أضيفت bookmarks وrecent media وplaylists وwellness وprivate media وnotification outbox وpush subscription registry وentitlements/subscription ledger وwallet:
 - bookmarks / user_bookmarks
 - recently_watched_movies / recently_watched_episodes
 - wellness_sessions / wellness_daily_summaries
@@ -104,11 +104,11 @@ Sanctum bearer sessions:
 
 ## 5. مخاطر تشغيلية مرتبطة بالبيانات
 
-1. docker/start.sh يشغّل php artisan migrate --force تلقائيًا عند startup باستخدام DB_MIGRATION_URL.
-2. docker/verify-auth-schema.php ليس read-only تمامًا: ينشئ حساب probe وSanctum token وبيانات جهاز اصطناعية ثم يحاول تنظيفها في كل startup. لا نشغله يدويًا على إنتاج خلال هذه المرحلة.
+1. Startup الخاص بخادم الويب لا يشغّل migrations ولا يتصل بقاعدة PostgreSQL لمجرد boot؛ migrations عملية release منفصلة وصريحة باستخدام دور الترحيل فقط.
+2. لا ينشئ web startup probe accounts أو Sanctum tokens أو سجلات أجهزة؛ liveness `/up` مستقل عن قاعدة البيانات، و`/ready` read-only ويتحقق من PostgreSQL/schema.
 3. migration reconciliation تعالج username/is_guest في جدول users؛ يجب اختبارها على clone من schema السابق قبل أي تحديث إنتاجي.
-4. CACHE_STORE=file مفروض في الإنتاج؛ file cache/session state ليست مشتركة تلقائيًا بين أكثر من instance.
-5. لم يثبت في الملفات التي تمت مراجعتها وجود نسخ احتياطية مشفرة مستقلة أو restore drill ناجح.
+4. defaults الحالية في `.env.example` هي `CACHE_STORE=database` و`SESSION_DRIVER=database` و`QUEUE_CONNECTION=database`؛ `config/cache.php` و`config/queue.php` تتبع Laravel database drivers، ولا يوجد فرض file-only.
+5. ثبت synthetic encrypted PostgreSQL backup/restore داخل CI على قواعد مؤقتة اصطناعية مع SHA-256/row-count/constraints/index checks؛ لا يثبت ذلك backup/restore إنتاجيًا أو مزودًا خارجيًا.
 6. لا نعرف عدد المستخدمين أو عدد token rows أو حالة القيود الحالية؛ لم يتم الاتصال بقاعدة Neon أو قراءة بياناتها.
 
 ## 6. جرد بيانات النقل المطلوب لاحقًا
@@ -178,3 +178,50 @@ Sanctum bearer sessions:
 - Re-registering the same provider/token transfers association to the authenticated account performing registration; OneSignal deletion is user-scoped. Deleting user cascades subscriptions.
 - PostgreSQL and SQLite Feature tests cover encrypted storage, idempotency, owner transfer/deletion, validation and cascade.
 - No production database migration was executed; no real push tokens or provider credentials were used.
+
+## 11. مزامنة المخطط الحالي من Git tree — 27 نوفمبر 2026
+
+**الرأس:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae` — `main`. شجرة Git recursive غير مبتورة؛ يوجد 23 ملف migration ملتزمًا. لا تمثل هذه الجردات اتصالًا بقاعدة إنتاج أو قياسًا لعدد صفوفها.
+
+### migrations الحالية (23)
+
+- `database/migrations/0001_01_01_000000_create_users_table.php`
+- `database/migrations/0001_01_01_000001_create_cache_table.php`
+- `database/migrations/0001_01_01_000002_create_jobs_table.php`
+- `database/migrations/2026_11_18_000001_add_raven23_auth_fields_to_users.php`
+- `database/migrations/2026_11_18_000002_ensure_personal_access_tokens_table.php`
+- `database/migrations/2026_11_18_000003_reconcile_raven23_auth_schema.php`
+- `database/migrations/2026_11_20_000004_add_device_metadata_to_personal_access_tokens.php`
+- `database/migrations/2026_11_21_000005_reconcile_guest_account_flag.php`
+- `database/migrations/2026_11_22_000006_create_email_verification_tokens_table.php`
+- `database/migrations/2026_11_22_000007_create_user_data_foundation_tables.php`
+- `database/migrations/2026_11_23_000008_create_user_bookmarks_table.php`
+- `database/migrations/2026_11_23_000009_create_user_recent_media_tables.php`
+- `database/migrations/2026_11_23_000010_create_user_playlist_sync_tables.php`
+- `database/migrations/2026_11_23_000011_create_user_bookmark_sync_tables.php`
+- `database/migrations/2026_11_23_000012_create_user_preference_sync_tables.php`
+- `database/migrations/2026_11_23_000013_create_user_wellness_sync_tables.php`
+- `database/migrations/2026_11_23_000014_create_user_media_table.php`
+- `database/migrations/2026_11_24_000015_create_notification_outbox_table.php`
+- `database/migrations/2026_11_24_000015_create_user_push_subscriptions_table.php`
+- `database/migrations/2026_11_24_000016_create_user_entitlements_table.php`
+- `database/migrations/2026_11_24_000017_create_subscription_events_table.php`
+- `database/migrations/2026_11_24_000018_add_subscription_event_projection_columns.php`
+- `database/migrations/2026_11_24_000019_create_user_wallets_and_transactions.php`
+
+### المجالات والجداول التي يثبتها المصدر الحالي
+
+- Laravel framework: `users`, `cache`, `jobs`, `job_batches`, `failed_jobs`, `migrations`، وSanctum `personal_access_tokens`.
+- User foundation: `user_profiles`, `user_preferences`, `user_devices`, و`email_verification_tokens`.
+- Personal library/sync: `user_bookmarks`, `user_recent_media`, `user_sync_revisions`, `user_playlist_*`, bookmark/preference sync state، وwellness session/daily summary tables.
+- Private media: `user_media` metadata؛ الملف نفسه يمر عبر private filesystem/S3-compatible storage abstraction وليس قرص الحاوية العامة.
+- Notifications: `notification_outbox` و`user_push_subscriptions`; payloads/registered tokens مشفرة؛ لا sender provider خارجي مثبت.
+- Entitlements/billing: `user_entitlements`, `subscription_events` (append-only event ledger/projection).
+- Wallet: `user_wallets`, `wallet_transactions` (append-only internal ledger؛ القراءة HTTP فقط ولا توجد top-up/payment write API).
+
+### نقاط الاتصال والخصوصية
+
+- التطبيق يستخدم PostgreSQL، مع دور `DB_URL` محدود للصلاحيات ودور `DB_MIGRATION_URL` لمهمة ترحيل منفصلة.
+- `.env.example` يحدد `CACHE_STORE=database`, `SESSION_DRIVER=database`, `QUEUE_CONNECTION=database`, `FILESYSTEM_DISK=local`, و`RAVEN23_PRIVATE_STORAGE_DISK=private_media`.
+- real backup/restore لقاعدة مستخدمين أو مصدر إنتاج لم يُنفذ؛ الاختبار الناجح اصطناعي داخل CI فقط.
+- لا تُستنتج row counts أو أحجام قاعدة الإنتاج أو وجود جداول/سجلات حية من Git migrations؛ يلزم مصدر ووجهة معتمدان وrestore معزول قبل Phase12.
