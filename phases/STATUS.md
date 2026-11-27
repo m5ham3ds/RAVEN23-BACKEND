@@ -563,3 +563,10 @@
 - queue المحلية من العمليات المعلقة مختلفة عن operation receipts/change logs في Backend. يجب حفظها وإعادة تشغيلها idempotently بعد اختيار وجهة معتمدة، وعدم إسقاطها عند الترحيل.
 - owner_id المحلي للـwellness هو string namespaced؛ الخادم يحدد user_id من جلسة الحساب المصادق عليه. لا تنقل owner IDs عبر cast أو مطابقة اسمية.
 - Phase12A تبقى IN_PROGRESS؛ لا يغير ذلك تأجيل 12B/12C.
+
+
+## 32. Phase12A — تدقيق عقد Playlist import/sharing
+
+- كود Flutter يحتوي حقول sourceProvider/sourceId/shareCode/shareUrl ويستدعي endpoints متوقعة لمشاركة القوائم والاستيراد.
+- Backend الحالي لا يملك هذه routes ولا الأعمدة ولا response fields؛ \`POST /sync/playlists\` فقط. Client يوثق صراحةً أن import unavailable إن لم يقدم Backend endpoints.
+- تم توسيع الفجوة إلى \`PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING\`، وتتطلب مراجعة Phase06 قبل أي تنفيذ. هذا توثيق فقط، وليس تغييرا في API/schema.

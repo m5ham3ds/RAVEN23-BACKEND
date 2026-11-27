@@ -149,3 +149,15 @@ Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54c
 **فجوة عقد تحتاج قرارًا:** playlists.db تحتفظ source_provider/source_id/share_code/share_url، بينما PlaylistSyncController وroutes الحالية لا تستقبلها أو تعيدها. لا يجوز إسقاطها بصمت؛ يجب تقرير ما إذا كانت محلية/مؤقتة أم بيانات مستخدم متزامنة.
 
 لا يعالج هذا التوثيق الفجوة ولا يغير API/schema؛ التنفيذ ينتظر قرار النطاق بعد مراجعة عقود Phase06 وPhase12.
+
+
+## 8 — فجوة عقد Playlist import/sharing المكتشفة في كود العميل
+
+مراجعة Flutter \`PlaylistRepository\` و\`PlaylistRecord\` أكدت أن العميل يتوقع:
+- \`PUT playlists/{id}/sharing\`
+- \`GET shared-lists/{code}\`
+- \`playlist-imports\` لإنشاء عملية import، وعرضها، وإلغائها، ثم commit.
+
+لكن routes الحالية في Backend تعرض \`POST /sync/playlists\` فقط؛ migration \`user_playlists\` لا تتضمن source/share/visibility columns؛ و\`PlaylistSyncController::playlistPayload\` لا يعيد حقول source أو share. كما يوثق Client أن \`unavailable\` تعني أن Backend لا يملك import endpoint بعد.
+
+هذه فجوة عقد تحتاج قرار نطاق مع Phase06؛ لا ننفذ endpoint/schema أو نغير تطبيق Flutter ضمن مرحلة النقل قبل قرار صريح. لا تعتمد على حقول client-side كبيانات موجودة على الخادم، ولا تسقطها من SQLite عند full refresh دون سياسة واضحة.

@@ -92,3 +92,8 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 ## تحديث field mapping — 28 نوفمبر 2026
 
 أضيفت إلى خريطة البيانات مطابقة field-level لقواعد SQLite المحلية، عقود bookmark/recent/wellness/playlists في Laravel، ومخاطر owner scope وtombstones والـUTC milliseconds والـoffline operation queues. كما سُجلت فجوة حقول playlist source/share التي لا يغطيها sync contract الحالي، دون تغيير API أو schema.
+
+
+## Phase12A contract finding — 28 نوفمبر 2026
+
+عميل Flutter يتوقع عمليات playlist import/sharing، لكن Backend الحالي يقدم sync endpoint فقط ولا يملك schema/fields/routes المقابلة. تم توثيق \`PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING\` في خريطة البيانات لإحالته إلى contract review الخاصة بـPhase06 قبل التنفيذ؛ لم يحدث أي تغيير API أو schema.

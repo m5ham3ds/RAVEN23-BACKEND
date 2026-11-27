@@ -1,7 +1,7 @@
 # Phase12A — خريطة ترحيل البيانات وعقد السلامة والتكامل
 
 **التاريخ:** 28 نوفمبر 2026  
-**الحالة:** SOURCE-LEVEL MAPPING COMPLETE؛ source/target الفعليان وبيانات الإنتاج غير متاحين وغير معتمدين.  
+**الحالة:** SOURCE-CODE MAPPING DOCUMENTED؛ عقد المشاركة/الاستيراد وبعض source metadata gaps مفتوحة؛ source/target الفعليان وبيانات الإنتاج غير متاحين وغير معتمدين.  
 **النطاق:** إعداد محايد لمزود الخدمة فقط؛ لا اتصال بقاعدة الإنتاج ولا اختيار وجهة أو مزود أو تنفيذ cutover.
 
 ## 1. الغرض وحدود الإثبات
@@ -232,16 +232,26 @@ Controller الحالي يقبل collections منفصلة movies وepisodes. ل�
 
 Controller الحالي يستخدم authenticated user ID من جلسة API بدل قبول owner_id يرسله العميل. يحفظ session payload ومراجعات التغيير وupload receipts، ويعيد بناء daily aggregates من مساهمات الجلسات. لذلك فإن owner_id المحلي string namespaced ليس مفتاحًا علائقيًا قابلًا للنسخ؛ يلزم mapping عبر حساب موثوق، مع منع نقل جلسة guest إلى حساب آخر دون قواعد دمج مصرح بها.
 
-### 13.3 فجوة playlist metadata في عقد المزامنة
+### 13.3 فجوة playlist import/sharing بين عميل Flutter وBackend
 
-وجدت قاعدة playlists.db المحلية أعمدة source_provider وsource_id وshare_code وshare_url في جدول playlists. لكن PlaylistSyncController الحالي:
-- يتحقق من name/description/base_version وحقول العناصر فقط؛
-- يخرج playlistPayload بالحقول id/name/description/version/created_at؛
-- لا يحتوي routes/api.php على مسار playlist sharing مستقل في عقد API الحالي.
+الفجوة أوسع من أربعة أعمدة محلية فقط؛ هناك نموذج Client-side لمشاركة واستيراد القوائم، لكن Backend الحالي لا يقدم العقد المقابل.
 
-بالتالي لا يوجد في عقد المزامنة الحالي ضمان أن هذه الحقول الأربعة تنتقل من جهاز إلى Laravel أو تعود إلى جهاز آخر. تسجل هذه المسألة كالتالي:
+**ما يملكه العميل محليًا:**
+- \`PlaylistRecord\` يحفظ \`sourceProvider\` و\`sourceId\` و\`shareCode\` و\`shareUrl\`، ويقرأ من JSON حقول \`source.provider\` و\`source.id\` و\`share_code\` و\`visibility=public/share_url\`.
+- \`playlists.db\` يحتفظ بهذه القيم في \`source_provider\` و\`source_id\` و\`share_code\` و\`share_url\`؛ إضافة \`share_code/share_url\` تمت في SQLite schema v2، مع تصفير checkpoint حتى يعيد العميل طلب snapshot كامل.
+- \`PlaylistRepository\` يتضمن استدعاءات متوقعة: \`PUT playlists/{id}/sharing\`، و\`GET shared-lists/{code}\`، وعمليات \`playlist-imports\` (POST/GET/DELETE/commit).
 
-**PLAYLIST_METADATA_CONTRACT_GAP_IF_FIELDS_ARE_USER_VISIBLE** — يلزم تحديد ما إذا كانت حقول مصدر القائمة/معرفها والمشاركة مجرد cache محلية أو بيانات مستخدم ينبغي حفظها مركزيًا. لا نسقطها بصمت ولا نضيف أعمدة/API الآن قبل تحديد السلوك المطلوب ومراجعة نطاق Phase06/Phase12.
+**ما يقدمه Backend الحالي في Git:**
+- migration \`2026_11_23_000010_create_user_playlist_sync_tables.php\` ينشئ \`user_playlists\` بأعمدة \`id,user_id,name,description,version,created_at,updated_at\) فقط. لا توجد أعمدة \`source_provider/source_id/share_code/share_url\` أو visibility.
+- \`routes/api.php\` يعرّف لمسار القوائم \`POST /sync/playlists\` فقط؛ لا توجد routes لـ\`playlists/{id}/sharing\` أو \`shared-lists/{code}\` أو \`playlist-imports\`.
+- \`PlaylistSyncController::playlistPayload()\` يرجع \`id,name,description,version,created_at\) فقط، ولا يرجع \`source\` أو \`share_code\` أو \`visibility\` أو \`share_url\`.
+- كلاس العميل نفسه يوثق أن \`unavailable\` تعني أن Backend لا يحتوي import endpoint بعد؛ ويحوّل HTTP 404/405 إلى هذه الحالة. هذا دليل من الكود على أن هذه العمليات مخططة/متوقعة من العميل وليست واجهات خادم مكتملة.
+
+**النتيجة:** لا يمكن وصف حقول playlist source/share بأنها مجرد cache مؤكدة أو بيانات مركزية؛ توجد نية واضحة في نموذج العميل ولكن لا يوجد تنفيذ server-side متناظر في الإصدار الحالي. كما أن استجابة full sync قد تعيد سجل القائمة دون هذه الحقول، فلا يصح افتراض استمرارها بعد إعادة مزامنة كاملة.
+
+تسجل المسألة كالتالي:
+
+**PLAYLIST_IMPORT_SHARING_BACKEND_CONTRACT_MISSING** — يلزم مراجعة نطاق Phase06 وعقد Flutter/Backend لتحديد ما إذا كانت المشاركة والاستيراد ميزات مطلوبة الآن، وما هي حقول المصدر/الظهور/الخصوصية والعمليات المسموح بها. لا تضف schema/routes أو تشغّل endpoints الآن ضمن Phase12؛ لا تُسقط الحقول محليًا بصمت، ولا تعتبر ميزات العميل مدعومة من الخادم قبل تنفيذ واختبار عقد متكامل.
 
 ### 13.4 سياسة حفظ الطوابير المحلية
 
@@ -258,4 +268,13 @@ Controller الحالي يستخدم authenticated user ID من جلسة API ب�
 - playlist source/share metadata عقدها غير مكتمل؛ يلزم حسم إن كانت user-visible.
 - local guest/offline pending operations تتطلب قواعد ownership/merge ومنع إعادة إرسال مزدوج.
 - لا توجد إحصاءات حقيقية لعدد الأجهزة أو الصفوف المحلية أو pending queues؛ لا تُقدّر من ملفات الكود.
+
+
+
+## 14.3 — فحوص عقد مشاركة واستيراد القوائم
+
+- Flutter client expected routes: \`PUT playlists/{id}/sharing\`, \`GET shared-lists/{code}\`, و\`playlist-imports\` start/status/cancel/commit.
+- Backend route inventory الحالي: \`POST /sync/playlists\` فقط؛ user_playlists schema وplaylistPayload لا يحتويان source/share/visibility fields.
+- Client documents \`unavailable\` عند 404/405 ويصرح بأن backend لا يحتوي imports بعد.
+- هذه فجوة عقد وظيفية، وليست دليلًا على وجود بيانات مشاركة مفقودة في خادم حي. يلزم قرار نطاق بعد مراجعة Phase06؛ Phase12 تسجل الحقول فقط ولا تنفذ الميزات.
 

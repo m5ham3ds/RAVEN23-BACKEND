@@ -355,3 +355,8 @@ Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتع�
 - تمت إضافة قواعد حفظ identity/tombstones/progress timestamps/owner mapping/revisions/operation queues.
 - تم تحديد contract gap: local playlist schema تحتوي source_provider/source_id/share_code/share_url؛ API الحالي لا يقبلها ولا يعيدها. يتطلب قرارًا صريحًا إن كانت قيمًا محلية أو user-visible sync data.
 - لا تغييرات في التطبيق أو Backend API/database schema؛ مرحلة 12A توثق وتختبر contract فقط قبل قرار المصدر/الوجهة.
+
+
+## 17. Phase12A — playlist import/sharing contract gap
+
+كشف تدقيق العميل/الخادم أن واجهات import/sharing متوقعة في Flutter لكنها غير منفذة في Backend الحالي. لا ننفذها ضمن Phase12، ولا نفترض توافر تلك البيانات مركزيًا. تراجع ضمن contract review مع Phase06؛ تظل Phase12 تحفظ SQLite fields محليًا ولا تجري migration فعلية.
