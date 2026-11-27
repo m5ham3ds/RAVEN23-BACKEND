@@ -1,6 +1,6 @@
 # المرحلة 11 — البنية التحتية المحمولة والنشر المستقل عن المزود
 
-**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation مثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral scaffold وفحوص CI ناجحة؛ 18/18 guardrail regression، لكن provider adapters لم تبدأ لغياب اعتماد المزود/المنطقة/التكلفة)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.
+**الحالة:** 11A portability baseline مكتمل تقنيًا؛ cost scorecard DEFERRED_BY_OWNER until the post-plan provider review؛ 11B1 DESIGN_COMPLETE، ومعالجة فصل صلاحيات validation/attestation مثبتة على c17fc84؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral scaffold وفحوص CI ناجحة؛ 18/18 guardrail regression، لكن provider adapters لم تبدأ لغياب اعتماد المزود/المنطقة/التكلفة)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY. إعداد حماية main في 10B مؤجل يدوياً لما بعد اكتمال خطة تطوير Backend.
 **الاعتماديات:** 02–03 أساس runtime/security؛ 10G release evidence؛ إعدادات 10B اليدوية شرط قبل Phase11B2 enforcement والنشر، لكنها لا توقف تطوير Backend الوظيفي الحالي. تعتمد تجارب staging على 04/08 عند استخدام تكاملاتها، وعلى موافقة مستقلة للحساب والمنطقة والتكلفة.
 
 ## 1. الهدف
