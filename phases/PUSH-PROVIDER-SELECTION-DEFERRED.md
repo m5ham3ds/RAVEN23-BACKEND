@@ -32,6 +32,6 @@
 
 يشمل التأجيل الآن: hosting/compute، PostgreSQL provider/region، S3/object storage، mail delivery، Push، payment provider، container registry، secrets/identity، logs/metrics/monitoring، DNS/edge وأي خدمة أو خطة/تكلفة خارجية.
 
-تُؤجل هذه الاختيارات إلى ما بعد اكتمال أعمال تطوير Backend المستقلة عن المزود، ثم تُراجع مجتمعة بمقارنة موثقة وموافقة صريحة لكل مورد/تكلفة/نشر. تبقى جميع الأعمال البرمجية والاختبارات المحايدة مستمرة. لا provider SDK/credentials/resources/apply/deployment أو production cutover قبل قرار لاحق.
+تُؤجل هذه الاختيارات إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل (D-051)، ثم تُراجع مجتمعة بمقارنة موثقة وموافقة صريحة لكل مورد/تكلفة/نشر. تبقى جميع الأعمال البرمجية والاختبارات المحايدة مستمرة. لا provider SDK/credentials/resources/apply/deployment أو production cutover قبل قرار لاحق.
 
 الافتراضات الآمنة لا تتغير: Push معطل، البريد معطل، المشتريات مغلقة، والتخزين المحلي الخاص هو default. لا يعني التأجيل أن أي تكامل خارجي اكتمل.
