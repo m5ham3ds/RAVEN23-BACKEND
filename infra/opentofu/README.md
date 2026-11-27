@@ -110,8 +110,10 @@ bash infra/opentofu/tests/test-guardrail-provider-neutral.sh
 ```
 
 The fixture-based test suite proves the guard accepts the provider-free baseline
-and rejects provider/resource/data/module declarations, remote backend/cloud
-blocks, tracked state/backups/plans/tfvars, and inline, continued, backtick,
-`$()`, CLI-flag, Terraform, or separate-workflow apply invocations. The guard
-scans every `.yml` and `.yaml` file under `.github/workflows/`. It uses temporary Git repositories and synthetic files only; it does
+and rejects provider/resource/data/module/required-provider declarations,
+remote backend/cloud blocks, tracked state/backups/plans/tfvars, and inline,
+continued, backtick, `$()`, CLI-flag, Terraform, or separate-workflow apply
+invocations. The guard scans all native `.tf` and `.tofu` files plus JSON
+`.tf.json` and `.tofu.json` configurations, and every `.yml`/`.yaml` workflow.
+It uses temporary Git repositories and synthetic files only; it does
 not load credentials, contact a provider, or create resources.
