@@ -69,7 +69,7 @@ Sanctum bearer sessions:
 
 قد تكون هناك جداول framework الافتراضية داخل Laravel skeleton الناتج وقت البناء، لكن لم يتم تثبيتها من Git history أو الاتصال بقاعدة بيانات للتحقق منها. لا نفترض وجودها أو اعتماد التطبيق عليها.
 
-## 2. Migrations الموجودة في Backend
+## 2. Migrations الموجودة في Backend عند خط الأساس 21 نوفمبر 2026 (سجل تاريخي)
 
 | الملف | الأثر |
 |---|---|
@@ -80,6 +80,8 @@ Sanctum bearer sessions:
 | 2026_11_21_000005_reconcile_guest_account_flag.php | يحول is_guest إلى boolean وينظف NULL ويجعل العمود NOT NULL |
 
 معظم down() لا تقوم بإزالة أعمدة الهوية أو جدول tokens عمدًا. لا تشغّل migration أو rollback على الإنتاج خلال الجرد.
+
+ملاحظة: قائمة migrations ذات الخمس ملفات أعلاه تصف لقطة خط الأساس 21 نوفمبر فقط؛ فهرس migrations الحالي الكامل (23 ملفًا) في القسم 11 أدناه.
 
 ## 3. ما يخزنه تطبيق Android محليًا
 
