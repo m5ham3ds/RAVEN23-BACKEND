@@ -345,5 +345,13 @@ Phase12B + موافقة cutover صريحة ──> 13 التشغيل والتع�
 - Docker #675 (46078577654) SUCCESS على runtime SHA 6750eac؛ تضمنت full-schema backup/restore، التحقق من 21 Sequence، isolated rollback للصورة السابقة، وتوقيع أدلة الإصدار.
 - Docker #674 فشلت لأن دالة sequence manifest قرأت $2 مع set -u دون parameter؛ تم إصلاح مصدر اسم ملف الاستعلام في 6750eac وأعيدت التجربة بنجاح.
 - Pint #419/Auth #297/Security #421 SUCCESS على 6750eac؛ IaC #31 بقيت SUCCESS على dbd281c لأن مسارات infra لم تتغير.
-- رأس main الحالي 522f967 وثائقي بعد نجاح runtime SHA؛ الفرع الوحيد main.
+- التحديثات اللاحقة على main وثائقية فقط بعد نجاح runtime SHA؛ الفرع الوحيد main.
 - Phase12A تبقى IN_PROGRESS لعمل source-of-truth/guest/offline and mapping acceptance؛ Phase12B/C ما زالتا مؤجلتين.
+
+
+## 16. Phase12A — field-level mapping and offline operation safety — 28 November 2026
+
+- تمت إضافة field mapping بين local SQLite bookmark/recent/wellness/playlist schemas وبين Laravel sync controllers والجداول.
+- تمت إضافة قواعد حفظ identity/tombstones/progress timestamps/owner mapping/revisions/operation queues.
+- تم تحديد contract gap: local playlist schema تحتوي source_provider/source_id/share_code/share_url؛ API الحالي لا يقبلها ولا يعيدها. يتطلب قرارًا صريحًا إن كانت قيمًا محلية أو user-visible sync data.
+- لا تغييرات في التطبيق أو Backend API/database schema؛ مرحلة 12A توثق وتختبر contract فقط قبل قرار المصدر/الوجهة.

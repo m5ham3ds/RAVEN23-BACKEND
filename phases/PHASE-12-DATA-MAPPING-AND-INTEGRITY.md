@@ -205,3 +205,57 @@
 - Artifact #15236350311: https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46078577654/artifacts/15236350311
 
 هذا الاختبار يثبت rehearsal على قاعدة CI مؤقتة فقط؛ لا يثبت production source/target أو blob transfer أو delta/CDC أو cutover.
+
+
+## 13. مطابقة الحقول المحلية مع عقود Laravel الحالية
+
+هذه المطابقة مستخرجة من migrations/Controllers في Backend وSQLite stores/SyncCoordinator في تطبيق Flutter؛ وهي mapping contract على مستوى الكود، وليست data inventory لنسخة مستخدم حقيقية.
+
+| مصدر SQLite المحلي | عقد Laravel المستهدف | التحويل/الهوية | ما يجب حفظه أو التحقق منه |
+|---|---|---|---|
+| movies.db / movie_bookmark_table | user_bookmarks | id → media_id؛ media_type ثابت movie؛ بقية أعمدة TMDB (title/original_title/language/overview/release_date/popularity/poster/backdrop/rating/count/genres/date_added) داخل metadata JSON | unique key (authenticated user, movie, media_id)، عدم استبدال date_added عند تحديث صف قائم، genre_ids تحفظ كأرقام لا string مشفر مزدوجًا |
+| tv.db / tv_bookmark_table | user_bookmarks | id → media_id؛ media_type ثابت tv؛ بقية أعمدة العرض داخل metadata JSON | لا تخلط movie وtv حتى لو تساوى رقم TMDB؛ حفظ حذف العنصر كـoperation/tombstone عند المزامنة |
+| recent_movies.db / recently_watched_movies_table | user_recent_media + recently-watched movies API contract | id → media_id؛ elapsed/remaining تبقيان حقلي progress؛ title/poster/backdrop/release_year داخل metadata؛ updated_at_utc/deleted_at_utc بوحدة epoch milliseconds | synced مجرد local transport flag لا ينقل كبيانات للمستخدم؛ يجب أخذ كل الصفوف بما فيها tombstones والصفوف synced=0 وعدم إسقاط الحذف |
+| recent_episodes_v2.db / recently_watched_tv_shows_table | user_recent_media + recently-watched episodes API contract | episode id → media_id؛ series_id/season/episode/title/artwork/is_anime ضمن metadata؛ elapsed/remaining وUTC stamps في حقولها | episode identity لا تُختزل إلى series_id؛ احتفظ ببيانات الموسم والحلقة والتقدم والتومبستون |
+| raven23_wellness_v1.db / wellness_sessions | user_wellness_sessions + user_wellness_changes + upload receipts | id UUID → session_id؛ بقية الجلسة payload JSON؛ owner_id المحلي يربط إلى مالك الحساب المصادق عليه، لا إلى user_id بتحويل نصي مباشر | preserve device_id/source/content_id/series_id/title/subtitle/season/episode/timestamps/timezone offset/watched_ms/duration_ms/progress/segments/genres/languages/countries/network_bytes/revisions/deletion |
+| raven23_wellness_v1.db / wellness_daily_summaries | user_wellness_daily | local_day + aggregate fields إلى daily payload/row | هذه summary مشتقة من sessions؛ قارنها بنتيجة rebuild على الخادم ولا تفضّل aggregate محليًا إذا تعارض مع الجلسات؛ احفظ timezone offset وlocal_day |
+| playlists.db / playlists | user_playlists | UUID id وname/description/version/created_at | لا تستبدل UUID؛ version جزء من optimistic concurrency |
+| playlists.db / playlist_items | user_playlist_items + playlist change stream | playlist_id/media_type/media_id/position + title/artwork/rating/release_date/genre_ids/added_at | composite identity (playlist_id, media_type, media_id)، حفظ position وgenre_ids وadded_at |
+| playlists.db / playlist_operations | user_playlist_operations (server receipts) عبر replay contract، وليس نسخًا مباشرًا | operation_id + body المحلي pending؛ الخادم يخزن payload_hash/result بعد معالجة العملية | أبقِ pending queue حتى ACK أو رفض ثابت؛ لا تخلط pending requests مع server operation receipts |
+| playlists.db / playlist_meta | user_sync_revisions / client checkpoint policy | checkpoint يمثل revision مؤكدة من آخر مزامنة | لا تنقل checkpoint قديمًا كـserver revision عند تغيير source/target؛ يبدأ snapshot/cursor جديد وفق العقد المعتمد |
+
+### 13.1 عقد recently-watched المؤكد
+
+Controller الحالي يقبل collections منفصلة movies وepisodes. لكل سجل يحفظ elapsed/remaining، updated_at_utc، deleted_at_utc وmetadata؛ وهوية سجل الخادم هي owner + media_type + media_id. التواريخ UTC milliseconds؛ لا تحولها إلى seconds أو local timestamps. يجب أخذ الصفوف المحذوفة/المعلقة، لا الاكتفاء بقوائم العرض التي تخفي tombstones.
+
+### 13.2 عقد wellness المؤكد
+
+Controller الحالي يستخدم authenticated user ID من جلسة API بدل قبول owner_id يرسله العميل. يحفظ session payload ومراجعات التغيير وupload receipts، ويعيد بناء daily aggregates من مساهمات الجلسات. لذلك فإن owner_id المحلي string namespaced ليس مفتاحًا علائقيًا قابلًا للنسخ؛ يلزم mapping عبر حساب موثوق، مع منع نقل جلسة guest إلى حساب آخر دون قواعد دمج مصرح بها.
+
+### 13.3 فجوة playlist metadata في عقد المزامنة
+
+وجدت قاعدة playlists.db المحلية أعمدة source_provider وsource_id وshare_code وshare_url في جدول playlists. لكن PlaylistSyncController الحالي:
+- يتحقق من name/description/base_version وحقول العناصر فقط؛
+- يخرج playlistPayload بالحقول id/name/description/version/created_at؛
+- لا يحتوي routes/api.php على مسار playlist sharing مستقل في عقد API الحالي.
+
+بالتالي لا يوجد في عقد المزامنة الحالي ضمان أن هذه الحقول الأربعة تنتقل من جهاز إلى Laravel أو تعود إلى جهاز آخر. تسجل هذه المسألة كالتالي:
+
+**PLAYLIST_METADATA_CONTRACT_GAP_IF_FIELDS_ARE_USER_VISIBLE** — يلزم تحديد ما إذا كانت حقول مصدر القائمة/معرفها والمشاركة مجرد cache محلية أو بيانات مستخدم ينبغي حفظها مركزيًا. لا نسقطها بصمت ولا نضيف أعمدة/API الآن قبل تحديد السلوك المطلوب ومراجعة نطاق Phase06/Phase12.
+
+### 13.4 سياسة حفظ الطوابير المحلية
+
+كل قائمة SQLite تحمل queue محلية للعمليات غير المرسلة، وplaylist store يحفظ body لكل operation_id وcheckpoint منفصلًا. هذه ليست هي نفسها سجلات العملية التي يحتفظ بها Backend بعد المعالجة. عند أي migration مستقبلية:
+1. تؤخذ snapshot من confirmed state ومن pending queue على حدة؛
+2. تعاد العمليات المعلقة بالترتيب مع operation IDs ذاتها وبحسب idempotency contract؛
+3. لا تحذف النسخة المحلية حتى يستلم العميل ACK/رفض ثابتًا ويثبت أن عملية replay لم تضف أثرًا مزدوجًا؛
+4. تُعاد مزامنة cursor/revision بعد اختيار المصدر والوجهة، ولا يُفترض أن رقم revision في نظام قديم صالح في النظام الجديد.
+
+### 13.5 Open mapping decisions
+
+- مصدر Firebase القديم إلى أعمدة Laravel الحالية يحتاج field mapping للـUIDs وFirestore document IDs وأنواع الوقت والحذف/التعارضات؛ ما زال source غير معتمد.
+- Firebase Scrypt Auth import blocker مشروط باختيار Firebase، ولا توجد fields/verifier في المخطط الحالي.
+- playlist source/share metadata عقدها غير مكتمل؛ يلزم حسم إن كانت user-visible.
+- local guest/offline pending operations تتطلب قواعد ownership/merge ومنع إعادة إرسال مزدوج.
+- لا توجد إحصاءات حقيقية لعدد الأجهزة أو الصفوف المحلية أو pending queues؛ لا تُقدّر من ملفات الكود.
+

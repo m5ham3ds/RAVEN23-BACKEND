@@ -136,3 +136,16 @@
 Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54cd0c0a. يضم تقرير Phase12 schemaVersion 2: 23 migration files/ledger rows، 34 public tables، و21 sequence states متطابقة بين المصدر/الهدف (last_value/is_called). اجتازت مقارنات schema/data/sequence manifests؛ artifact #15236350311.
 
 فشل Docker #674 في نفس الخطوة بسبب استخدام $2 غير الممرر تحت set -u؛ أصلح commit 6750eac مسار الملف وجعل Docker #675 يعيد التمرين بنجاح. كما اكتمل isolated rollback والتوقيع الموثوق. هذا لا يفتح 12B/12C ولا يغير شرط قرار المصدر/الوجهة وموافقة المالك.
+
+
+## 7 — خريطة الحقول والتحويلات المحلية
+
+توضح الوثيقة phases/PHASE-12-DATA-MAPPING-AND-INTEGRITY.md الآن مطابقة SQLite المحلية مع Laravel controllers والجداول، بما يشمل:
+- movie/tv bookmarks إلى user_bookmarks metadata مع فصل media_type.
+- movie/episode progress إلى user_recent_media مع progress fields وUTC millisecond timestamps وtombstones.
+- wellness sessions إلى payload/changes/receipts، مع اشتراط mapping موثق من owner_id المحلي إلى الحساب المصادق عليه؛ daily aggregates يعاد بناؤها ويجب مقارنتها.
+- playlists/items إلى جداول Laravel، مع فصل pending local operation queue عن receipts/change ledger المؤكدة على الخادم.
+
+**فجوة عقد تحتاج قرارًا:** playlists.db تحتفظ source_provider/source_id/share_code/share_url، بينما PlaylistSyncController وroutes الحالية لا تستقبلها أو تعيدها. لا يجوز إسقاطها بصمت؛ يجب تقرير ما إذا كانت محلية/مؤقتة أم بيانات مستخدم متزامنة.
+
+لا يعالج هذا التوثيق الفجوة ولا يغير API/schema؛ التنفيذ ينتظر قرار النطاق بعد مراجعة عقود Phase06 وPhase12.

@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified runtime/code SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a` — Docker #675, Pint #419, Authentication #297, Security #421 SUCCESS. IaC #31 remains SUCCESS on unchanged IaC baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30 guardrails). **Current main documentation SHA:** `522f967dc770a7f849f44a5bc7faaa11816b0f34` (docs-only after the verified runtime SHA).
+**Latest fully CI-verified runtime/code SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a` — Docker #675, Pint #419, Authentication #297, Security #421 SUCCESS. IaC #31 remains SUCCESS on unchanged IaC baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30 guardrails). Documentation-only commits continue on the same main branch after this verified runtime SHA.
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -553,4 +553,13 @@
 - الإصلاح في 6750eac جعل اسم ملف SQL المؤقت مشتقًا من اسم قاعدة البيانات بدل الوسيط الغائب. Docker #675 أعاد الاختبار ونجح مع 21 sequence؛ sequence current values/is_called matched. لا يوجد فشل متبقٍ في بوابات #675.
 - Artifact #15236350311، digest sha256:907d099c910c463919fea0842a7b43f22723a356c9f756d304ec09ded778a0b6. التقرير لا يحتوي row values؛ قواعد المصدر/الهدف المؤقتة حُذفت؛ لا production DB/data/secrets ولا cutover.
 - IaC #31 لا تزال مرجع التحقق لطبقة infra التي لم تتغير منذ dbd281c؛ لا ندعي أنها أعيد تشغيلها على 6750eac.
-- رأس main الحالي هو 522f967dc770a7f849f44a5bc7faaa11816b0f34، توثيقي فقط نسبةً إلى runtime code SHA 6750eac. الفرع الوحيد هو main.
+- آخر تحديثات ما بعد runtime code SHA 6750eac وثائقية فقط على main؛ الفرع الوحيد هو main.
+
+
+## 31. Phase12A — field mapping وplaylist/local queue gaps
+
+- تمت مطابقة قواعد bookmark/recent/wellness/playlist المحلية مع API/controllers والجداول الحالية في خريطة البيانات.
+- playlist local schema تحفظ source_provider/source_id/share_code/share_url؛ sync API الحالي لا يستقبلها ولا يعيدها. هذا contract gap مشروط بما إذا كانت حقولًا user-visible وليست local cache.
+- queue المحلية من العمليات المعلقة مختلفة عن operation receipts/change logs في Backend. يجب حفظها وإعادة تشغيلها idempotently بعد اختيار وجهة معتمدة، وعدم إسقاطها عند الترحيل.
+- owner_id المحلي للـwellness هو string namespaced؛ الخادم يحدد user_id من جلسة الحساب المصادق عليه. لا تنقل owner IDs عبر cast أو مطابقة اسمية.
+- Phase12A تبقى IN_PROGRESS؛ لا يغير ذلك تأجيل 12B/12C.
