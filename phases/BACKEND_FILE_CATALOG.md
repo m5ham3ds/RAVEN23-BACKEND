@@ -1,26 +1,50 @@
 # فهرس ملفات RAVEN23-BACKEND — المزامنة الحالية مع main
 
-**لقطة الشجرة:** 1e4e8d7f8d2617575868604d21452511a9f10c61
+
+
+**لقطة الشجرة:** eaa522f53bf80911e869ce25af0115b516a9b8dd
+
 **تاريخ المزامنة:** 27 نوفمبر 2026
-**المصدر:** Git Trees API recursive؛ `truncated=false`.
+
+**الدليل:** Git Trees API recursive؛ truncated=false.
+
+
 
 ## ملخص الجرد
 
-- الملفات المتتبعة (blobs): **252**.
+
+
+- الملفات المتتبعة (blobs): **253**.
+
 - مجلدات الشجرة (trees): **55**.
-- مجلد phases: **78 ملفًا**، منها 77 Markdown و44 تقريرًا و16 ملف مواصفة باسم PHASE-XX.
+
+- مجلد phases: **79 ملفًا**، منها 78 Markdown و45 تقريرًا و16 مواصفة باسم PHASE-XX.
+
 - GitHub Actions: **6 workflows**.
+
 - Database migrations: **23**.
-- PHP tests: **42** (22 Feature، 14 Integration، والبقية fixtures/TestCase).
+
+- PHP tests: **42** (22 Feature، 14 Integration، والبقية Fixtures/TestCase).
+
 - App PHP files: **49**؛ config PHP files: **13**.
+
+
 
 هذا فهرس snapshot لمحتويات Git على commit المذكور؛ لا يشمل الملفات غير المتتبعة أو runtime state أو secrets أو بيانات أي قاعدة تشغيل.
 
+
+
 ## ملاحظة عن السجل التاريخي
 
-الأقسام والأعداد القديمة أدناه في النسخ السابقة كانت تصف خط أساس 21–23 نوفمبر، ولا تصف الشجرة الحالية. تم تحديث هذا الفهرس ليكون snapshot كاملًا للمستودع الحالي، مع الإبقاء على تقارير المراحل القديمة كسجلات تاريخية وعدم حذفها.
+
+
+الأقسام والأعداد القديمة في نسخ هذا الفهرس السابقة كانت تصف خط أساس 21–23 نوفمبر، ولا تصف الشجرة الحالية. هذا الإصدار هو snapshot كامل للمستودع الحالي. تقارير المراحل القديمة محفوظة كسجل تاريخي ولم تُحذف أو تُستبدل.
+
+
 
 ## جميع الملفات المتتبعة حسب المسار
+
+
 
 ## .dockerignore/ (1)
 
@@ -190,7 +214,7 @@
 - `infra/opentofu/tests/test-guardrail-provider-neutral.sh`
 - `infra/opentofu/variables.tf`
 
-## phases/ (78)
+## phases/ (79)
 
 - `phases/API_CONTRACT_INVENTORY.md`
 - `phases/BACKEND_FILE_CATALOG.md`
@@ -268,6 +292,7 @@
 - `phases/reports/PHASE11C-APPLY-COMMAND-SUBSTITUTION-REPAIR.md`
 - `phases/reports/PHASE11C-APPROVAL-GUARDRAIL-TESTS.md`
 - `phases/reports/PHASE11C-PROVIDER-NEUTRAL-IAC-BASELINE.md`
+- `phases/reports/PHASES-SOURCE-RECONCILIATION-AND-GLOBAL-PROVIDER-DEFERRAL-2026-11-27.md`
 - `phases/reports/PHASE_REPORT_TEMPLATE.md`
 - `phases/reports/POST-PLAN-MANUAL-BRANCH-PROTECTION-SETUP.md`
 
