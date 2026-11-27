@@ -279,7 +279,7 @@ No production database, secrets, deployments, registry publishing or AWS resourc
 
 ## 14. Current main CI / Phase11B1 trust model baseline — 25 November 2026
 
-**Verified SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
+**Historical trust-model baseline SHA:** `84b87d9e2b746a0fa6c1fca26ae57c02d36d9181`
 
 | Workflow | Run | Result |
 |---|---:|---|
