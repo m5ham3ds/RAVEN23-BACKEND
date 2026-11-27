@@ -28,18 +28,31 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 01 | مشروع Laravel مستقل وقابل لإعادة البناء — COMPLETE (Docker #210 SUCCESS على SHA موحد؛ SQLite 14/100 وPostgreSQL 3/72) | 00 |
 | 02 | بيئة تشغيل إنتاجية مستقلة عن المزود — COMPLETE (Docker #249 SUCCESS؛ SQLite 20/138، PostgreSQL 3/72، HTTP/non-root/readiness/PHP asset block PASS) | 01 |
 | 03 | الأمن والرصد والتشغيل الأساسي — COMPLETE (Docker #291 SUCCESS: SQLite 34/210، PostgreSQL 3/72؛ least-privilege DB roles، TLS guard، log redaction؛ Pint #27 وSecurity #29 SUCCESS على SHA `6b14d55fb87bdd6948b0f896db9a4c99c43f7748`) | 01–02 COMPLETE |
-| 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (code/CI PASS؛ تكامل Google Android والبريد الحقيقي وحوكمة PRs ما زالت تنتظر) | 01–03 COMPLETE |
+| 04 | إكمال المصادقة والحسابات والأجهزة — PARTIAL (الكود والاختبارات المعزولة موجودة؛ Google Android الحقيقي وتسليم البريد في staging مؤجلان إلى ما بعد اكتمال أعمال تطوير Backend المستقلة عن المزود) | 01–03 COMPLETE؛ لا يؤخر ذلك تنفيذ أي عمل داخلي لا يحتاج تكاملًا خارجيًا |
 | 05 | أساس بيانات المستخدم وعقود الحساب — COMPLETE (Docker #339/#340، Pint #68/#69، Security #70/#71) | 00–04 code/CI؛ Google/mail الحقيقيان يظلان شرط staging مستقلًا |
 | 06 | المكتبة الشخصية وسجل المشاهدة والقوائم — COMPLETE؛ Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 PASS على main SHA `608c94f` | 05 COMPLETE؛ عقد Flutter موثق ومطبق على main |
 | 07 | المزامنة بين الأجهزة والعمل دون اتصال — COMPLETE؛ Flutter Android CI: 496 Flutter tests و25 Android ABI/offline tests. Backend Docker أثبت 8 عمليات PostgreSQL مستقلة، تقارب السجل/الملخص اليومي، وثبّت retry/account-owner guard وقياسات request/response/latency/conflicts. | 05–06 |
-| 08 | تخزين الملفات والإشعارات والمهام الخلفية — IN_PROGRESS؛ 08A–08J سابقة محفوظة، و08K أثبتت worker retries/dead-letter عبر fake transport على `1e79bb3`. اختيار Push مؤجل صراحةً حتى استكمال بقية نطاق Backend 09–13؛ S3/mail staging وretention/cost ما زالت اعتماديات خارجية. | 02–05 |
-| 09 | الاشتراكات والصلاحيات والميزات المدفوعة — IN_PROGRESS؛ 09A–09F مكتملة برمجيًا واجتازت CI الأربع على `009d2f1`. 09F يضيف wallet read-only ودفتر معاملات append-only وحماية حذف الرصيد؛ قرارات المنتج والدفع WAITING_EXTERNAL. | 03–05؛ لا أسعار أو مشتريات أو provider قبل اعتماد المنتج؛ Phase04 staging PARTIAL |
-| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER: إعداد الحماية يدوياً بعد اكتمال خطة Backend) | 01–09 تدريجيًا؛ تأجيل إعداد الحماية لا يوقف تطوير الميزات، لكنه شرط قبل Phase11B2 والنشر |
-| 11 | البنية التحتية المحمولة والنشر المستقل عن المزود — 11A portability baseline COMPLETE تقنيًا وcost scorecard WAITING_INPUT؛ 11B1 trust design DESIGN_COMPLETE مع CI trust-boundary remediation مثبتة؛ 11B2 enforcement WAITING_EXTERNAL؛ 11C IN_PROGRESS (provider-neutral OpenTofu scaffold وفحوص fmt/validate/provider-free plan ناجحة، 18/18 guardrail regression؛ run 45754424342 على `f95e361` صالح لأن الملفات الوحيدة بعده وحتى `c709ba7` كانت مواصفة Phase11)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | 11C المحلي لا يحتاج provider أو backend، وقد اجتاز التحقق؛ لا يمكن إغلاقه أو إنشاء adapters قبل اعتماد provider/region/workload/cost. 11B2 و11D–11F تتطلب إغلاق 10B يدوياً وموافقات النشر والاعتماديات 04/08 حسب التكامل. |
-| 12 | ترحيل البيانات والتحويل الإنتاجي — WAITING_DEPENDENCY؛ synthetic PostgreSQL backup/restore preflight PASS على `27cfcc9` | إكمال 04–11، واعتماد المصدر/الوجهة، ونسخة إنتاجية مستعادة في بيئة معزولة، وخطة الكتابات وموافقة cutover مباشرة |
-| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة | 12 |
+| 08 | التخزين والإشعارات والمهام — IN_PROGRESS (الأساس المحايد للمزود و08A–08K منفذ ومختبر؛ S3/mail/Push الحقيقي وسياسات retention/cost مؤجلة إلى ما بعد تطوير Backend) | 02–05؛ موافقات المزود والتكلفة والتسليم الحقيقي لاحقًا؛ تظل Push معطلة افتراضيًا |
+| 09 | الاشتراكات والصلاحيات — IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI؛ اعتماد الخطط والأسعار والشروط ومزود الدفع مؤجل إلى ما بعد تطوير Backend) | 03–05؛ لا مشتريات أو أسعار أو PaymentProvider قبل قرار المالك في مرحلة الاختيارات النهائية |
+| 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
+| 11 | البنية التحتية المحمولة والنشر — 11A portability baseline و11B1 trust design مكتملان؛ 11C provider-neutral scaffold/validation منفذ و18/18 guardrails PASS؛ 11C provider adapters وcost scorecard و11B2 و11D–11F مؤجلة إلى ما بعد أعمال Backend المستقلة عن المزود | لا اختيار provider/region/cost أو إنشاء موارد الآن؛ 10B اليدوية تظل شرطًا قبل 11B2؛ provisioning/staging بعد قرار المالك الصريح |
+| 12 | ترحيل البيانات والتحويل الإنتاجي — WAITING_DEPENDENCY (synthetic PostgreSQL encrypted backup/restore preflight PASS على `27cfcc9`; التنفيذ الحقيقي مؤجل) | بعد اكتمال التطوير المستقل عن المزود: اعتماد المصدر/الوجهة، backup/restore حقيقي معزول، خطة الكتابات، وموافقة cutover المحددة |
+| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — WAITING_DEPENDENCY؛ أعمال التخطيط المحايد ممكنة، أما إعداد الخدمات والتنبيهات والنسخ الفعلية فمؤجل لما بعد قرار المزود والنشر | Phase12 ثم اختيار المزود/المنطقة واعتماد الميزانية وRPO/RTO قبل التشغيل الفعلي |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
+
+## 3.1 قرار موحد — تأجيل جميع اختيارات مزودي الخدمات
+
+بناءً على توجيه المالك في 27 نوفمبر 2026، تُجمع جميع قرارات اختيار مزود خارجي أو منصة أو منطقة أو خدمة مدفوعة في مسار قرار واحد بعد اكتمال أعمال تطوير Backend التي يمكن تنفيذها دون مزود. يشمل ذلك compute/hosting وPostgreSQL hosting/region وobject storage وmail delivery وPush (FCM/OneSignal) وPaymentProvider وcontainer registry وsecrets/identity وlogs/metrics وDNS/edge وأي خدمات تشغيلية مرتبطة.
+
+- لا يُطلب الآن من المالك اختيار أي مزود أو منطقة أو خطة أو ميزانية لهذه الخدمات.
+- تستمر أعمال Laravel/API/schema/migrations/contracts/tests والـprovider-neutral adapters والـCI والـsynthetic rehearsals التي لا تحتاج حسابًا أو credential خارجيًا.
+- لا تضف provider SDK/sender/payment adapter أو provider-specific IaC/resources أو secrets أو حسابات أو موارد مدفوعة أو نشرًا قبل إعادة فتح قرار المزود.
+- تبقى الميزات معطلة افتراضيًا كما هي: Push disabled، mail delivery disabled، purchases disabled، وprivate local storage default.
+- لا تسجل أي تكامل خارجي COMPLETE اعتمادًا على mock أو S3Mock أو نجاح CI فقط.
+- بعد اكتمال أعمال Backend المستقلة عن المزود، تُراجع الاختيارات مجتمعةً بمقارنة وظيفية وأمنية وتكلفة وتشغيل، ثم تُنفذ موافقة كل مورد/تكلفة/نشر على حدة.
+
+هذا الترتيب لا يغير معايير قبول المراحل أو متطلبات backup/restore أو موافقة cutover؛ بل يؤجل العمل الخارجي فقط ويمنع تعطيل التطوير المحايد.
 
 ## 4. خريطة الاعتماديات
 
@@ -57,7 +70,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 01–09 ──> 10 بوابة الجودة والإصدارات
 02 + 03 + 10G ──> 11A portability baseline + 11B1 trust design
 11A + 11B1 ──> 11C provider-neutral IaC design/validation (لا موارد ولا backend)
-10B + موافقة provider/region/cost + اعتماد 04/08 عند الحاجة ──> 11B2 enforcement و11C provider adapters و11D–11F provisioning/staging/deployment
+اكتمال أعمال Backend المستقلة عن المزود ──> قرار موحد بمزودي الخدمات/المنطقة/التكلفة وموافقات منفصلة ──> 11B2 و11C provider adapters و11D–11F provisioning/staging/deployment
 04–11 + استعادة نسخة احتياطية ناجحة ──> 12 النقل والتحويل
 12 ──> 13 التشغيل والتعافي المستمر
 ```
