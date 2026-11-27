@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 27 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified backend SHA:** `27cfcc9e577cca33c28e9845096a0c5564b02045`
+**Latest fully CI-verified backend SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -13,16 +13,16 @@
 | 01 — مشروع Laravel قابل لإعادة البناء | COMPLETE | Laravel 13 وComposer lock وبناء Docker قابل للتكرار. |
 | 02 — runtime محمول | COMPLETE | FrankenPHP/Caddy وnon-root وliveness/readiness وPHP asset blocking. |
 | 03 — الأمن والرصد | COMPLETE على مستوى الكود وCI | Gitleaks/Trivy وlog redaction وTLS guard وleast-privilege؛ إعدادات المزود والنسخ الاحتياطي قبل الإنتاج. |
-| 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد الحقيقي في staging غير مثبتين. |
+| 04 — المصادقة والحسابات والأجهزة | PARTIAL | Backend code/tests موجودة؛ Google Android الحقيقي والبريد في staging مؤجلان إلى ما بعد أعمال Backend المستقلة عن المزود. |
 | 05 — أساس بيانات المستخدم | COMPLETE | profile/preferences/devices وAPI/export واختبارات SQLite/PostgreSQL. |
 | 06 — المكتبة وسجل المشاهدة والقوائم | COMPLETE | Docker #397: 81 Feature/824 assertions و9 PostgreSQL/219 assertions؛ Auth #19: 20 SQLite/151 assertions و4 PostgreSQL/99 assertions؛ Security #143 ناجح. |
 | 07 — المزامنة بين الأجهزة والعمل دون اتصال | COMPLETE | Flutter Android CI على `d9418ea`: 496 Flutter tests و25 Android ABI/offline tests؛ Backend Docker على `1d354f7`: 8 عمال PostgreSQL مستقلين، timestamp=5000 هو الفائز، daily aggregate متسق، وقياسات request/response/latency/conflict موثقة في تقرير الإغلاق. جميع بوابات Backend الأربع وAndroid CI ناجحة. |
-| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | 08A–08J محفوظة؛ 08K (worker retry/dead-letter) اجتازت CI على `1e79bb3`، مع fake transport فقط. لا sender أو credentials أو إرسال Push خارجي. ما زال real S3/mail staging وPush device delivery وسياسات retention/cost مفتوحة. |
-| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
+| 08 — التخزين والإشعارات والمهام | IN_PROGRESS | الأساس المحايد للمزود و08A–08K منفذ ومختبر؛ real S3/mail/Push وretention/cost مؤجلة إلى ما بعد التطوير؛ الإرسال معطل افتراضيًا. |
+| 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | قرارات الخطط/الأسعار/الشروط ومزود الدفع مؤجلة إلى ما بعد تطوير Backend؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
-| 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold؛ IaC validation PASS و18/18 guardrail cases؛ آخر تحقق صالح للملفات نفسها run 45754424342 على `f95e361` مع عدم تغير ملفات IaC/workflow حتى `c709ba7`)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ ما يزال إغلاق 11C يتطلب مدخلات provider/region/workload/cost لإضافة adapters؛ 11D تتطلب الموافقة الصريحة وبيئة staging، و10B مؤجلة بطلب المالك قبل 11B2 والنشر. |
-| 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (synthetic preflight PASS) | نجح synthetic PostgreSQL encrypted backup/restore على `27cfcc9`، مع مطابقة 3 حسابات و4 media و2 sync events وجميع 10 constraints والفهارس، ورفع تقرير JSON؛ CI الأربع والتوقيع/rollback PASS. لا يزال backup/restore الإنتاجي والمصدر/الوجهة وموافقة cutover والاعتماديات 04–11 مطلوبة. |
-| 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
+| 11 — البنية المحمولة والنشر | 11A COMPLETE تقنيًا؛ 11B1 DESIGN_COMPLETE/معالجة الثقة مثبتة؛ 11C provider-neutral scaffold و18/18 guardrails PASS؛ provider adapters وcost scorecard و11B2 و11D–11F مؤجلة إلى ما بعد تطوير Backend المستقل عن المزود. | لا اختيار provider/region/cost أو resources/apply؛ 10B اليدوية تظل شرطًا قبل 11B2 والنشر. |
+| 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (synthetic preflight PASS) | نجح synthetic encrypted PostgreSQL backup/restore؛ تبقى بيانات المصدر/الوجهة والاستعادة الحقيقية وخطة الكتابات وموافقة cutover، وجميعها مؤجلة لما بعد التطوير وقرار المزود. |
+| 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | تخطيط runbooks/معايير التشغيل المحايدة ممكن؛ provisioning والنسخ والتنبيهات والقياس الفعلي بعد قرار المزود وPhase12. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
 
@@ -486,3 +486,15 @@
 - اكتملت 5 Sigstore attestations: [current provenance 72918520](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918520)، [current SBOM 72918531](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918531)، [rollback provenance 72918541](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918541)، [rollback SBOM 72918554](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918554)، [release manifest 72918567](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918567).
 - حزمة الإصدار [artifact 15168861287](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168861287) رُفعت بنجاح (564,159,137 bytes؛ SHA-256 `e06ee520d6f31f2234cd6cf147117a41aad40823b8a0bad2f9608f13c39d647d`). لم تُنشر الصورة إلى registry؛ لا يعني artifact وجود deployment.
 - **الحكم:** التحضير الاصطناعي 2.1 مكتمل ومثبت في CI فقط. تظل Phase12 `WAITING_DEPENDENCY` وتظل Phase13 مغلقة؛ يلزم إكمال 04–11، واعتماد المصدر والوجهة، ونسخة احتياطية فعلية واستعادة معزولة، وخطة الكتابات المتزامنة وموافقة cutover محددة. لا production DB/data/secrets، ولا migrations أو deploy أو DNS cutover أو cloud resources.
+
+## 24. مزامنة شاملة مع رأس main وقرار تأجيل مزودي الخدمات — 27 نوفمبر 2026
+
+- رأس `main` الحالي: `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`؛ هو آخر commit اجتاز بوابات CI الأربع. المقارنة مع `27cfcc9` تبين أن commit الحالي توثيقي فقط، ولم يغير كود التطبيق أو IaC.
+- Docker Validation [45936514582](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514582): SUCCESS؛ SQLite Feature 151/1,719، PostgreSQL 31/546 مع optional skip واحد، S3Mock 1/8، runtime/least-privilege/migration guards/backup-restore synthetic/rollback وevidence/signing نجحت؛ Build/test 30/30 والتوقيع 17/17.
+- Authentication Regression [45936514610](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514610): SUCCESS؛ SQLite 20/172 وPostgreSQL 4/99.
+- Security [45936514543](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514543): SUCCESS؛ Gitleaks/Composer/Trivy والبوابة القابلة للإصلاح HIGH/CRITICAL اجتازت.
+- Pint [45936514597](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45936514597): SUCCESS؛ خطوات changed-PHP format skipped لعدم وجود ملفات PHP متغيرة؛ strict Pint ضمن Docker نجح.
+- شجرة Git الحالية: 252 ملفًا و55 مجلدًا؛ `phases/` تضم 78 ملفًا (77 Markdown) بما فيها 44 تقريرًا؛ 23 migration؛ 42 ملف PHP للاختبارات؛ 6 workflows؛ branch listing يثبت `main` وحده.
+- قرار المالك الجديد: تأجيل جميع اختيارات مزودي الخدمات والمنصات والمناطق والتكاليف إلى ما بعد اكتمال أعمال تطوير Backend التي لا تحتاج مزودًا. يشمل الاستضافة وقاعدة البيانات والتخزين والبريد وPush والدفع وregistry/secrets/identity/monitoring/DNS.
+- تستمر الآن جميع أعمال code/API/schema/contracts/tests/CI والـprovider-neutral foundations والـsynthetic tests. لا provider SDK أو credentials أو موارد مدفوعة أو apply أو deployment قبل إعادة فتح القرار والموافقة المحددة.
+- حالات المراحل لم تتغير إلى COMPLETE بسبب التأجيل: 04 PARTIAL؛ 08/09 IN_PROGRESS؛ 10B DEFERRED_BY_OWNER؛ 11C IN_PROGRESS على مستوى scaffold المحايد؛ 12 و13 WAITING_DEPENDENCY. راجع `MASTER_PLAN.md` و`DECISIONS.md` والقرار D-050.
