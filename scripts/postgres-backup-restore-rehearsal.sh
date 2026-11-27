@@ -191,7 +191,11 @@ constraints_manifest() {
   scalar "$1" "SELECT COALESCE(string_agg(
     format('%I.%I|%I|type=%s|definition=%s|validated=%s|deferrable=%s|deferred=%s|local=%s|inheritance_count=%s|noinherit=%s',
       ns.nspname, tbl.relname, con.conname, con.contype,
-      pg_get_constraintdef(con.oid, false), con.convalidated,
+      CASE
+        WHEN con.contype = 'c' THEN '<check-expression-verified-behaviorally>'
+        ELSE pg_get_constraintdef(con.oid, false)
+      END,
+      con.convalidated,
       con.condeferrable, con.condeferred, con.conislocal,
       con.coninhcount, con.connoinherit),
     E'\\n' ORDER BY ns.nspname, tbl.relname, con.conname), '')
@@ -227,6 +231,59 @@ assert_manifest_same() {
     return 1
   fi
 }
+check_constraint_count() {
+  scalar "$1" "SELECT count(*)
+  FROM pg_constraint con
+  JOIN pg_class tbl ON tbl.oid = con.conrelid
+  JOIN pg_namespace ns ON ns.oid = tbl.relnamespace
+  WHERE ns.nspname = 'public'
+    AND tbl.relname IN ('migration_synthetic_accounts', 'migration_synthetic_media', 'migration_synthetic_events')
+    AND con.contype = 'c'"
+}
+assert_check_constraint_behavior() {
+  database="$1"
+  psql --no-psqlrc --set=ON_ERROR_STOP=1 \\
+    --username="$PGUSER" --host="$PGHOST" --port="$PGPORT" --dbname="$database" <<'SQL'
+DO $raven23_phase12$
+DECLARE
+    rejected BOOLEAN;
+BEGIN
+    INSERT INTO migration_synthetic_media
+        (account_id, media_type, external_id, progress_ms, updated_at_utc)
+    VALUES
+        (1001, 'movie', 'phase12-check-valid-movie', 0, CURRENT_TIMESTAMP),
+        (1001, 'episode', 'phase12-check-valid-episode', 0, CURRENT_TIMESTAMP);
+
+    DELETE FROM migration_synthetic_media
+    WHERE external_id IN ('phase12-check-valid-movie', 'phase12-check-valid-episode');
+
+    rejected := FALSE;
+    BEGIN
+        INSERT INTO migration_synthetic_media
+            (account_id, media_type, external_id, progress_ms, updated_at_utc)
+        VALUES (1001, 'unsupported', 'phase12-check-invalid-type', 0, CURRENT_TIMESTAMP);
+    EXCEPTION
+        WHEN check_violation THEN rejected := TRUE;
+    END;
+    IF NOT rejected THEN
+        RAISE EXCEPTION 'media_type CHECK constraint accepted an unsupported value';
+    END IF;
+
+    rejected := FALSE;
+    BEGIN
+        INSERT INTO migration_synthetic_media
+            (account_id, media_type, external_id, progress_ms, updated_at_utc)
+        VALUES (1001, 'movie', 'phase12-check-invalid-progress', -1, CURRENT_TIMESTAMP);
+    EXCEPTION
+        WHEN check_violation THEN rejected := TRUE;
+    END;
+    IF NOT rejected THEN
+        RAISE EXCEPTION 'progress_ms CHECK constraint accepted a negative value';
+    END IF;
+END
+$raven23_phase12$;
+SQL
+}
 
 source_accounts="$(scalar "$source_db" 'SELECT count(*) FROM migration_synthetic_accounts')"
 target_accounts="$(scalar "$target_db" 'SELECT count(*) FROM migration_synthetic_accounts')"
@@ -258,17 +315,25 @@ source_index_hash="$(manifest_fingerprint "$source_index_manifest")"
 target_index_hash="$(manifest_fingerprint "$target_index_manifest")"
 source_constraints_count="$(printf '%s\n' "$source_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
 target_constraints_count="$(printf '%s\n' "$target_schema_manifest" | awk 'NF { count++ } END { print count + 0 }')"
+source_check_constraints_count="$(check_constraint_count "$source_db")"
+target_check_constraints_count="$(check_constraint_count "$target_db")"
 
 assert_same "Accounts content fingerprint" "$source_accounts_hash" "$target_accounts_hash"
 assert_same "Media content fingerprint" "$source_media_hash" "$target_media_hash"
 assert_same "Events content fingerprint" "$source_events_hash" "$target_events_hash"
 assert_same "Synthetic database constraint count" "10" "$source_constraints_count"
 assert_same "Restored database constraint count" "$source_constraints_count" "$target_constraints_count"
+assert_same "Synthetic CHECK constraint count" "2" "$source_check_constraints_count"
+assert_same "Restored CHECK constraint count" "$source_check_constraints_count" "$target_check_constraints_count"
 assert_manifest_same "Database constraints" "$source_schema_manifest" "$target_schema_manifest"
 assert_same "Database constraints fingerprint" "$source_schema_hash" "$target_schema_hash"
+assert_check_constraint_behavior "$source_db"
+echo "::notice::Source CHECK constraints rejected invalid synthetic values and accepted movie/episode values."
+assert_check_constraint_behavior "$target_db"
+echo "::notice::Restored CHECK constraints rejected invalid synthetic values and accepted movie/episode values."
 assert_manifest_same "Database indexes" "$source_index_manifest" "$target_index_manifest"
 assert_same "Database indexes fingerprint" "$source_index_hash" "$target_index_hash"
-echo "::notice::Synthetic row content, all 10 constraints and indexes matched after restore."
+echo "::notice::Synthetic row content, all 10 constraints (including both behavioral CHECK probes) and indexes matched after restore."
 
 mkdir -p "$(dirname "$REPORT_PATH")"
 cat > "$REPORT_PATH" <<EOF
