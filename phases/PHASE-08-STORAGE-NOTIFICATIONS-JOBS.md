@@ -277,3 +277,16 @@ Docker strict Pint، queue-worker guards، PostgreSQL least-privilege، separate
 - كشف `composer audit` خمس advisories ضمن Symfony HTTP Kernel/Mailer/Routing والعائلة المرتبطة.
 - تم تحديث `symfony/http-foundation`, `symfony/http-kernel`, `symfony/mailer`, `symfony/mime`, و`symfony/routing` إلى `v8.1.12` (مع تحديثات lock مرتبطة إضافية).
 - أعاد `composer audit` النتيجة: no security vulnerability advisories found. Trivy production image summary: Clean؛ Gitleaks وSecurity workflow نجحا.
+
+## قرار موحد لتأجيل اختيار مزودي Phase08 — 27 نوفمبر 2026
+
+**الحالة:** IN_PROGRESS — جميع الأعمال المحايدة والاختبارات المحلية تستمر؛ اختيار مزود التخزين والبريد وPush والتكلفة/الاحتفاظ مؤجل إلى ما بعد اكتمال أعمال Backend المستقلة عن المزود بموجب D-050.
+
+- لا تختَر S3-compatible provider أو bucket/region/account أو mail provider أو Push provider (FCM/OneSignal) الآن.
+- لا تضف sender adapter أو provider SDK أو credentials أو secrets أو bucket أو موارد مدفوعة أو ترسل رسالة/Push حقيقيًا.
+- استمر في تطوير `PrivateObjectStorage` و`NotificationOutboxTransport` و`PushNotificationTransport` والعقود والـidempotency والـretry/dead-letter وسياسات الفشل التي لا تعتمد على مزود.
+- استمر في الاختبارات على SQLite/PostgreSQL المؤقتة وS3Mock وfake transports؛ لا تقدمها كدليل على staging حقيقي.
+- تبقى الافتراضات الآمنة: `RAVEN23_PRIVATE_STORAGE_DISK=local`، `RAVEN23_PUSH_ENABLED=false`، `RAVEN23_PUSH_PROVIDER=none`، وmail delivery disabled.
+- تؤجل قرارات retention/quota/capacity/egress/cost النهائية حتى تتحدد متطلبات الخدمة ومزودها بعد أعمال التطوير.
+
+لا تُغلق Phase08 قبل اختبار provider staging/device الحقيقي واعتماد السياسات. هذا التأجيل لا يمنع بناء بقية Backend ولا يوقف Phase09 أو 10 على مستوى الكود والـCI.
