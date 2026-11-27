@@ -1,8 +1,8 @@
 # الحالة التنفيذية الموحدة — RAVEN23 Backend
 
-**آخر تحديث:** 26 نوفمبر 2026
+**آخر تحديث:** 27 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest fully CI-verified application/runtime SHA:** `1e79bb3591ca721fb824c4b498dbef5990c145aa`
+**Latest fully CI-verified backend SHA:** `27cfcc9e577cca33c28e9845096a0c5564b02045`
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -21,7 +21,7 @@
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | 09F: SQLite 144/1,508؛ PostgreSQL 31/541؛ S3Mock منفصل 1/8؛ Auth 20/172 و4/99؛ Pint/Security SUCCESS على `009d2f1`. القرارات التجارية والدفع WAITING_EXTERNAL؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية المحمولة والنشر | 11A portability baseline COMPLETE تقنيًا؛ cost scorecard WAITING_INPUT؛ 11B1 DESIGN_COMPLETE ومعالجة فصل صلاحيات validation/attestation مثبتة؛ 11B2 WAITING_EXTERNAL؛ 11C IN_PROGRESS (OpenTofu provider-neutral scaffold؛ IaC validation PASS و18/18 guardrail cases؛ آخر تحقق صالح للملفات نفسها run 45754424342 على `f95e361` مع عدم تغير ملفات IaC/workflow حتى `c709ba7`)؛ 11D–11F WAITING_EXTERNAL/DEPENDENCY | لا provider/resources/backend/credentials/apply؛ ما يزال إغلاق 11C يتطلب مدخلات provider/region/workload/cost لإضافة adapters؛ 11D تتطلب الموافقة الصريحة وبيئة staging، و10B مؤجلة بطلب المالك قبل 11B2 والنشر. |
-| 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (preflight اصطناعي) | أضيفت تجربة PostgreSQL backup/restore مشفّرة ببيانات اصطناعية إلى CI؛ أصلح أول تشغيل نقص openssl؛ المحاولة الثانية كشفت حاجة لفحوص تشخيص صريحة، وأضيفت الآن؛ النتيجة النهائية تنتظر إعادة التحقق؛ لا تثبت backup إنتاجيًا. ما زال يلزم اكتمال 04–11، واعتماد المصدر والوجهة، وbackup فعلي واستعادة معزولة وموافقة cutover مباشرة. |
+| 12 — نقل البيانات والتحويل الإنتاجي | WAITING_DEPENDENCY (synthetic preflight PASS) | نجح synthetic PostgreSQL encrypted backup/restore على `27cfcc9`، مع مطابقة 3 حسابات و4 media و2 sync events وجميع 10 constraints والفهارس، ورفع تقرير JSON؛ CI الأربع والتوقيع/rollback PASS. لا يزال backup/restore الإنتاجي والمصدر/الوجهة وموافقة cutover والاعتماديات 04–11 مطلوبة. |
 | 13 — تشغيل الإنتاج والتعافي | WAITING_DEPENDENCY | يعتمد على Phase12 وقياس RPO/RTO. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
@@ -473,3 +473,16 @@
 - `composer audit` نجح بلا advisories؛ focused outbox suite: 16 tests / 119 assertions؛ full Docker SQLite Feature: 151 / 1,719؛ PostgreSQL: 31 / 546 مع optional skip واحد؛ S3Mock: 1 / 8.
 - Docker/Auth/Pint/Security جميعها SUCCESS على `1e79bb3`. كان Docker baseline dispatch يتجاوز rollback والتوقيع مؤقتًا فقط لإعادة تأسيس هدف تراجع غير متأثر بالثغرات؛ هذا التغيير يعيد المسار الكامل ويحدد `1e79bb3` هدفًا سابقًا صالحًا ليُعاد بناؤه واختبار التحويل إليه على commit الحالي.
 - Phase08 تبقى IN_PROGRESS لانتظار S3/mail/Push staging وسياسات retention/cost؛ لم يُفعّل مزود خارجي. Phase10B ما زالت DEFERRED_BY_OWNER كما هي.
+
+
+## 23. Phase12 synthetic PostgreSQL backup/restore preflight — verified on main — 27 November 2026
+
+- رأس `main` الذي اجتاز التحقق: `27cfcc9e577cca33c28e9845096a0c5564b02045`. لم ينشأ أي فرع جديد؛ GitHub refs أعاد `main` وحده.
+- Docker Validation [45929855650](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650): SUCCESS — وظيفة build/test 30/30 خطوة، ووظيفة trusted-main signing 17/17.
+- Authentication Regression [45929855617](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855617): SUCCESS. Pint Format [45929855622](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855622): SUCCESS. Security [45929855730](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855730): SUCCESS — 12/12 خطوة.
+- نجح PostgreSQL synthetic rehearsal: custom-format dump مشفر بـAES-256-CBC مع PBKDF2-HMAC-SHA256 (200,000 iteration)، وفك التشفير وتطابق SHA-256، والاستعادة إلى قاعدة اختبار منفصلة؛ تطابقت 3 accounts و4 media progress rows و2 sync events و10 constraints (بما فيها behavioral CHECK probes) والفهارس.
+- تقرير الاستعادة الاصطناعية [artifact 15168436709](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168436709) رُفع بنجاح (904 bytes؛ SHA-256 `2eb010768a7fbd2b89ca849babfc36fd5db546d8a556153e969c1f6edee0da7d`).
+- Rollback rehearsal اجتاز liveness للصورة الحالية والقديمة، وأثبت HTTP 200 للمسار الحالي، وHTTP 502 بعد إيقاف candidate، ثم تحويل المرور بنجاح إلى rollback target. نجح التحقق من SHA-256 للصورة وملفات CycloneDX SBOM وrollback evidence قبل التوقيع.
+- اكتملت 5 Sigstore attestations: [current provenance 72918520](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918520)، [current SBOM 72918531](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918531)، [rollback provenance 72918541](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918541)، [rollback SBOM 72918554](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918554)، [release manifest 72918567](https://github.com/m5ham3ds/RAVEN23-BACKEND/attestations/72918567).
+- حزمة الإصدار [artifact 15168861287](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168861287) رُفعت بنجاح (564,159,137 bytes؛ SHA-256 `e06ee520d6f31f2234cd6cf147117a41aad40823b8a0bad2f9608f13c39d647d`). لم تُنشر الصورة إلى registry؛ لا يعني artifact وجود deployment.
+- **الحكم:** التحضير الاصطناعي 2.1 مكتمل ومثبت في CI فقط. تظل Phase12 `WAITING_DEPENDENCY` وتظل Phase13 مغلقة؛ يلزم إكمال 04–11، واعتماد المصدر والوجهة، ونسخة احتياطية فعلية واستعادة معزولة، وخطة الكتابات المتزامنة وموافقة cutover محددة. لا production DB/data/secrets، ولا migrations أو deploy أو DNS cutover أو cloud resources.

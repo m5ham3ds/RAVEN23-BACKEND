@@ -49,3 +49,18 @@
 
 
 **التشخيص الثاني:** بعد تثبيت OpenSSL نجحت أوامر إنشاء الجداول وإدخال 3/4/2 صفوف اصطناعية، ثم خرج السكربت برمز 1 دون تحديد الخطوة التالية. أضيفت رسائل milestones وفحوصًا صريحة لكل من `pg_dump` والتشفير وفك التشفير و`pg_restore` وأعداد السجلات وبصمات المحتوى والقيود والفهارس. لا يتم تسجيل PASS قبل ظهور نتائج هذه الخطوات في CI.
+
+
+## 2.2 — إغلاق preflight الاصطناعي والتحقق النهائي — 27 نوفمبر 2026
+
+**الحالة:** PASS للتحضير الاصطناعي فقط؛ حالة Phase12 الكلية تظل `WAITING_DEPENDENCY`.
+
+على main SHA `27cfcc9e577cca33c28e9845096a0c5564b02045` نجح Docker Validation [#45929855650](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650)، وAuthentication [#45929855617](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855617)، وPint [#45929855622](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855622)، وSecurity [#45929855730](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855730). وظيفة التوقيع trusted-main اكتملت 17/17 خطوة.
+
+- نجح round-trip للنسخة الاصطناعية المشفرة AES-256-CBC/PBKDF2-HMAC-SHA256، مع SHA-256 integrity check.
+- تمت الاستعادة إلى قاعدة disposable منفصلة، وتطابقت 3 accounts و4 media progress rows و2 sync events، وجميع 10 constraints بما فيها اختبارات سلوك CHECK constraints، والفهارس.
+- تقرير JSON: [artifact 15168436709](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168436709).
+- اجتازت تجربة rollback مسار HTTP 200 → 502 → 200 إلى الصورة السابقة، واكتملت خمس Sigstore attestations للصورة الحالية وSBOMها، وصورة rollback وSBOMها، وrelease manifest.
+- حزمة الإصدار: [artifact 15168861287](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/45929855650/artifacts/15168861287).
+
+هذه النتيجة لا تغطي مصدر بيانات حقيقيًا ولا تثبت backup أو restore إنتاجيًا، ولا تفوض cutover أو migration أو النشر. تبقى معايير القبول الرئيسية للمرحلة 12 كما هي في أعلى هذه الوثيقة.
