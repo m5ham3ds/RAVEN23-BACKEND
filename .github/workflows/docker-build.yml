@@ -395,11 +395,46 @@ jobs:
             echo "- Synthetic-only rehearsal: no production data, credentials, database or cutover."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Rehearse full PostgreSQL CI schema and data backup/restore
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: raven23_test
+          PGPASSWORD: raven23_test
+          PGDATABASE: raven23_test
+          RAVEN23_ALLOW_DISPOSABLE_PG_REHEARSAL: 'yes'
+        run: |
+          set -eu
+          RAVEN23_REHEARSAL_ID="$GITHUB_RUN_ID$GITHUB_RUN_ATTEMPT"
+          evidence_dir="$RUNNER_TEMP/raven23-phase12-rehearsal"
+          mkdir -p "$evidence_dir"
+          docker run --rm --network host \
+            --volume "$GITHUB_WORKSPACE:/workspace:ro" \
+            --volume "$evidence_dir:/evidence" \
+            --workdir /workspace \
+            -e PGHOST -e PGPORT -e PGUSER -e PGPASSWORD -e PGDATABASE \
+            -e RAVEN23_ALLOW_DISPOSABLE_PG_REHEARSAL \
+            -e RAVEN23_REHEARSAL_ID \
+            -e RAVEN23_REPOSITORY_ROOT=/workspace \
+            -e REPORT_PATH=/evidence/full-schema-restore-report.json \
+            --entrypoint sh \
+            postgres:16-alpine -c 'apk add --no-cache openssl >/dev/null && exec sh scripts/postgres-full-schema-restore-rehearsal.sh'
+          jq -e '.result == "passed" and .restore.tableInventoriesMatched == true and .restore.perTableRowCountsAndContentFingerprintsMatched == true and .safety.productionDatabaseUsed == false and .safety.rowValuesIncludedInArtifact == false' \
+            "$evidence_dir/full-schema-restore-report.json" >/dev/null
+          {
+            echo "## Phase12 full PostgreSQL schema/data rehearsal"
+            echo "- Backed up and restored the disposable CI database after the full Laravel migration set was applied."
+            echo "- Compared public table inventory, columns, constraints, indexes, sequence definitions, triggers, views, row counts and per-table content fingerprints."
+            echo "- Evidence includes aggregate counts and hashes only; no row values, production credentials, production database or cutover."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload Phase12 synthetic backup/restore evidence
         uses: actions/upload-artifact@v7.0.2
         with:
           name: raven23-phase12-synthetic-restore-${{ github.sha }}
-          path: ${{ runner.temp }}/raven23-phase12-rehearsal/synthetic-restore-report.json
+          path: |
+            ${{ runner.temp }}/raven23-phase12-rehearsal/synthetic-restore-report.json
+            ${{ runner.temp }}/raven23-phase12-rehearsal/full-schema-restore-report.json
           if-no-files-found: error
           retention-days: 30
       - name: Apply the schema through an explicit one-off migration role
