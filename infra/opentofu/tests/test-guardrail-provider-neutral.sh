@@ -90,7 +90,7 @@ assert_reject() {
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: tofu apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
       ;;
     apply-multiline)
-      printf '\njobs:\n  unsafe:\n    steps:\n      - name: forbidden\n        run: |\n          tofu \\n            apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
+      printf '\njobs:\n  unsafe:\n    steps:\n      - name: forbidden\n        run: |\n          tofu \\\n            apply -auto-approve\n' >> "$fixture/.github/workflows/iac-validation.yml"
       ;;
     apply-backtick)
       printf '\njobs:\n  unsafe:\n    steps:\n      - run: echo "\x60tofu apply -auto-approve\x60"\n' >> "$fixture/.github/workflows/iac-validation.yml"
