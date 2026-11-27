@@ -58,3 +58,13 @@
 
 ## 8. الاستثناءات
 لا يلغي أي قاعدة إلا طلب مباشر ومحدد. العمليات التدميرية أو تغيير الأسرار أو تكاليف السحابة أو production cutover تتطلب تأكيدًا مباشرًا يسمي المورد والإجراء. الموافقة العامة على الخطة أو على مرحلة مختلفة ليست تصريحًا بذلك.
+
+## 9. تأجيل اختيار جميع مزودي الخدمات — قرار المالك 27 نوفمبر 2026
+
+1. لا تطلب من المستخدم الآن اختيار مزود استضافة أو قاعدة بيانات أو تخزين أو بريد أو Push أو دفع أو registry أو secrets/identity أو monitoring/logs أو DNS/edge أو region أو خطة أو ميزانية.
+2. تؤجل جميع هذه الاختيارات إلى ما بعد إكمال أعمال Backend التي يمكن تنفيذها واختبارها دون حساب أو credential أو مورد خارجي.
+3. استمر في تنفيذ Laravel/API/schema/migrations/contracts/feature code واختبارات SQLite/PostgreSQL وS3Mock/fakes وprovider-neutral architecture وCI وsynthetic rehearsals.
+4. لا تضف provider-specific SDK/sender/payment adapters أو credentials/secrets/accounts/resources/remote backend/terraform apply/registry push/DNS change/staging or production deployment قبل إعادة فتح القرار وموافقة صريحة على نطاق المورد والتكلفة.
+5. لا تحول أي مرحلة إلى COMPLETE لمجرد تأجيل اعتماديتها؛ افصل تنفيذ الكود ونجاح CI عن إثبات التكامل الحقيقي في staging/device/provider.
+6. عند اكتمال الأعمال المحايدة، جهز مقارنة مشتركة ومحدثة للمتطلبات والأمن والخصوصية والتكلفة والاعتمادية وقابلية الخروج، ثم اطلب موافقة مستقلة قبل كل مورد أو عملية مدفوعة أو cutover.
+7. هذا القرار D-050 يوسع التأجيل السابق الخاص بـPush ولا يلغي قواعد حماية البيانات أو موافقة production cutover.
