@@ -107,7 +107,7 @@ Required negative assertions: no source deletion; no public visibility; no metad
 
 ## 6. Safe migration sequence
 
-1. Obtain explicit approval for a named source and destination, access method, privacy/encryption controls, migration window, and rollback owner. Provider/region/cost selection remains deferred under D-050/D-051.
+1. Obtain explicit approval for a named source and destination, permitted transfer channel, private-storage controls, operating window, and rollback owner. Provider/region/cost selection remains deferred under D-050/D-051.
 2. Freeze or reliably journal media metadata and object writes/deletes, including queue jobs. If writes cannot be frozen, define a durable delta/dual-write method before starting; a one-time listing is insufficient.
 3. Capture a consistent DB snapshot of `user_media` and the corresponding source-object listing. Record the snapshot epoch and the state of pending `DeletePrivateObjectJob` items.
 4. Reconcile metadata-to-object sets. Resolve all missing references, orphans, malformed keys, and owner mismatches before copy. Do not use the cleanup command as a migration tool.
