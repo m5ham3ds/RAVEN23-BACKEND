@@ -387,3 +387,9 @@ Phase12B + 12C COMPLETE + قرار الخدمات وموافقات تشغيل �
 - سُجلت مخاطر guest merge: نقل pending playlist operations دون confirmed lists/items/share/source metadata، وعدم وجود نقل صريح لbookmark known/deletion journals. هذه فجوات مصدرية يجب اختبارها، وليست ادعاءً بفقد بيانات مستخدمين حقيقيين.
 - Phase12A تبقى IN_PROGRESS حتى توفير synthetic acceptance coverage أو إثبات عدم قابلية الوصول للحالات، وحسم مصدر الحقيقة ومجموعة الأجهزة offline. لا يبدأ 12B/12C أو 13B.
 - التقرير: `phases/reports/PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md`.
+## 21. Phase12A — runtime owner scopes وFirebase legacy re-key — 28 نوفمبر 2026
+
+- الوضع الافتراضي للتطبيق غير المحلي يحول MigrationFlags إلى auth/ads/sync، ويضبط injector قيمة LibraryScope.enabled عند owner change. الحسابات المصادق عليها تستخدم owner-suffixed SQLite stores؛ guest يبقى local-only لأن coordinator يشترط owner يبدأ بـ user: للمزامنة.
+- FirebaseSessionBridge يطلب نقل owner من Firebase UID إلى Laravel ID. callback الحالي في main.dart ينقل Wellness فقط ولا يعيد ربط bookmark/recent/playlist DB files أو SharedPreferences journals.
+- اختبار Firebase bridge يختبر callback fake لا نقل البيانات، وPOST /api/v1/auth/firebase/exchange غير موجود في Backend routes الحالية. لذلك لا يوجد إثبات end-to-end لنقل Firebase account.
+- تبقى Phase12A IN_PROGRESS حتى إضافة synthetic owner-rekey acceptance تشمل كل المخازن والـjournals وحسم prior-release guest playlist state؛ لا يفتح هذا 12B/12C أو Phase13B.

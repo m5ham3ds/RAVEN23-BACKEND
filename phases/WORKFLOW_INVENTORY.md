@@ -1,6 +1,6 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified code/runtime SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; **latest main documentation + CI SHA:** `acef3f2a6ce447e45732311efb06b2782fe07790` (Docker #683, Security #429, Authentication #305, Pint #427 — all SUCCESS).  
+**Latest fully CI-verified code/runtime SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; **latest main documentation + CI SHA:** `b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd` (Docker #684, Security #430, Authentication #306, Pint #428 — all SUCCESS).  
 **Latest application/runtime commit beneath this docs-only snapshot:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`  
 **تاريخ المزامنة:** 28 نوفمبر 2026 — السجلات السابقة أدلة تاريخية مرتبطة بعملياتها  
 **الحالة:** ست workflows CI/manual read-only؛ أضيف OpenTofu provider-neutral validation في Phase11C ولا توجد قناة cloud deploy أو provider deployment.
@@ -380,3 +380,14 @@ IaC #31 remains SUCCESS (30/30 guardrail cases) on `dbd281c545f5a2da5a6816afcceb
 | Pint Format Report | [#427](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608301) | SUCCESS — changed-PHP check skipped because no PHP files changed; strict Pint inside Docker passed. |
 
 Phase12 synthetic restore evidence artifact: [15239713859](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608325/artifacts/15239713859). IaC #31 remains latest applicable SUCCESS (30/30) on `dbd281c545f5a2da5a6816afccebd4d929a02b70`; no IaC paths changed. Manual HTTP smoke was not run because there is no approved staging URL.
+## Current main CI review — 28 November 2026 — SHA `b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd`
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Docker Validation | [#684](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352) | SUCCESS — SQLite 151/1,719; PostgreSQL 31 passed/546 assertions with one optional skip; S3Mock 1/8; full-schema encrypted restore and isolated rollback passed; build/test 31/31 steps. |
+| Trusted-main signing | Docker run #684 | SUCCESS — 17/17 steps; current/rollback provenance and SBOM attestations plus signed release manifest; bundle [15243417105](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352/artifacts/15243417105). |
+| Security Scans | [#430](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893380) | SUCCESS — Gitleaks passed; Trivy production-image summary Clean; report [15243530366](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893380/artifacts/15243530366). |
+| Authentication Regression | [#306](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893420) | SUCCESS — SQLite 20/172; PostgreSQL 4/99. |
+| Pint Format Report | [#428](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893363) | SUCCESS — changed-PHP check skipped because no PHP files changed; strict Pint inside Docker passed. |
+
+Phase12 synthetic restore artifact: [15242412617](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352/artifacts/15242412617). IaC #31 remains latest applicable SUCCESS (30/30) on `dbd281c545f5a2da5a6816afccebd4d929a02b70`; no IaC paths changed. HTTP smoke remains manual/not run because no approved staging URL.

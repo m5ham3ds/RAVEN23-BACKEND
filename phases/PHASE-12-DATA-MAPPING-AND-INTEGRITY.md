@@ -319,7 +319,7 @@ Before cutover in a future approved migration, classify each device's state into
 | `playlists.db` | `playlists`, `playlist_items`, `playlist_operations`, `playlist_meta` | Owner-scoped file when enabled; confirmed state, pending operation queue, checkpoint and source/share metadata live together. |
 | `raven23_wellness_v1.db` | `wellness_sessions`, `wellness_daily_summaries` | One shared file; owner_id partitions rows; daily summary is derived from sessions. |
 
-LibraryScope.enabled defaults to false in the pinned app source. With it enabled, account DB filenames use `.laravel.<URI-encoded-owner>` suffix while guest retains historical paths. Wellness uses a fixed DB path and owner_id row partition instead of per-owner files.
+LibraryScope.enabled starts false in its declaration but is enabled by buildInjector in the ordinary Laravel sync runtime: with localDevelopment=false, firebaseEnabled=false, and authOnly=false, MigrationFlags.fromRuntime returns auth/ads/sync; syncEnabled becomes true and the onOwnerChanged callback sets LibraryScope.enabled=true. Authenticated user:<id> database files therefore use `.laravel.<URI-encoded-owner>` suffixes. Guest keeps the historical path. Wellness remains a shared fixed path partitioned by owner_id.
 
 ### 16.2 SharedPreferences sync journal
 
@@ -337,7 +337,7 @@ These journals are separate from SQLite files. Do not assume that copying SQLite
 - Guest snapshots are cleared only when rows still exactly match the snapshot, preserving edits made during an offline merge.
 - Wellness owner remapping updates owner_id and pending status, then rebuilds daily summaries from sessions.
 - PlaylistStore.moveInto copies pending operation IDs/bodies only. If there are no pending operations it returns without moving anything; otherwise it copies the queue and clears the guest store, including confirmed lists/items and playlist_meta. It does not copy source/share fields.
-- Existing Flutter guest-transfer coverage tests queue-only playlist migration; it does not prove confirmed guest playlist preservation.
+- Existing Flutter guest-transfer coverage tests queue-only playlist migration; it does not prove confirmed guest playlist preservation. The current coordinator only syncs an authenticated user:<id> owner; a fresh guest remains local-only, so server-confirmed guest rows are not expected in the present path. The risk concerns prior persisted local data or another legacy writer and remains unmeasured.
 - Bookmark remote-known/deletion journals are in SharedPreferences. The reviewed guest merge path has no explicit transfer of these guest keys to the authenticated owner; assess whether such keys can be populated in any legacy guest cohort before excluding them.
 
 **RISK-12A-PLAYLIST-GUEST-CONFIRMED-STATE** is an unclosed data-preservation risk, not evidence that a live user's rows were lost. Close it by proving confirmed guest state cannot exist for every relevant cohort or by adding a preservation/transfer test in the RAVEN23 app repository.
@@ -349,3 +349,15 @@ These journals are separate from SQLite files. Do not assume that copying SQLite
 Any later approved preflight should capture counts only: file/schema presence; table totals; pending/confirmed/tombstone counts and age buckets; playlist confirmed/pending counts and source/share metadata counts; Wellness owner-scope counts and daily rebuild validation; bookmark known/deletion journal counts; cursor presence; last full/last successful sync timestamps. Exclude PII, row content, emails, raw owner identifiers and operation UUIDs from the public report.
 
 No device telemetry or user database files were accessed for this source review.
+### 16.5 Legacy Firebase account owner re-key
+
+The pinned app retains a Firebase-to-Laravel bridge for 4.2.x accounts:
+
+- `FirebaseSessionBridge` calls `moveLocalOwner('user:<firebase uid>', 'user:<Laravel id>')` after successful exchange.
+- The actual callback in `lib/main.dart` calls WellnessDatabaseController.moveOwner only, then reloads Wellness and invokes syncAll. It does not re-key the bookmark/recent SQLite files, playlist database, or owner-prefixed SharedPreferences sync journals.
+- `LibraryScope.filename` scopes these stores by owner. After switching to the Laravel numeric ID, later opens use different owner paths; the old Firebase UID files may remain outside the active owner namespace.
+- `test/presentation/firebase_session_bridge_test.dart` injects a fake callback and verifies only the from/to owner strings; it does not test row/file transfer or journal preservation.
+- Backend routes currently do not include POST `/api/v1/auth/firebase/exchange`, so the exchange path has no completed end-to-end proof on this Backend.
+- A manual login fallback merges the guest owner only; it does not re-key a previous `user:<firebase uid>` owner.
+
+**RISK-12A-FIREBASE-OWNER-REKEY:** conditional legacy-account data-preservation blocker, not evidence that live rows were lost. Before accepting legacy Firebase accounts as migrated, define the exchange/fallback contract and test a synthetic old-owner fixture containing bookmarks, recent movies/episodes, playlists/items/operations, Wellness sessions, and SharedPreferences journals. Verify owner mapping, ACK/replay, preservation of old files until success, and reinitialization of non-portable cursors/checkpoints.

@@ -1,6 +1,6 @@
 # تقرير Phase12A — جرد مخازن الأجهزة المحلية ومراجعة guest/offline merge
 
-- **الحالة:** PARTIAL — source-code inventory اكتمل؛ device-level proof وguest playlist/journal acceptance ما زالا مفتوحين.
+- **الحالة:** PARTIAL — source-code inventory اكتمل؛ device-level proof وlegacy Firebase owner re-key وguest/journal acceptance ما زالت مفتوحة.
 - **التاريخ:** 2026-11-28
 - **Backend repository:** `m5ham3ds/RAVEN23-BACKEND`
 - **Backend SHA:** `acef3f2a6ce447e45732311efb06b2782fe07790`
@@ -13,7 +13,7 @@
 
 استُكملت الشريحة التالية من Phase12A بتدقيق مخازن الأجهزة المحلية وسلوك guest/offline merge على مستوى المصدر. تم تحديد ستة ملفات SQLite وطبقة SharedPreferences منفصلة، وتوثيق آليات النسخ والـACK والـtombstones والـowner mapping.
 
-هذا source-code inventory وليس قياسًا حيًا لحجم بيانات الأجهزة أو اكتمال المصدر. لم نصل إلى أجهزة أو ملفات SQLite فعلية أو Firebase/Firestore أو PostgreSQL إنتاجية.
+في وضع Laravel sync الافتراضي يُفعّل owner-scoped storage للحسابات؛ guest لا يزامن إلى Laravel ويظل local-only حتى first login. كما كشفنا فجوة مشروطة في re-key لمستخدمي Firebase القدامى. هذا source-code inventory وليس قياسًا حيًا لحجم بيانات الأجهزة أو اكتمال المصدر. لم نصل إلى أجهزة أو ملفات SQLite فعلية أو Firebase/Firestore أو PostgreSQL إنتاجية.
 
 ## 2. مصادر المراجعة
 
@@ -57,11 +57,11 @@
 
 PlaylistStore.moveInto يرجع إذا لم توجد pending operations. وإذا وجدت، ينسخ queue إلى الحساب ثم clear() يحذف جداول guest كلها: playlists/items/operations/meta. لا ينقل confirmed state أو source/share metadata. اختبار guest transfer الحالي queue-only ولا يغطي confirmed rows/items.
 
-هذا **خطر مثبت في منطق النقل وفجوة في تغطية الاختبار**، وليس إثباتًا أن بيانات مستخدم فعلية فُقدت. يجب إثبات أن confirmed guest state غير ممكن في جميع cohorts أو إضافة اختبار نقل وحفظ صريح في RAVEN23 قبل قبول نقل الجهاز.
+هذا **خطر مشروط بفئات بيانات محلية قديمة** وليس إثباتًا أن بيانات مستخدم فعلية فُقدت. guest sync غير متاح في المسار الحالي، لذا لا يتوقع وجود confirmed guest rows في guest جديد؛ لكن إذا وجدت من إصدار سابق، فسيحذفها clear() عند وجود pending operations أو يتركها في ملف guest غير المستخدم عند عدم وجود queue. يلزم preflight cohort أو اختبار legacy fixture في RAVEN23.
 
 ### 5.2 Bookmark deletion/known journals
 
-bookmark known IDs وسجل pending deletions محفوظان في SharedPreferences منفصلة. مسار mergeGuest لا يُظهر خطوة صريحة لنقل هذه المفاتيح من guest إلى user scope. قد لا يؤثر ذلك في guest محلي بحت، لكنه لا يستبعد قبل تحديد legacy/Firebase source.
+bookmark known IDs وسجل pending deletions محفوظان في SharedPreferences منفصلة. guest لا يزامن إلى Laravel في المسار الحالي، لكن legacy Firebase/older builds قد تترك journal keys. mergeGuest لا يُظهر نقلًا صريحًا لها؛ يلزم حسم semantics وحسابات أي مفاتيح موجودة قبل إسقاطها.
 
 ### 5.3 Wellness owner mapping and derived aggregates
 
@@ -77,17 +77,19 @@ recent tombstones تُحذف بعد 90 يومًا والعميل يطلب full p
 
 لم نجمع telemetry أو نقرأ أي ملفات أجهزة حقيقية.
 
-## 7. CI والأدلة على Backend
+## 7. CI والأدلة على Backend — SHA `b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd`
+
+جميع البوابات الأساسية اجتازت على SHA نفسه:
 
 | Workflow | Run | النتيجة |
 |---|---:|---|
-| Docker | [#683](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608325) | SUCCESS — SQLite 151/1,719؛ PostgreSQL 31/546 مع optional skip؛ S3Mock 1/8؛ full-schema encrypted restore؛ isolated rollback؛ 31/31 steps. |
-| Trusted-main signing | Docker #683 | SUCCESS — 17/17 steps؛ release provenance/SBOM and signed manifest. |
-| Security | [#429](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608312) | SUCCESS — Gitleaks passed وTrivy production image Clean. |
-| Authentication | [#305](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608344) | SUCCESS — SQLite 20/172؛ PostgreSQL 4/99. |
-| Pint | [#427](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608301) | SUCCESS — changed-PHP check skipped لعدم تغيير PHP؛ strict Pint داخل Docker passed. |
+| Docker | [#684](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352) | SUCCESS — 31/31 build/test steps؛ SQLite 151/1,719؛ PostgreSQL 31/546 مع optional skip؛ S3Mock 1/8؛ full-schema encrypted restore؛ isolated rollback. |
+| Trusted-main signing | Docker #684 | SUCCESS — 17/17 steps؛ provenance/SBOM للصورة الحالية والـrollback وsigned release manifest؛ bundle [15243417105](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352/artifacts/15243417105). |
+| Security | [#430](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893380) | SUCCESS — Gitleaks passed وTrivy production image Clean؛ artifact [15243530366](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893380/artifacts/15243530366). |
+| Authentication | [#306](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893420) | SUCCESS — SQLite 20/172؛ PostgreSQL 4/99. |
+| Pint | [#428](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893363) | SUCCESS — changed-PHP check skipped لعدم وجود ملفات PHP changed؛ strict Pint داخل Docker passed. |
 
-Release bundle [15240108019](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608325/artifacts/15240108019)؛ synthetic restore evidence [15239713859](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46088608325/artifacts/15239713859). لا registry push أو deploy.
+Synthetic restore evidence [15242412617](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352/artifacts/15242412617). لا registry push أو deployment.
 
 ## 8. التغييرات وحدودها
 
@@ -101,3 +103,11 @@ Release bundle [15240108019](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions
 تستمر Phase12A بالأعمال المحايدة: synthetic acceptance specification لguest confirmed playlists وbookmark deletion journals، ثم consistent device snapshot/delta manifest design. أي إصلاح كود لهذه الفجوات يجب أن يتم في مستودع RAVEN23 فقط ضمن تعليمات صريحة؛ لم نعدّل ذلك المستودع.
 
 Phase12B/12C تبقيان WAITING_EXTERNAL/OWNER_APPROVAL. لا اختيار source/target أو provider أو تنفيذ نقل.
+## 10. Legacy Firebase account owner re-key — blocker مشروط
+
+- FirebaseSessionBridge يطلب نقل owner من `user:<firebase uid>` إلى `user:<Laravel id>`.
+- callback الفعلي في main.dart ينقل Wellness owner_id فقط؛ لا يعيد ربط bookmark/recent/playlist owner-specific SQLite files ولا SharedPreferences journals.
+- Firebase bridge test يستخدم fake callback يؤكد تمرير source/target strings فقط ولا يختبر نقل databases. Backend route `/api/v1/auth/firebase/exchange` غير موجود حاليًا، فلا يوجد end-to-end proof.
+- login fallback اليدوي يدمج guest owner فقط ولا ينقل تلقائيًا البيانات تحت Firebase UID القديم.
+
+هذا blocker مشروط لlegacy Firebase cohort. المطلوب synthetic owner-rekey fixture يحوي rows/operations/journals تحت المالك القديم، ويثبت النقل إلى Laravel ID مع حفظ المصدر حتى ACK. لا يوجد دليل على فقد بيانات حية.

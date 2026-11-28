@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: acef3f2a6ce447e45732311efb06b2782fe07790 (Docker #683/Security #429/Auth #305/Pint #427 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
-> application/runtime note: compare from runtime SHA 6750eac to main SHA acef3f2 shows eight commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd (Docker #684/Security #430/Auth #306/Pint #428 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
+> application/runtime note: compare from runtime SHA 6750eac to main SHA b3e73db shows nine commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -103,3 +103,5 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 
 - أضيف phases/PHASE-13-OPS-RUNBOOKS.md، ويحتوي contracts الصحة الفعلية (/up و/ready و/api/v1/health)، وإجراءات API/DB/queue/outbox/private media/credentials/migration/release/backup incidents، وسجل SLI/SLO وRPO/RTO وincident template، مع إبقاء جميع العتبات والأدوار والجدولة والتكلفة TBD.
 - Phase13A design baseline was reviewed against source/code and CI on `4bf0535`; it remains documentation-only. Phase12 stays IN_PROGRESS and Phase13B remains WAITING_DEPENDENCY; no external services/resources were created.
+
+- توضيح 28 نوفمبر: guest owner لا يزامن إلى Laravel في المسار الحالي؛ أما Firebase legacy owner re-key فما زال غير مثبت لأن callback ينقل Wellness فقط وauth/firebase/exchange غير موجود في Backend. راجع تقرير Phase12A المحدث.

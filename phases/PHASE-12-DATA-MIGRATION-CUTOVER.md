@@ -188,7 +188,7 @@ Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54c
 | `playlists.db` | `playlists`, `playlist_items`, `playlist_operations`, `playlist_meta` | owner-suffixed عند تفعيل LibraryScope؛ schema v2 يحفظ share_code/share_url، والـplaylist row يحفظ source_provider/source_id. |
 | `raven23_wellness_v1.db` | `wellness_sessions`, `wellness_daily_summaries` | ملف مشترك ثابت؛ كل صف معزول عبر owner_id. |
 
-LibraryScope.enabled default is false in the pinned source. عند تفعيله تستخدم حسابات Laravel suffix `.laravel.<URI-encoded-owner>`؛ guest يبقى على المسار التاريخي. Wellness لا يستخدم owner-suffixed filename بل owner_id داخل قاعدة واحدة.
+LibraryScope.enabled يبدأ false في التعريف، لكنه يُفعّل فعليًا في وضع Laravel sync العادي: AppRuntime.localDevelopment=false وENABLE_FIREBASE=false وRAVEN23_AUTH_ONLY=false افتراضيًا، فتُرجع MigrationFlags.fromRuntime المجموعة auth,ads,sync؛ يحسب buildInjector قيمة syncEnabled=true ثم يضبط LibraryScope.enabled=true عند owner change. لذلك حساب user:<id> يستخدم suffix `.laravel.<URI-encoded-owner>`. guest يبقى على المسار التاريخي؛ وLaravelSyncCoordinator.canSync يشترط owner يبدأ بـ user: ويطابق جلسة مصادقًا عليها، لذا guest يظل local-only حتى first login. Wellness لا يستخدم owner-suffixed filename بل owner_id داخل قاعدة واحدة.
 
 ### 10.2 سجل المزامنة خارج SQLite
 
@@ -213,7 +213,7 @@ LibraryScope.enabled default is false in the pinned source. عند تفعيله 
 
 **RISK-12A-PLAYLIST-GUEST-CONFIRMED-STATE:**
 
-`PlaylistStore.moveInto` يقرأ pending operations. إذا كانت القائمة فارغة يرجع دون نسخ أي شيء. وإذا وُجدت عمليات معلقة، ينسخ operation_id/body إلى account queue ثم ينفذ `clear()` على guest store، وهو ما يحذف playlists وplaylist_items وplaylist_operations وplaylist_meta. لا ينسخ confirmed lists/items أو source_provider/source_id/share_code/share_url. اختبار Flutter الحالي يثبت queue-only merge، ولا يوجد اختبار يثبت الحفاظ على confirmed guest rows/items والحقول الوصفية.
+`PlaylistStore.moveInto` يقرأ pending operations. إذا كانت القائمة فارغة يرجع دون نسخ أي شيء. وإذا وُجدت عمليات معلقة، ينسخ operation_id/body إلى account queue ثم ينفذ `clear()` على guest store، وهو ما يحذف playlists وplaylist_items وplaylist_operations وplaylist_meta. لا ينسخ confirmed lists/items أو source_provider/source_id/share_code/share_url. لكن sync coordinator الحالي يمنع Laravel sync لمالك guest؛ لذلك confirmed guest rows غير متوقعة في guest جديد على المسار الحالي، وقد تأتي فقط من إصدار أقدم أو مسار legacy آخر. إن كانت هناك pending operations مع confirmed rows فسيمسحها clear()، وإن لم توجد pending فسيتركها في ملف guest ولن تظهر ضمن ملف user الجديد.
 
 هذا يثبت فجوة في منطق النقل/تغطية الاختبار، **ولا يثبت أن بيانات مستخدم فعلية فُقدت**؛ يلزم إثبات أن confirmed guest state غير ممكن في كل cohort أو إضافة اختبار نقل وحفظ صريح في مستودع RAVEN23 قبل قبول الجهاز.
 
@@ -243,3 +243,12 @@ Wellness يعيش في ملف مشترك ويعتمد ownership على owner_id�
 - Phase12A تبقى IN_PROGRESS بسبب source-of-truth المجهول، وguest confirmed-playlist state وbookmark journal coverage المفتوحين.
 - Phase12B/12C تبقيان WAITING_EXTERNAL/OWNER_APPROVAL. لا مصدر/وجهة حقيقيين، ولا backup/restore حقيقي، ولا cutover أو provider selection.
 - التقرير التفصيلي: `phases/reports/PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md`.
+### 10.7 Legacy Firebase user owner re-key — RISK-12A-FIREBASE-OWNER-REKEY
+
+- FirebaseSessionBridge يستهدف نقل owner من `user:<firebase uid>` إلى `user:<Laravel id>` بعد نجاح auth/firebase/exchange.
+- callback الفعلي في `lib/main.dart` ينفذ WellnessDatabaseController.moveOwner فقط، ثم يعيد تحميل Wellness ويستدعي syncAll؛ لا ينقل ملفات bookmarks/recent/playlists أو SharedPreferences journals.
+- قواعد SQLite الحسابية owner-suffixed؛ لذلك فتح owner جديد قد يستخدم ملفات مختلفة عن ملفات Firebase UID القديمة. بيانات المالك القديم قد تبقى خارج النطاق النشط.
+- اختبار firebase_session_bridge_test.dart يستخدم callback fake ويؤكد تمرير المعرّفين فقط؛ لا يختبر نقل الصفوف أو الملفات. POST `/api/v1/auth/firebase/exchange` غير موجود في routes/api.php الحالية.
+- عند fallback إلى login يدوي، mergeGuest يعالج guest owner فقط ولا يعيد ربط user:<firebase uid> القديم.
+
+هذا خطر حفظ بيانات مشروط بمستخدمي Firebase القدامى، وليس دليلًا على فقد بيانات حية. يجب إكمال عقد exchange/re-key واختبار اصطناعي لكل المخازن والـjournals قبل قبول cohort legacy.
