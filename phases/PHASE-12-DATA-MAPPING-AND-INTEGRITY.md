@@ -303,3 +303,49 @@ Backend الحالي يحدد TOMBSTONE_RETENTION_MS = 7,776,000,000 (90 يوم�
 ### 15.3 Expired/offline queue treatment
 
 Before cutover in a future approved migration, classify each device's state into: confirmed server snapshot, pending operation queue, last successful sync time, last server revision/cursor, guest owner scope, and local tombstone retention age. A device that has been offline longer than the server's deletion retention window requires conflict-aware reconciliation; do not blindly upload all remaining local rows or delete local DBs after a single HTTP 200. Device cleanup requires per-operation ACK and stable owner binding.
+
+## 16. مخازن الأجهزة وguest/offline merge — source inventory — 28 نوفمبر 2026
+
+**Android source:** `m5ham3ds/RAVEN23@387feafb4865d991223897088b82eacb7a42061a` (read-only). Current app main `51f12760cc4e06a5651f7e07dbd89f774bafece4` differs by one documentation-only commit; SQLite/sync code paths reviewed here did not change.
+
+### 16.1 Local database topology
+
+| Local file | Tables | Ownership and migration notes |
+|---|---|---|
+| `movies.db` | `movie_bookmark_table` | LibraryScope owner suffix only when enabled; guest retains legacy path. |
+| `tv.db` | `tv_bookmark_table` | Same; movie/tv identity must remain separate. |
+| `recent_movies.db` | `recently_watched_movies_table` | Updated/deleted UTC milliseconds and synced flag; include tombstones and pending rows. |
+| `recent_episodes_v2.db` | `recently_watched_tv_shows_table` | Episode ID remains distinct from series ID; preserve season/episode and progress. |
+| `playlists.db` | `playlists`, `playlist_items`, `playlist_operations`, `playlist_meta` | Owner-scoped file when enabled; confirmed state, pending operation queue, checkpoint and source/share metadata live together. |
+| `raven23_wellness_v1.db` | `wellness_sessions`, `wellness_daily_summaries` | One shared file; owner_id partitions rows; daily summary is derived from sessions. |
+
+LibraryScope.enabled defaults to false in the pinned app source. With it enabled, account DB filenames use `.laravel.<URI-encoded-owner>` suffix while guest retains historical paths. Wellness uses a fixed DB path and owner_id row partition instead of per-owner files.
+
+### 16.2 SharedPreferences sync journal
+
+`KvStore` uses namespace `flixquest.laravel.v1.`. Migration-relevant keys include:
+- `sync.<owner>.bookmarks.known` and `sync.<owner>.bookmarks.deleted` for server-known bookmark IDs and pending deletion journal.
+- `sync.<owner>.recent.cursor` and `sync.<owner>.wellness.cursor` for revision/sync/full-pull state; Wellness cursor is opaque and signed.
+- `sync.<owner>.playlists.last_synced` and local `playlist_meta.checkpoint`.
+- `sync.guest.claimed_by` and `sync.guest.copied` for guest claim ownership and row snapshots.
+
+These journals are separate from SQLite files. Do not assume that copying SQLite alone captures all migration state. Do not copy numeric revisions or opaque HMAC cursors to a new target; establish a new full snapshot after authorized owner mapping.
+
+### 16.3 Guest merge behavior and acceptance risks
+
+- LocalLibrary copies every bookmark/recent row, including pending rows and tombstones. Bookmark copy uses conflict-ignore; recent rows compare updated_at_utc and are marked unsynced when copied.
+- Guest snapshots are cleared only when rows still exactly match the snapshot, preserving edits made during an offline merge.
+- Wellness owner remapping updates owner_id and pending status, then rebuilds daily summaries from sessions.
+- PlaylistStore.moveInto copies pending operation IDs/bodies only. If there are no pending operations it returns without moving anything; otherwise it copies the queue and clears the guest store, including confirmed lists/items and playlist_meta. It does not copy source/share fields.
+- Existing Flutter guest-transfer coverage tests queue-only playlist migration; it does not prove confirmed guest playlist preservation.
+- Bookmark remote-known/deletion journals are in SharedPreferences. The reviewed guest merge path has no explicit transfer of these guest keys to the authenticated owner; assess whether such keys can be populated in any legacy guest cohort before excluding them.
+
+**RISK-12A-PLAYLIST-GUEST-CONFIRMED-STATE** is an unclosed data-preservation risk, not evidence that a live user's rows were lost. Close it by proving confirmed guest state cannot exist for every relevant cohort or by adding a preservation/transfer test in the RAVEN23 app repository.
+
+**RISK-12A-BOOKMARK-GUEST-JOURNAL** is conditional on the existence of guest remote-known/deletion journal keys; no live device state has been inspected.
+
+### 16.4 Aggregate-only device evidence contract
+
+Any later approved preflight should capture counts only: file/schema presence; table totals; pending/confirmed/tombstone counts and age buckets; playlist confirmed/pending counts and source/share metadata counts; Wellness owner-scope counts and daily rebuild validation; bookmark known/deletion journal counts; cursor presence; last full/last successful sync timestamps. Exclude PII, row content, emails, raw owner identifiers and operation UUIDs from the public report.
+
+No device telemetry or user database files were accessed for this source review.

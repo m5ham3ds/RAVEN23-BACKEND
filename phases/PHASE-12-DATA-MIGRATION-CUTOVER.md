@@ -172,3 +172,74 @@ Docker #675 اكتمل SUCCESS على commit 6750eac566c513c4fc97951f1b80cb7f54c
 - Pending operations المحلية تحتفظ بـUUIDs نفسها وتُعاد idempotently؛ تبقى ملفات الجهاز الأصلية حتى ACK نهائي لكل عملية.
 
 يجب تضمين offline-device cohort والـtombstone age والـlast-successful-sync وqueue depth في preflight measurement عندما يوافق المالك لاحقًا على مصدر بيانات فعلي. لا تتوفر هذه القياسات حاليًا ولا نفترضها.
+
+## 10 — مخازن الجهاز المحلية ودمج guest/offline — 28 نوفمبر 2026
+
+تم تدقيق تطبيق RAVEN23 قراءة فقط على SHA `387feafb4865d991223897088b82eacb7a42061a`. رأس app main الحالي وقت التدقيق `51f12760cc4e06a5651f7e07dbd89f774bafece4` يبعد commit واحدًا غيّر ملفي phases/README فقط؛ ملفات SQLite/sync المرجعية لم تتغير.
+
+### 10.1 طوبولوجيا التخزين المحلية
+
+| الملف | الجداول/المحتوى | العزل |
+|---|---|---|
+| `movies.db` | `movie_bookmark_table` | owner-suffixed عند تفعيل LibraryScope؛ guest يحتفظ بالمسار التاريخي. |
+| `tv.db` | `tv_bookmark_table` | مثل أعلاه. |
+| `recent_movies.db` | `recently_watched_movies_table` | progress وupdated/deleted UTC milliseconds وsynced flag. |
+| `recent_episodes_v2.db` | `recently_watched_tv_shows_table` | episode ID مستقل عن series ID، مع progress/tombstones. |
+| `playlists.db` | `playlists`, `playlist_items`, `playlist_operations`, `playlist_meta` | owner-suffixed عند تفعيل LibraryScope؛ schema v2 يحفظ share_code/share_url، والـplaylist row يحفظ source_provider/source_id. |
+| `raven23_wellness_v1.db` | `wellness_sessions`, `wellness_daily_summaries` | ملف مشترك ثابت؛ كل صف معزول عبر owner_id. |
+
+LibraryScope.enabled default is false in the pinned source. عند تفعيله تستخدم حسابات Laravel suffix `.laravel.<URI-encoded-owner>`؛ guest يبقى على المسار التاريخي. Wellness لا يستخدم owner-suffixed filename بل owner_id داخل قاعدة واحدة.
+
+### 10.2 سجل المزامنة خارج SQLite
+
+`KvStore` يضع SharedPreferences في namespace `flixquest.laravel.v1.`، وهو مستقل عن SQLite. المفاتيح ذات أثر ترحيل تشمل:
+- `sync.<owner>.bookmarks.known` و`sync.<owner>.bookmarks.deleted`: remote-known IDs وpending deletion journal.
+- `sync.<owner>.bookmarks.last_synced` و`sync.<owner>.playlists.last_synced`: آخر مزامنة.
+- `sync.<owner>.recent.cursor` و`sync.<owner>.wellness.cursor`: revision/time/full-pull metadata؛ cursor Wellness opaque وموقّع.
+- `playlists.db/playlist_meta.checkpoint`: revision محلية مؤكدة وليست checkpoint صالحة للنقل إلى هدف آخر.
+- `sync.guest.claimed_by` و`sync.guest.copied`: owner المستلم وsnapshots التي تمنع حذف نسخة ضيف تغيرت بعد النسخ.
+
+لا تنقل revision أو cursor أو checkpoint كما هي إلى هدف جديد؛ أعد full snapshot/cursor بعد تعيين الهوية والمالك.
+
+### 10.3 آلية guest merge المرصودة
+
+- `LocalLibrary.copyInto` ينسخ كل صفوف bookmark/recent، ويستخدم conflict-ignore للbookmark، ويقارن updated_at_utc للrecent ثم يجعل النسخ المنقولة synced=0.
+- `clearCopied` يحذف صفوف guest فقط إذا بقيت مطابقة حرفيًا للsnapshot؛ أي تعديل لاحق يحفظ النسخة الجديدة.
+- `WellnessDatabaseController.moveOwner` يعيد ربط owner_id من guest إلى user:<id>، ويجعل الصفوف pending ثم يعيد بناء daily summaries من sessions.
+- `PlaylistStore.moveInto` ينقل pending operations بحسب operation_id ثم يمسح guest store؛ التفاصيل والفجوة موضحتان أدناه.
+- إذا فشل sync بسبب offline، تبقى guest claim ونسخ البيانات حتى retry ناجح؛ يوجد Flutter integration test يغطي bookmarks/recent/wellness في هذه الحالة.
+
+### 10.4 مخاطر الحفاظ على بيانات الضيف التي تمنع قبول نقل الأجهزة
+
+**RISK-12A-PLAYLIST-GUEST-CONFIRMED-STATE:**
+
+`PlaylistStore.moveInto` يقرأ pending operations. إذا كانت القائمة فارغة يرجع دون نسخ أي شيء. وإذا وُجدت عمليات معلقة، ينسخ operation_id/body إلى account queue ثم ينفذ `clear()` على guest store، وهو ما يحذف playlists وplaylist_items وplaylist_operations وplaylist_meta. لا ينسخ confirmed lists/items أو source_provider/source_id/share_code/share_url. اختبار Flutter الحالي يثبت queue-only merge، ولا يوجد اختبار يثبت الحفاظ على confirmed guest rows/items والحقول الوصفية.
+
+هذا يثبت فجوة في منطق النقل/تغطية الاختبار، **ولا يثبت أن بيانات مستخدم فعلية فُقدت**؛ يلزم إثبات أن confirmed guest state غير ممكن في كل cohort أو إضافة اختبار نقل وحفظ صريح في مستودع RAVEN23 قبل قبول الجهاز.
+
+**RISK-12A-BOOKMARK-GUEST-JOURNAL:**
+
+bookmark known IDs وpending deletions موجودة في SharedPreferences منفصلة عن SQLite. مسار mergeGuest لا يُظهر نقلًا صريحًا للمفتاحين من guest إلى user scope. قد لا يؤثر ذلك على guest محلي لم يتصل بمصدر بعيد، لكن لا يمكن استبعاده قبل تحديد legacy/Firebase source.
+
+**RISK-12A-WELLNESS-OWNER-MAPPING:**
+
+Wellness يعيش في ملف مشترك ويعتمد ownership على owner_id؛ يجب أن يكون mapping guest إلى user:<id> موثوقًا. daily summaries مشتقة من sessions ويجب إعادة بنائها ومقارنتها، لا التعامل معها كمصدر مستقل.
+
+### 10.5 متطلبات device preflight aggregate-only
+
+عند السماح مستقبلًا بجمع دليل من جهاز، يكون التقرير مجمعًا بلا PII أو raw rows:
+- app/source build SHA، schema versions، والملفات المتوفرة.
+- counts لكل table: total، synced=0 pending، synced=1 confirmed، tombstones وأعمارها في buckets 0–7 / 8–30 / 31–90 / أكثر من 90 يومًا.
+- playlist counts: confirmed lists/items، pending operation count، min/max queue sequence، counts لحقول source/share، وcheckpoint-presence فقط.
+- wellness counts حسب owner scope، sessions pending/deleted، daily summary count ونتيجة rebuild validation.
+- bookmark known/deletion journal counts، cursor-present flags، last successful/full sync times، وآخر server revision كدليل لا كقيمة تُنقل.
+- تبقى operation UUIDs وraw owner IDs داخل نسخة مشفرة مصرح بها لاحقًا ولا تدخل التقرير العام.
+
+لا نجمع telemetry أو نقرأ أي ملفات أجهزة الآن.
+
+### 10.6 أثر النتائج على Phase12
+
+- اكتمل source-code inventory لطوبولوجيا مخازن الأجهزة؛ لا توجد device-level row counts أو cohort evidence.
+- Phase12A تبقى IN_PROGRESS بسبب source-of-truth المجهول، وguest confirmed-playlist state وbookmark journal coverage المفتوحين.
+- Phase12B/12C تبقيان WAITING_EXTERNAL/OWNER_APPROVAL. لا مصدر/وجهة حقيقيين، ولا backup/restore حقيقي، ولا cutover أو provider selection.
+- التقرير التفصيلي: `phases/reports/PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md`.

@@ -379,3 +379,11 @@ Phase12B + 12C COMPLETE + قرار الخدمات وموافقات تشغيل �
 - CI على `4bf0535b587aeb6f8e7ca333224d3d8585716714`: Docker #682، Security #428، Authentication #304، Pint #426 — SUCCESS.
 - Phase13A design baseline أصبح مراجعًا كوثيقة؛ هذا لا يغلق Phase13 ولا يحقق التشغيل الفعلي. Phase13B تظل WAITING_DEPENDENCY حتى Phase12 COMPLETE والاعتمادات اللاحقة.
 - المرحلة التالية المسموح بها الآن هي متابعة عناصر Phase12A المحايدة (مصدر الحقيقة المرشح، نطاق بيانات الأجهزة/الضيوف/العمليات غير المرفوعة، وفجوات mapping)؛ لا يبدأ 12B/12C أو 13B.
+
+## 20. Phase12A — جرد مخازن الأجهزة وguest/offline merge — 28 نوفمبر 2026
+
+- قورِن RAVEN23 source المثبت على `387feafb4865d991223897088b82eacb7a42061a` مع رأس app main `51f12760cc4e06a5651f7e07dbd89f774bafece4`؛ commit واحد فقط غيّر وثائق phases، لذا لا تغيّر في مصدر كود SQLite/sync المراجع.
+- أضيفت خريطة دقيقة لستة SQLite stores وSharedPreferences journal المنفصلة، مع تمييز owner-suffixed databases من Wellness shared DB keyed by owner_id.
+- سُجلت مخاطر guest merge: نقل pending playlist operations دون confirmed lists/items/share/source metadata، وعدم وجود نقل صريح لbookmark known/deletion journals. هذه فجوات مصدرية يجب اختبارها، وليست ادعاءً بفقد بيانات مستخدمين حقيقيين.
+- Phase12A تبقى IN_PROGRESS حتى توفير synthetic acceptance coverage أو إثبات عدم قابلية الوصول للحالات، وحسم مصدر الحقيقة ومجموعة الأجهزة offline. لا يبدأ 12B/12C أو 13B.
+- التقرير: `phases/reports/PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md`.

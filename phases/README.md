@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: 4bf0535b587aeb6f8e7ca333224d3d8585716714 (Docker #682/Security #428/Auth #304/Pint #426 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
-> application/runtime note: compare from runtime SHA 6750eac to main SHA 4bf0535 shows seven commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: acef3f2a6ce447e45732311efb06b2782fe07790 (Docker #683/Security #429/Auth #305/Pint #427 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
+> application/runtime note: compare from runtime SHA 6750eac to main SHA acef3f2 shows eight commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -73,7 +73,7 @@
 ## انتقال 28 نوفمبر 2026
 
 - Phase11 متوقفة عند بوابات مزود الخدمة، وليست مكتملة؛ جميع الاختيارات تبقى مؤجلة حتى نهاية خطة Backend.
-- Phase12A هي المرحلة النشطة الآن للأعمال المحايدة، وقد اجتاز full-schema rehearsal على main 7273028؛ خريطة mapping والـintegrity في PHASE-12-DATA-MAPPING-AND-INTEGRITY.md.
+- Phase12A هي المرحلة النشطة الآن للأعمال المحايدة؛ full-schema encrypted restore وsequence checks اجتازت على main `acef3f2` (23 migrations/ledger rows، 34 public tables، 21 sequence states). تمت إضافة مراجعة مخازن الأجهزة وguest/offline merge؛ التقرير في `PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md` وخريطة mapping في `PHASE-12-DATA-MAPPING-AND-INTEGRITY.md`.
 - main هو الفرع الدائم الوحيد. لا تنشئ فروعًا إضافية.
 
 

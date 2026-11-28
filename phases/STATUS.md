@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest main CI review:** `4bf0535b587aeb6f8e7ca333224d3d8585716714` — Docker #682, Security #428, Authentication #304, Pint #426: all SUCCESS on the same SHA. Docker: SQLite 151/1,719; PostgreSQL 31 passed/546 assertions with one optional skip; S3Mock 1/8; encrypted full-schema restore and isolated rollback passed. Authentication: SQLite 20/172 and PostgreSQL 4/99. Pint changed-PHP steps were skipped because no PHP files changed; strict Pint in Docker passed. Security: Gitleaks passed and Trivy production-image summary was Clean. IaC #31 remains SUCCESS on unchanged baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30); HTTP smoke remains manual/not run because no approved staging URL. Runtime/code baseline: `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; all seven commits from it through this SHA change only `phases/` documentation.
+**Latest main CI review:** `acef3f2a6ce447e45732311efb06b2782fe07790` — Docker #683, Security #429, Authentication #305, Pint #427: all SUCCESS on this exact SHA. Docker: SQLite 151/1,719; PostgreSQL 31 passed/546 assertions with one optional skip; S3Mock 1/8; encrypted full-schema restore and isolated rollback passed; trusted-main signing 17/17. Authentication: SQLite 20/172 and PostgreSQL 4/99. Pint changed-PHP checks were skipped because no PHP files changed; strict Pint in Docker passed. Security: Gitleaks passed and Trivy production-image summary was Clean. Artifacts: release bundle #15240108019, synthetic restore #15239713859, security report #15240027778. IaC #31 remains SUCCESS on unchanged baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30); HTTP smoke remains manual/not run because no approved staging URL. Runtime/code baseline: `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; all eight commits from it through this SHA change only `phases/` documentation.
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -21,7 +21,7 @@
 | 09 — الاشتراكات والصلاحيات | IN_PROGRESS (09A–09F COMPLETE برمجيًا وCI) | قرارات الخطط/الأسعار/الشروط ومزود الدفع مؤجلة إلى ما بعد تطوير Backend؛ لا مشتريات مفعلة. |
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية التحتية المحمولة والنشر | PAUSED / DEFERRED_BY_OWNER عند الحد الخارجي وفق D-050/D-051؛ 11A و11B1 مكتملان تقنيًا، 11C neutral guardrails 30/30 مثبتة، أما 11C adapters و11B2 و11D–11F فتنتظر ما بعد خطة Backend وقرار الخدمات و10B اليدوي. | لا provider/region/cost/resources/backend/registry push/apply/deploy. لا تُعلن Phase11 COMPLETE؛ تستأنف الأعمال الخارجية بعد المراجعة الموحدة والموافقات. |
-| 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. mapping includes documented Firebase/Firestore legacy candidate + per-device SQLite stores; full-schema encrypted PostgreSQL CI PASS on `6750eac`: 23 migrations/ledger rows، 34 public tables، 21 sequences with last_value/is_called matched؛ Docker #675 + rollback/signing PASS. | 12B real source/target backup/restore و12C cutover/hypercare WAITING_EXTERNAL/OWNER_APPROVAL؛ source-of-truth غير معروف، ولا production DB أو secrets أو target selection. |
+| 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. Full-schema encrypted PostgreSQL CI restore PASS on `acef3f2` (23 migrations/ledger rows، 34 public tables، 21 sequences verified). Device source inventory now identifies six SQLite stores plus a separate SharedPreferences sync journal. Guest playlist confirmed-state transfer and bookmark deletion-journal coverage are open preservation risks; no live-device measurements exist. | 12B real source/target backup/restore و12C cutover/hypercare WAITING_EXTERNAL/OWNER_APPROVAL؛ source-of-truth/target غير معتمدين، ولا production DB أو secrets أو device data accessed. |
 | 13 — تشغيل الإنتاج والتعافي | IN_PROGRESS (13A design baseline reviewed; 13B WAITING_DEPENDENCY) | تم توثيق ومراجعة runbooks/SLI/SLO/DR design على الكود وCI الحالي وفق D-053، مع إبقاء كل القيم غير المعتمدة TBD. لا dashboards أو alerts أو backup schedules أو provider integrations أو production operations. 13B لا تبدأ قبل Phase12 COMPLETE والقرارات/الموافقات المطلوبة. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
@@ -597,3 +597,14 @@
 - Docker #682 وSecurity #428 وAuthentication #304 وPint #426 على SHA واحد كلها SUCCESS. لا توجد إصلاحات CI مطلوبة.
 - Phase13A design baseline موثق ومراجع؛ Phase13 العامة تبقى IN_PROGRESS. Phase12 تبقى IN_PROGRESS في 12A؛ 12B/12C وPhase13B لا تزال WAITING_DEPENDENCY/OWNER_APPROVAL. لا يُفتح تشغيل فعلي أو مزود خارجي بموجب هذا التقرير.
 - التقرير التفصيلي: `phases/reports/PHASE-13A-DESIGN-BASELINE-CLOSEOUT-2026-11-28.md`.
+
+## 36. Phase12A — مخازن الجهاز المحلية ودمج بيانات الضيف — 28 نوفمبر 2026
+
+- تمت مراجعة RAVEN23 source على SHA `387feafb4865d991223897088b82eacb7a42061a`، ومقارنته مع main `51f12760cc4e06a5651f7e07dbd89f774bafece4`: commit واحد غيّر ملفي phases/README فقط؛ لا تغيير في كود SQLite أو sync.
+- حُددت ستة ملفات SQLite: movies.db وtv.db وrecent_movies.db وrecent_episodes_v2.db وplaylists.db وraven23_wellness_v1.db. أول خمسة تستخدم owner-suffixed paths فقط عندما LibraryScope.enabled مفعّل؛ Wellness ملف واحد مشترك ومعزول بحقل owner_id.
+- جرى جرد SharedPreferences namespace `flixquest.laravel.v1.` ومفاتيح bookmark known/deleted، وrecent/wellness cursors، وplaylist checkpoint، وguest claim/copy snapshots.
+- **فجوة مفتوحة:** PlaylistStore.moveInto ينقل pending operations فقط ثم يمسح متجر الضيف. لا يثبت ذلك نقل confirmed lists/items أو source/share metadata. الاختبار الموجود يغطي queue-only transfer؛ ولا يوجد اختبار confirmed guest playlist state.
+- **فجوة مشروطة:** bookmark known/deletion journals في SharedPreferences منفصلة عن جداول SQLite؛ لا تظهر خطوة صريحة لنقلها من guest إلى user scope. قد لا تؤثر في guest محلي بحت، لكن لا يمكن استبعادها قبل تحديد legacy/Firebase source.
+- تم توثيق aggregate-only device preflight manifest المطلوب دون PII، مع إبقاء IDs/cursors/operation UUIDs داخل نسخ مصرح بها لاحقًا وليس في تقارير CI العامة.
+- لا تغيير في RAVEN23 app repo أو Backend runtime/API/schema؛ لم يتم الوصول إلى ملفات أجهزة حقيقية أو بيانات مستخدمين أو قواعد production.
+- التقرير: `phases/reports/PHASE-12A-DEVICE-LOCAL-STORES-AND-GUEST-MERGE-REVIEW-2026-11-28.md`.
