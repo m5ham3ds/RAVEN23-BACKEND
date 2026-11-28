@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c. subsequent main commits are documentation-only after the verified runtime SHA — 28 نوفمبر 2026  
-> application/runtime note: commit 617ce7e is documentation-only relative to 27cfcc9; application/runtime code was not changed in this documentation synchronization  
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: 4bf0535b587aeb6f8e7ca333224d3d8585716714 (Docker #682/Security #428/Auth #304/Pint #426 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
+> application/runtime note: compare from runtime SHA 6750eac to main SHA 4bf0535 shows seven commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -34,7 +34,7 @@
 
 ## الحالة الحالية
 
-راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 و05–07 COMPLETE؛ Phase04 PARTIAL؛ Phase08 و09 IN_PROGRESS؛ Phase10 IN_PROGRESS مع 10B مؤجلة بقرار المالك؛ Phase11 PAUSED/DEFERRED_BY_OWNER عند حد الاعتماد الخارجي وفق D-050/D-051؛ 11A/11B1 مكتملتان تقنيًا و11C guardrails 30/30، أما adapters و11B2 و11D–11F فمؤجلة حتى بعد خطة Backend والقرار الموحد و10B. Phase12 هي مسار العمل الحالي على 12A provider-neutral preparation؛ 12B real migration و12C cutover ما زالتا تنتظران المزود/المصدر/الوجهة والموافقات. Phase13 تظل لاحقة. قرار 27 نوفمبر 2026 يؤجل جميع اختيارات المزود والمنطقة والتكلفة (hosting/database/storage/mail/push/payment/registry/secrets/monitoring/DNS) إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل، لا بعد نهاية مرحلة منفردة (D-051). لا يوقف ذلك أعمال الكود والاختبارات المحايدة. التفاصيل في `MASTER_PLAN.md` و`DECISIONS.md` وD-050.
+راجع `STATUS.md` بوصفه snapshot موحدًا. Phase00–03 و05–07 COMPLETE؛ Phase04 PARTIAL؛ Phase08 و09 IN_PROGRESS؛ Phase10 IN_PROGRESS مع 10B مؤجلة بقرار المالك؛ Phase11 PAUSED/DEFERRED_BY_OWNER عند حد الاعتماد الخارجي وفق D-050/D-051؛ 11A/11B1 مكتملتان تقنيًا و11C guardrails 30/30، أما adapters و11B2 و11D–11F فمؤجلة حتى بعد خطة Backend والقرار الموحد و10B. Phase12 هي مسار العمل الحالي على 12A provider-neutral preparation؛ 12B real migration و12C cutover ما زالتا تنتظران المزود/المصدر/الوجهة والموافقات. Phase13A provider-neutral design baseline has now been documented and reviewed in parallel under D-053; Phase13B remains gated by Phase12 COMPLETE. قرار 27 نوفمبر 2026 يؤجل جميع اختيارات المزود والمنطقة والتكلفة (hosting/database/storage/mail/push/payment/registry/secrets/monitoring/DNS) إلى ما بعد الانتهاء النهائي من خطة تطوير Backend بالكامل، لا بعد نهاية مرحلة منفردة (D-051). لا يوقف ذلك أعمال الكود والاختبارات المحايدة. التفاصيل في `MASTER_PLAN.md` و`DECISIONS.md` وD-050.
 
 `main` هو الفرع التشغيلي الوحيد؛ branch listing الحالي يعيد main فقط. جميع اختبارات Feature/Integration/Auth موجودة على main. أزيلت workflows التي كانت تكتب على Render production؛ راجع `WORKFLOW_INVENTORY.md`.
 
@@ -102,4 +102,4 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 ## Phase13A — دليل التشغيل المحايد
 
 - أضيف phases/PHASE-13-OPS-RUNBOOKS.md، ويحتوي contracts الصحة الفعلية (/up و/ready و/api/v1/health)، وإجراءات API/DB/queue/outbox/private media/credentials/migration/release/backup incidents، وسجل SLI/SLO وRPO/RTO وincident template، مع إبقاء جميع العتبات والأدوار والجدولة والتكلفة TBD.
-- Phase13A design only بدأ وفق D-053 بعد نجاح CI على main. Phase12 تبقى IN_PROGRESS وPhase13B التشغيلية WAITING_DEPENDENCY؛ لا خدمات أو موارد خارجية.
+- Phase13A design baseline was reviewed against source/code and CI on `4bf0535`; it remains documentation-only. Phase12 stays IN_PROGRESS and Phase13B remains WAITING_DEPENDENCY; no external services/resources were created.

@@ -1,6 +1,6 @@
 # المرحلة 13 — تشغيل الإنتاج والتعافي وإدارة التكلفة
 
-**الحالة:** IN_PROGRESS — Phase13A provider-neutral operations design only. Phase13B runtime operations/production resilience remain WAITING_DEPENDENCY until Phase12 COMPLETE and post-plan provider decisions.  
+**الحالة:** IN_PROGRESS — Phase13A provider-neutral design baseline موثق ومراجع على المصدر وCI؛ Phase13B runtime operations/production resilience remain WAITING_DEPENDENCY until Phase12 COMPLETE and post-plan provider decisions.  
 **الاعتماديات:** 13A can proceed as provider-neutral design under D-053; 13B requires Phase12 COMPLETE, provider/region/budget approval, and explicit operational authorization.
 
 ## الهدف
@@ -58,3 +58,12 @@
 
 **لا يدخل في 13A:** إنشاء dashboards أو alert rules/targets فعلية، أو حسابات monitoring أو backup provider أو IAM roles أو DNS أو cloud resources؛ ولا تفعيل SMTP/Push/S3 أو جدول نسخ إنتاجي. لا تعتبر 13A اكتمالًا للمرحلة 13.
 
+
+
+## 13A design baseline review — 28 November 2026
+
+- قورنت بنود الدليل مع التنفيذ الحالي في HealthController وroutes والـscheduler وNotificationOutboxStatus/DispatchPendingNotificationOutbox وCleanupOrphanedPrivateMedia وqueue-worker guards وprivate storage config.
+- أكدت Docker #682 على SHA `4bf0535b587aeb6f8e7ca333224d3d8585716714` full-schema encrypted backup/restore على PostgreSQL CI disposable، مع تطابق migration ledger/schema/constraints/indexes/sequences/triggers/views/row counts/content fingerprints؛ هذا ليس restore لبيانات إنتاج.
+- اجتازت بوابات Docker #682 وSecurity #428 وAuthentication #304 وPint #426 على SHA واحد. اجتازت وظيفة release signing وتجربة rollback المعزولة؛ لم يتم registry push أو deployment.
+- كل القيم غير المعتمدة بقيت TBD، ولا توجد dashboards/alerts/backup schedule أو خدمات خارجية فعلية.
+- النتيجة: design baseline لـ13A مراجع؛ Phase13 تبقى IN_PROGRESS. Phase13B لا تبدأ قبل إغلاق Phase12 والقرارات والموافقات المطلوبة.

@@ -1,8 +1,8 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified backend SHA:** `617ce7efd669b4d3af61c42f77b4cd1f986e3fae`  
-**Latest application/runtime commit beneath this docs-only snapshot:** `27cfcc9e577cca33c28e9845096a0c5564b02045`  
-**تاريخ المزامنة:** 27 نوفمبر 2026 — السجلات السابقة أدلة تاريخية مرتبطة بعملياتها  
+**Latest fully CI-verified code/runtime SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; **latest main documentation + CI SHA:** `4bf0535b587aeb6f8e7ca333224d3d8585716714` (Docker #682, Security #428, Authentication #304, Pint #426 — all SUCCESS).  
+**Latest application/runtime commit beneath this docs-only snapshot:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`  
+**تاريخ المزامنة:** 28 نوفمبر 2026 — السجلات السابقة أدلة تاريخية مرتبطة بعملياتها  
 **الحالة:** ست workflows CI/manual read-only؛ أضيف OpenTofu provider-neutral validation في Phase11C ولا توجد قناة cloud deploy أو provider deployment.
 
 ## 1. ملفات workflows الحالية (بعد مراجعة شجرة main)
@@ -354,3 +354,17 @@ Historical note: the prior section's permission audit describes the state at com
 - هذه النتائج تخص SHA `617ce7e` قبل مزامنة الوثائق الشاملة الحالية؛ التغييرات التي تلي هذا السجل وثائق فقط ولا تغير workflows/app code. يجب رصد تشغيلات الوثائق الجديدة على SHA النهائي قبل اعتبارها CI-verified.
 - لا يوجد registry push أو provider deployment/OIDC role أو staging/production workflow. IaC validation فقط local provider-neutral fmt/init/validate/plan بلا backend أو credentials أو apply.
 - المستخدم أجل جميع اختيارات provider/region/cost إلى ما بعد أعمال Backend المستقلة عن المزود؛ راجع D-050. لا يُنشأ أي cloud service أو secret أو account الآن.
+
+
+## Current main CI review — 28 November 2026
+
+All four primary workflows completed successfully on the exact same current main SHA `4bf0535b587aeb6f8e7ca333224d3d8585716714`:
+
+| Workflow | Run | Result and evidence |
+|---|---:|---|
+| Docker Validation | [#682](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46084785762) | SUCCESS — SQLite 151/1,719; PostgreSQL 31 passed/546 assertions with one optional skip; S3Mock 1/8; encrypted full-schema restore and isolated rollback passed; trusted-main signing job passed. |
+| Security Scans | [#428](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46084785665) | SUCCESS — Gitleaks passed; Trivy production-image summary Clean; blocking HIGH/CRITICAL gate passed. |
+| Authentication Regression | [#304](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46084785706) | SUCCESS — SQLite 20/172; PostgreSQL 4/99. |
+| Pint Format Report | [#426](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46084785634) | SUCCESS — changed-PHP checks were skipped because no PHP files changed; strict Pint in Docker Validation passed. |
+
+IaC #31 remains SUCCESS (30/30 guardrail cases) on `dbd281c545f5a2da5a6816afccebd4d929a02b70`; no IaC paths changed since that run, so it is the latest applicable IaC validation, not a new run on the current documentation-only SHA. The manual GET-only HTTP smoke was not run because there is no approved staging URL. No CI failures remain on the current SHA.

@@ -2,7 +2,7 @@
 
 **آخر تحديث:** 28 نوفمبر 2026
 **الفرع الدائم الوحيد:** `main`
-**Latest main CI review:** `f46751768a4299aa08de221911343c2f2abb9520` — Docker #681, Security #427, Authentication #303, Pint #425 SUCCESS. IaC #31 remains SUCCESS on unchanged IaC baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30). HTTP smoke is manual and was not run because no approved staging URL exists. Runtime code baseline includes Docker #675/Pint #419/Auth #297/Security #421 SUCCESS on `6750eac`.
+**Latest main CI review:** `4bf0535b587aeb6f8e7ca333224d3d8585716714` — Docker #682, Security #428, Authentication #304, Pint #426: all SUCCESS on the same SHA. Docker: SQLite 151/1,719; PostgreSQL 31 passed/546 assertions with one optional skip; S3Mock 1/8; encrypted full-schema restore and isolated rollback passed. Authentication: SQLite 20/172 and PostgreSQL 4/99. Pint changed-PHP steps were skipped because no PHP files changed; strict Pint in Docker passed. Security: Gitleaks passed and Trivy production-image summary was Clean. IaC #31 remains SUCCESS on unchanged baseline `dbd281c545f5a2da5a6816afccebd4d929a02b70` (30/30); HTTP smoke remains manual/not run because no approved staging URL. Runtime/code baseline: `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; all seven commits from it through this SHA change only `phases/` documentation.
 **نطاق CI:** `main` فقط؛ تم حذف TEST وUSERS والتحقق من أن branch listing يعيد `main` وحده.
 
 ## 1. ملخص المراحل
@@ -22,7 +22,7 @@
 | 10 — الجودة والإصدارات | IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER) | تم تأجيل إعداد حماية `main` وrequired checks يدوياً إلى ما بعد اكتمال خطة تطوير Backend؛ لا يوقف التأجيل تطوير الميزات، لكنه يبقى شرطاً قبل Phase11B2 والنشر. |
 | 11 — البنية التحتية المحمولة والنشر | PAUSED / DEFERRED_BY_OWNER عند الحد الخارجي وفق D-050/D-051؛ 11A و11B1 مكتملان تقنيًا، 11C neutral guardrails 30/30 مثبتة، أما 11C adapters و11B2 و11D–11F فتنتظر ما بعد خطة Backend وقرار الخدمات و10B اليدوي. | لا provider/region/cost/resources/backend/registry push/apply/deploy. لا تُعلن Phase11 COMPLETE؛ تستأنف الأعمال الخارجية بعد المراجعة الموحدة والموافقات. |
 | 12 — نقل البيانات والتحويل الإنتاجي | IN_PROGRESS — 12A provider-neutral preparation. mapping includes documented Firebase/Firestore legacy candidate + per-device SQLite stores; full-schema encrypted PostgreSQL CI PASS on `6750eac`: 23 migrations/ledger rows، 34 public tables، 21 sequences with last_value/is_called matched؛ Docker #675 + rollback/signing PASS. | 12B real source/target backup/restore و12C cutover/hypercare WAITING_EXTERNAL/OWNER_APPROVAL؛ source-of-truth غير معروف، ولا production DB أو secrets أو target selection. |
-| 13 — تشغيل الإنتاج والتعافي | IN_PROGRESS (13A design-only) | بدأت runbooks/SLI/SLO/DR design المحايدة وفق D-053؛ لا dashboards أو alerts أو backup schedule أو production operations. 13B تبقى WAITING_DEPENDENCY حتى Phase12 COMPLETE وموافقات الخدمات والتشغيل. |
+| 13 — تشغيل الإنتاج والتعافي | IN_PROGRESS (13A design baseline reviewed; 13B WAITING_DEPENDENCY) | تم توثيق ومراجعة runbooks/SLI/SLO/DR design على الكود وCI الحالي وفق D-053، مع إبقاء كل القيم غير المعتمدة TBD. لا dashboards أو alerts أو backup schedules أو provider integrations أو production operations. 13B لا تبدأ قبل Phase12 COMPLETE والقرارات/الموافقات المطلوبة. |
 
 ## 2. Phase06 — التنفيذ والاختبارات
 
@@ -586,3 +586,14 @@
 - Docker #681 run 46080902419 SUCCESS؛ Security #427 run 46080902411 SUCCESS؛ Authentication #303 run 46080902380 SUCCESS؛ Pint #425 run 46080902461 SUCCESS.
 - IaC workflow لم يعمل على هذا التحديث لأن مسارات infra/.opentofu-version/.gitignore/Workflow لم تتغير؛ آخر فحص صالح IaC #31 run 46068443560 SUCCESS مع 30/30. HTTP smoke workflow manual-only requires api_base_url، ولم يشغّل لعدم وجود URL staging معتمد.
 - بدأ Phase13A design-only وفق D-053: runbooks وSLI/SLO/RPO/RTO/DR templates موثقة، دون numeric targets أو مزود أو خدمات خارجية. Phase12 تبقى IN_PROGRESS وPhase13B التشغيلية WAITING_DEPENDENCY.
+
+
+## 35. Phase13A design baseline review — 28 November 2026
+
+- راجعنا شجرة `phases/` كاملة على `main`: 86 entries تحت المجلد، منها 83 ملف Markdown و48 تقريرًا و18 مواصفة مرحلة؛ Git tree recursive غير مبتور.
+- تم تدقيق مواصفات المراحل 00–13، والخطة الرئيسية والحالة والقرارات والجردات والسياسات وبروتوكول التنفيذ وقواعد المستخدم وجرد Workflows وتقارير Phase11/12/13 الأحدث. التقارير التاريخية بقيت كما هي.
+- قورنت `6750eac566c513c4fc97951f1b80cb7f54cd0c0a` مع `4bf0535b587aeb6f8e7ca333224d3d8585716714`: سبعة commits، وجميع الملفات المتغيرة ضمن `phases/` فقط؛ لا تغييرات تطبيق أو routes أو migrations أو Docker أو workflows أو IaC في هذه الشريحة.
+- تم التحقق من مراجع دليل Phase13A في المصدر: HealthController/routes، scheduler، Notification Outbox commands، private-media cleanup/config، queue-worker guards، وfull-schema PostgreSQL restore script.
+- Docker #682 وSecurity #428 وAuthentication #304 وPint #426 على SHA واحد كلها SUCCESS. لا توجد إصلاحات CI مطلوبة.
+- Phase13A design baseline موثق ومراجع؛ Phase13 العامة تبقى IN_PROGRESS. Phase12 تبقى IN_PROGRESS في 12A؛ 12B/12C وPhase13B لا تزال WAITING_DEPENDENCY/OWNER_APPROVAL. لا يُفتح تشغيل فعلي أو مزود خارجي بموجب هذا التقرير.
+- التقرير التفصيلي: `phases/reports/PHASE-13A-DESIGN-BASELINE-CLOSEOUT-2026-11-28.md`.

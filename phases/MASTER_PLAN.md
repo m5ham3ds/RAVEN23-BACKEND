@@ -37,7 +37,7 @@ GitHub هو مصدر الكود والمخططات والاختبارات وتع
 | 10 | الجودة والاختبارات والإصدارات — IN_PROGRESS (10A/10C/10D/10E/10F/10G COMPLETE؛ 10B DEFERRED_BY_OWNER إلى ما بعد اكتمال خطة تطوير Backend) | 01–09 تدريجيًا؛ تستمر بوابات CI الآن، وتنفذ حماية main قبل 11B2 والنشر |
 | 11 | البنية التحتية المحمولة والنشر — PAUSED / DEFERRED_BY_OWNER عند حد الاعتماد الخارجي (D-050/D-051). 11A و11B1 مكتملان تقنيًا؛ 11C provider-neutral guardrails اجتازت 30/30 وCI السابق ناجح؛ 11C adapters و11B2 و11D–11F مؤجلة حتى قرار الخدمات بعد اكتمال خطة Backend وشرط 10B اليدوي. | لا اختيار provider/region/cost أو إنشاء موارد أو registry push أو apply/deploy. لا يُعلن اكتمال Phase11 ككل؛ يُستأنف مسارها الخارجي بعد مراجعة الخدمات الموحدة وموافقات منفصلة. |
 | 12 | ترحيل البيانات والتحويل الإنتاجي — IN_PROGRESS (12A provider-neutral preparation). source-level mapping + Flutter legacy/SQLite candidate map موثق؛ full-schema CI + Docker #675 اجتازت على `6750eac` مع 23 migrations، 34 public tables، 21 sequences وحالة last_value/is_called matched، والتوقيع/rollback نجحا. | 12B real source/target و12C delta/cutover/hypercare مؤجلة إلى ما بعد D-051 واعتماد source-of-truth والمصدر/الوجهة والموافقات الصريحة؛ لا اتصال بالإنتاج. |
-| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — IN_PROGRESS (13A provider-neutral runbooks/SLI/SLO/DR design only؛ بدأ بالتوازي وفق D-053). 13B live monitoring/alerts/backup/restore/operations تبقى WAITING_DEPENDENCY. | 13A لا تحتاج Phase12 أو مزودًا؛ 13B تتطلب Phase12 COMPLETE ثم اختيار المزود/المنطقة/الميزانية واعتماد RPO/RTO وموافقة تشغيل منفصلة. |
+| 13 | تشغيل الإنتاج والتعافي وإدارة التكلفة — IN_PROGRESS (13A design baseline موثق ومراجع على المصدر وCI؛ 13B live monitoring/alerts/backup/restore/operations تبقى WAITING_DEPENDENCY). | 13A وثائق تصميم محايدة فقط وفق D-053؛ 13B تتطلب Phase12 COMPLETE ثم قرار الخدمات الموحد واعتماد RPO/RTO وموافقة تشغيل منفصلة. |
 
 يمكن تطوير نطاقات Backend الوظيفية والاختبارات بالتوازي بعد تثبيت عقود البيانات المشتركة، ولا يوقفها تأجيل إعدادات Branch protection في 10B؛ ينفذ مالك المستودع هذه الإعدادات يدوياً بعد اكتمال خطة التطوير وقبل Phase11B2/النشر. لا يجوز تجاوز اعتماديات التكامل الخارجي أو اختيار مزود أو أسعار أو شروط اشتراك دون موافقة.
 
@@ -370,3 +370,12 @@ Phase12B + 12C COMPLETE + قرار الخدمات وموافقات تشغيل �
 - بناءً على نجاح البوابات، بدأ نطاق Phase13A المحايد بموجب D-053 بالتوازي مع بقاء Phase12B/12C الخارجية مؤجلة. لا يعني ذلك أن Phase12 COMPLETE أو أن Phase13 التشغيلية بدأت.
 - Phase13A runbooks/SLI/SLO/RPO/RTO forms هي وثائق design فقط؛ كل القيم والعتبات والأدوار والجدولة والتكلفة TBD.
 - 13B live monitoring, alert delivery, provider backup, restore drills, DNS, deployments and production access remain gated by Phase12 COMPLETE and later owner/provider approvals.
+
+
+## 19. Phase13A design baseline review — 28 November 2026
+
+- تم تدقيق runbooks وSLI/SLO وRPO/RTO وDR templates في `PHASE-13-OPS-RUNBOOKS.md` ومطابقتها مع Laravel health/readiness، queue/outbox، private media، runtime worker guards، وCI backup/restore/rollback evidence.
+- كل target أو threshold أو cadence أو retention أو owner أو severity أو cost/RPO/RTO غير المعتمد بقي `TBD`; لا توجد أرقام تشغيلية مفترضة.
+- CI على `4bf0535b587aeb6f8e7ca333224d3d8585716714`: Docker #682، Security #428، Authentication #304، Pint #426 — SUCCESS.
+- Phase13A design baseline أصبح مراجعًا كوثيقة؛ هذا لا يغلق Phase13 ولا يحقق التشغيل الفعلي. Phase13B تظل WAITING_DEPENDENCY حتى Phase12 COMPLETE والاعتمادات اللاحقة.
+- المرحلة التالية المسموح بها الآن هي متابعة عناصر Phase12A المحايدة (مصدر الحقيقة المرشح، نطاق بيانات الأجهزة/الضيوف/العمليات غير المرفوعة، وفجوات mapping)؛ لا يبدأ 12B/12C أو 13B.
