@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a (Docker #675/Pint #419/Auth #297/Security #421 SUCCESS); latest main documentation/CI SHA: b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd (Docker #684/Security #430/Auth #306/Pint #428 SUCCESS); IaC #31 SUCCESS on unchanged dbd281c — 28 نوفمبر 2026  
-> application/runtime note: compare from runtime SHA 6750eac to main SHA b3e73db shows nine commits changing files under phases/ only; application, routes, migrations, Docker, workflows and IaC were unchanged.  
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a; latest main documentation/CI SHA: 7070350759253c4b245d2ec31992c9233c52f68c (Docker #685/Security #431/Auth #307/Pint #429 all SUCCESS); IaC #31 remains SUCCESS on unchanged dbd281c — 28 November 2026
+> application/runtime note: changes after runtime SHA 6750eac through current main SHA 7070350 are under phases/ only; application, routes, migrations, Docker, workflows and IaC are unchanged.
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -105,3 +105,7 @@ full-schema CI على 6750eac تحقق من 21 Sequence بالإضافة إلى 
 - Phase13A design baseline was reviewed against source/code and CI on `4bf0535`; it remains documentation-only. Phase12 stays IN_PROGRESS and Phase13B remains WAITING_DEPENDENCY; no external services/resources were created.
 
 - توضيح 28 نوفمبر: guest owner لا يزامن إلى Laravel في المسار الحالي؛ أما Firebase legacy owner re-key فما زال غير مثبت لأن callback ينقل Wellness فقط وauth/firebase/exchange غير موجود في Backend. راجع تقرير Phase12A المحدث.
+
+## Phase12A next slice — 28 November 2026
+
+The guest/legacy-device merge acceptance specification is now documented at `PHASE-12A-DEVICE-MERGE-AND-SNAPSHOT-ACCEPTANCE.md`. It is not test evidence: no client code was changed and no acceptance cases have been run. See the matching report under `reports/`. Phase12A remains IN_PROGRESS; Phase12B/12C and Phase13B remain gated.

@@ -361,3 +361,17 @@ The pinned app retains a Firebase-to-Laravel bridge for 4.2.x accounts:
 - A manual login fallback merges the guest owner only; it does not re-key a previous `user:<firebase uid>` owner.
 
 **RISK-12A-FIREBASE-OWNER-REKEY:** conditional legacy-account data-preservation blocker, not evidence that live rows were lost. Before accepting legacy Firebase accounts as migrated, define the exchange/fallback contract and test a synthetic old-owner fixture containing bookmarks, recent movies/episodes, playlists/items/operations, Wellness sessions, and SharedPreferences journals. Verify owner mapping, ACK/replay, preservation of old files until success, and reinitialization of non-portable cursors/checkpoints.
+
+## 14. Acceptance contract for guest merge and legacy owner re-key
+
+The test matrix and required invariants for device-local data preservation are now specified in `phases/PHASE-12A-DEVICE-MERGE-AND-SNAPSHOT-ACCEPTANCE.md`.
+
+This supplements the field mapping above with explicit cases for:
+- confirmed playlist state even when no pending operation exists;
+- preservation of confirmed state and pending operations together;
+- bookmark known/deletion preference journals;
+- Firebase UID to Laravel owner re-key across all six local stores and journal namespaces;
+- ACK/replay, process interruption, concurrent edits, tombstones, and stale cursor invalidation;
+- aggregate-only device manifest and consistent snapshot/delta boundaries.
+
+Do not infer that these cases currently pass. The source review found that the client callback currently rekeys Wellness only and that Backend does not expose `POST /api/v1/auth/firebase/exchange`. Client implementation/tests belong to `m5ham3ds/RAVEN23`; no code change to that repository is part of this Backend documentation work.

@@ -1,6 +1,6 @@
 # جرد GitHub Actions وعمليات النشر
 
-**Latest fully CI-verified code/runtime SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; **latest main documentation + CI SHA:** `b3e73dbf2b3d7943c1f297fb8daccbee93cc07fd` (Docker #684, Security #430, Authentication #306, Pint #428 — all SUCCESS).  
+**Latest fully CI-verified code/runtime SHA:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`; **latest main documentation + CI SHA:** `7070350759253c4b245d2ec31992c9233c52f68c` (Docker #685, Security #431, Authentication #307, Pint #429 — all SUCCESS).
 **Latest application/runtime commit beneath this docs-only snapshot:** `6750eac566c513c4fc97951f1b80cb7f54cd0c0a`  
 **تاريخ المزامنة:** 28 نوفمبر 2026 — السجلات السابقة أدلة تاريخية مرتبطة بعملياتها  
 **الحالة:** ست workflows CI/manual read-only؛ أضيف OpenTofu provider-neutral validation في Phase11C ولا توجد قناة cloud deploy أو provider deployment.
@@ -391,3 +391,13 @@ Phase12 synthetic restore evidence artifact: [15239713859](https://github.com/m5
 | Pint Format Report | [#428](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893363) | SUCCESS — changed-PHP check skipped because no PHP files changed; strict Pint inside Docker passed. |
 
 Phase12 synthetic restore artifact: [15242412617](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46094893352/artifacts/15242412617). IaC #31 remains latest applicable SUCCESS (30/30) on `dbd281c545f5a2da5a6816afccebd4d929a02b70`; no IaC paths changed. HTTP smoke remains manual/not run because no approved staging URL.
+
+## Latest docs-only verification — 28 November 2026
+
+On main SHA `7070350759253c4b245d2ec31992c9233c52f68c`:
+- Docker Validation [#685](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597232): SUCCESS; SQLite 151 tests/1,719 assertions, PostgreSQL 31 tests/546 assertions with one optional skip, S3Mock 1/8, encrypted full-schema CI restore, isolated rollback, trusted-main signing 17/17.
+- Security [#431](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597212): SUCCESS; Gitleaks and filesystem/image scan steps passed.
+- Authentication [#307](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597361): SUCCESS; SQLite 20/172 and PostgreSQL 4/99.
+- Pint [#429](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597204): SUCCESS; changed-PHP steps skipped because no PHP files changed; strict Pint in Docker passed.
+
+Docker artifacts: release bundle [15242974549](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597232/artifacts/15242974549), synthetic restore report [15243077633](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597232/artifacts/15243077633). Security reports: [15243606410](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46095597212/artifacts/15243606410). These are CI artifacts only, not production backup evidence.

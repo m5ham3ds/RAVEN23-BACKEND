@@ -252,3 +252,9 @@ Wellness يعيش في ملف مشترك ويعتمد ownership على owner_id�
 - عند fallback إلى login يدوي، mergeGuest يعالج guest owner فقط ولا يعيد ربط user:<firebase uid> القديم.
 
 هذا خطر حفظ بيانات مشروط بمستخدمي Firebase القدامى، وليس دليلًا على فقد بيانات حية. يجب إكمال عقد exchange/re-key واختبار اصطناعي لكل المخازن والـjournals قبل قبول cohort legacy.
+
+## 9. Phase12A — synthetic device merge and snapshot/delta acceptance
+
+The next provider-neutral workstream is specified in `phases/PHASE-12A-DEVICE-MERGE-AND-SNAPSHOT-ACCEPTANCE.md`. It covers confirmed and pending playlists, bookmark journals, legacy Firebase owner re-key, tombstone retention, idempotent ACK/replay, owner isolation, aggregate-only preflight manifests, and cross-store snapshot/delta boundaries.
+
+**Current status:** specification complete; client implementation and test execution pending. This does not close Phase12A, authorize changes to the Flutter repository, or open Phase12B/12C. Real source/target selection, backup, restore, delta capture, and cutover remain blocked by D-051 and explicit owner approval.
