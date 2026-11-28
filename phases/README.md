@@ -2,8 +2,8 @@
 
 > المستودع: m5ham3ds/RAVEN23-BACKEND  
 > الفرع الأساسي: main  
-> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a; latest main docs/CI SHA: be14f83568e5abd51a9628d21b4e8a0c55f23d13 (Docker #686/Security #432/Auth #308/Pint #430 all SUCCESS); IaC #31 remains SUCCESS on unchanged dbd281c — 28 November 2026
-> application/runtime note: all changes after runtime SHA 6750eac through current main SHA be14f83 are limited to phases/ documentation; application, routes, migrations, Docker, workflows and IaC are unchanged.
+> latest fully CI-verified runtime SHA: 6750eac566c513c4fc97951f1b80cb7f54cd0c0a; latest main docs/CI SHA: 72cebe78fb436a6036b7144ff3b0c31e542204a0 (Docker #687/Security #433/Auth #309/Pint #431 all SUCCESS); IaC #31 remains SUCCESS on unchanged dbd281c — 28 November 2026
+> application/runtime note: all changes after runtime SHA 6750eac through current main SHA 72cebe7 are limited to phases/ documentation; application, routes, migrations, Docker, workflows and IaC are unchanged.
 > الفرع التشغيلي الوحيد: main
 
 هذا المجلد هو المرجع الرسمي لخطة تطوير Backend، والأدوات، وقرارات التصميم، وقواعد المستخدم، وحالة كل مرحلة، وأدلة اكتمالها.
@@ -115,3 +115,7 @@ The guest/legacy-device merge acceptance specification is now documented at `PHA
 All four workflows on `be14f83568e5abd51a9628d21b4e8a0c55f23d13` passed: Docker #686, Security #432, Authentication #308 and Pint #430. Docker artifacts include synthetic restore report [15246550109](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46101471248/artifacts/15246550109) and release bundle [15245482428](https://github.com/m5ham3ds/RAVEN23-BACKEND/actions/runs/46101471248/artifacts/15245482428).
 
 The next design artifact is `PHASE-12A-FIREBASE-SESSION-EXCHANGE-CONTRACT.md`. It records the missing server route and safe account-linking requirements but does not implement Firebase authentication. Phase12A remains IN_PROGRESS; Phase12B/12C and Phase13B remain gated.
+
+## Phase12A private media handoff — 28 November 2026
+
+The new specification `PHASE-12A-PRIVATE-MEDIA-OBJECT-MIGRATION-AND-INTEGRITY.md` covers DB metadata/object-byte reconciliation, SHA-256 and byte-length verification, private visibility, orphan/missing object handling, queue/write deltas, and rollback/source-retention rules. It is design only. A live object inventory, copy verifier, provider integration, or actual media backup has not been performed.

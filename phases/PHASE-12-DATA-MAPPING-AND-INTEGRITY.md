@@ -385,3 +385,17 @@ The design requirements are captured in `phases/PHASE-12A-FIREBASE-SESSION-EXCHA
 A separate client-side retry blocker was identified: if the exchange succeeds but the local owner move fails, the next bridge run can see an existing Laravel session and finish the bridge without retrying the owner move. The app needs a durable pending/completed re-key state independent of authentication success.
 
 **No implementation is authorized or claimed here.** Firebase remains an unresolved legacy candidate; project/source approval, account-creation/linking policy, revoked/disabled-user checking, and persistence design must be agreed before a route or migration is added. The Flutter repository was reviewed read-only and not modified.
+
+## 16.6 Private user media objects outside PostgreSQL
+
+The Backend's `user_media` table stores metadata while object bytes live behind `PrivateObjectStorage`. The current repository config defaults `RAVEN23_PRIVATE_STORAGE_DISK` to `private_media`, a private local disk rooted at `storage/app/private/media`; an `s3` disk is configured but no deployment disk/provider has been observed. The actual runtime disk and object population remain UNKNOWN.
+
+The metadata/object contract and migration requirements are documented in `phases/PHASE-12A-PRIVATE-MEDIA-OBJECT-MIGRATION-AND-INTEGRITY.md`. Important implications:
+- PostgreSQL full-schema restore and data-export v3 do not contain the object bytes. Exported media metadata does not replace a binary backup.
+- Every media row must reconcile to exactly one private object. Compare the bytes' computed SHA-256 and length to `checksum_sha256` and `size_bytes`; current `listObjects` supplies key/last-modified only, so listing metadata is not sufficient.
+- Keys include numeric `user_id` and media UUID. Owner-ID changes require an explicit key mapping; do not rewrite keys by string substitution.
+- Missing objects, unreferenced objects, checksum mismatch, and owner-path mismatch are stop conditions. Orphan cleanup is not a migration tool.
+- Delete jobs are encrypted and dispatched after commit; a future snapshot must include pending deletes or a write barrier/delta contract.
+- Temporary signed download URLs are short-lived capabilities, not durable data; issue fresh URLs after an approved switch.
+
+The current SQLite Feature and PostgreSQL Integration tests exercise synthetic upload/download/checksum/owner access/signed expiry/quota/delete/orphan behavior. They do not prove an actual provider-side object backup or migration. No real object was listed, read, copied, or deleted in this review.

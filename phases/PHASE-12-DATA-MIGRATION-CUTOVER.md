@@ -264,3 +264,11 @@ The next provider-neutral workstream is specified in `phases/PHASE-12A-DEVICE-ME
 The client-expected exchange contract is now documented in `phases/PHASE-12A-FIREBASE-SESSION-EXCHANGE-CONTRACT.md`. The Backend currently lacks the route and a durable Firebase UID mapping; the Google verifier cannot validate Firebase tokens. Account linking by email alone is prohibited, and a client-side pending owner-rekey retry state is required before any successful exchange can be considered data-safe.
 
 This is a design handoff only. Do not implement/enable the route, choose a Firebase project, add credentials, or perform migration until the identity/source policy and owner approvals are explicit. It does not change 12B/12C status.
+
+## 11. Private media objects are a separate backup/restore domain
+
+PostgreSQL backup/restore is insufficient for user media: table `user_media` holds metadata, while the bytes are stored separately through `PrivateObjectStorage`. Before any real migration, reconcile every row with an object and verify byte length and SHA-256, owner path and private access. The current repository default is a local private disk; actual deployment disk/provider is not verified.
+
+The execution contract, synthetic test matrix, public-artifact privacy rules, and copy/read-back/rollback sequence are in `phases/PHASE-12A-PRIVATE-MEDIA-OBJECT-MIGRATION-AND-INTEGRITY.md`.
+
+No media inventory/copy was run in this work. Real source/target approval, provider decision, DB/object/queue delta handling, and source-retention period remain prerequisites; do not use orphan cleanup as a migration mechanism.
