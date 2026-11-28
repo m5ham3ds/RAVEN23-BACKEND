@@ -258,3 +258,9 @@ Wellness يعيش في ملف مشترك ويعتمد ownership على owner_id�
 The next provider-neutral workstream is specified in `phases/PHASE-12A-DEVICE-MERGE-AND-SNAPSHOT-ACCEPTANCE.md`. It covers confirmed and pending playlists, bookmark journals, legacy Firebase owner re-key, tombstone retention, idempotent ACK/replay, owner isolation, aggregate-only preflight manifests, and cross-store snapshot/delta boundaries.
 
 **Current status:** specification complete; client implementation and test execution pending. This does not close Phase12A, authorize changes to the Flutter repository, or open Phase12B/12C. Real source/target selection, backup, restore, delta capture, and cutover remain blocked by D-051 and explicit owner approval.
+
+## 10. Legacy Firebase session exchange — provider-neutral design handoff
+
+The client-expected exchange contract is now documented in `phases/PHASE-12A-FIREBASE-SESSION-EXCHANGE-CONTRACT.md`. The Backend currently lacks the route and a durable Firebase UID mapping; the Google verifier cannot validate Firebase tokens. Account linking by email alone is prohibited, and a client-side pending owner-rekey retry state is required before any successful exchange can be considered data-safe.
+
+This is a design handoff only. Do not implement/enable the route, choose a Firebase project, add credentials, or perform migration until the identity/source policy and owner approvals are explicit. It does not change 12B/12C status.

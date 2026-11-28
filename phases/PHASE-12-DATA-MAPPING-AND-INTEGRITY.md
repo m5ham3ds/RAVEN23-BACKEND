@@ -375,3 +375,13 @@ This supplements the field mapping above with explicit cases for:
 - aggregate-only device manifest and consistent snapshot/delta boundaries.
 
 Do not infer that these cases currently pass. The source review found that the client callback currently rekeys Wellness only and that Backend does not expose `POST /api/v1/auth/firebase/exchange`. Client implementation/tests belong to `m5ham3ds/RAVEN23`; no code change to that repository is part of this Backend documentation work.
+
+## 15. Legacy Firebase session exchange and owner mapping contract
+
+The Flutter client expects `POST /api/v1/auth/firebase/exchange` with a Firebase ID token and device metadata, then uses the returned Laravel session user ID as the target local owner. The Backend currently has no such route or Firebase UID mapping. The existing `GoogleIdTokenVerifier` validates a Google OAuth client audience and must not be reused for Firebase Secure Token JWTs. The current users schema has a dedicated `google_id`, not a Firebase identity key.
+
+The design requirements are captured in `phases/PHASE-12A-FIREBASE-SESSION-EXCHANGE-CONTRACT.md`: verify Firebase issuer/audience/signature and temporal claims against an approved project; persist a unique provider UID mapping separate from `google_id`; never auto-link by email or delete a guest without proof; issue the standard Sanctum session; redact all identity tokens/claims from logs; and fail closed on unresolved collisions.
+
+A separate client-side retry blocker was identified: if the exchange succeeds but the local owner move fails, the next bridge run can see an existing Laravel session and finish the bridge without retrying the owner move. The app needs a durable pending/completed re-key state independent of authentication success.
+
+**No implementation is authorized or claimed here.** Firebase remains an unresolved legacy candidate; project/source approval, account-creation/linking policy, revoked/disabled-user checking, and persistence design must be agreed before a route or migration is added. The Flutter repository was reviewed read-only and not modified.
